@@ -24,28 +24,29 @@ struct Token<'a> {
     literal: &'a str,
 }
 
-struct Lexer<'a> {
-    input: &'a str::Bytes,
+struct Lexer {
+    input: Vec<u8>,
     position: usize,
     read_position: usize,
-    ch: &'a u8,
+}
+impl Lexer {
+    fn ch(&self) -> u8 {
+        if self.read_position > self.input.len() {
+            return 0;
+        }
+        self.input[self.read_position]
+    }
 }
 
-impl Lexer<'_> {
+impl Lexer {
     fn new(input: String) -> Lexer {
         Lexer {
-            input: &input.bytes(),
+            input: input.into_bytes(),
             position: 0,
             read_position: 0,
-            ch: &input[0],
         }
     }
     fn read_char(&mut self) {
-        if self.read_position >= self.input.len() {
-            self.ch = 0;
-        } else {
-            self.ch = &self.input[self.read_position];
-        }
         self.position = self.read_position;
         self.read_position += 1;
     }
