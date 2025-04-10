@@ -1,6 +1,4 @@
-use core::str;
-use std::str;
-
+#[derive(Debug, Eq, PartialEq)]
 enum TokenType {
     STRING,
     INT,
@@ -19,9 +17,10 @@ enum TokenType {
     LET,
 }
 
-struct Token<'a> {
+#[derive(Debug, PartialEq, Eq)]
+struct Token {
     kind: TokenType,
-    literal: &'a str,
+    literal: String,
 }
 
 struct Lexer {
@@ -51,8 +50,19 @@ impl Lexer {
         self.read_position += 1;
     }
 
-    fn eat(&mut self) -> Token {
-        todo!()
+    fn next_token(&mut self) -> Token {
+        let token = match self.ch() {
+            b'=' => Token {
+                literal: self.ch().to_string(),
+                kind: TokenType::ASSIGN,
+            },
+            _ => {
+                todo!("Add additional");
+                unreachable!("Why am i here")
+            }
+        };
+        self.read_char();
+        token
     }
 }
 
@@ -62,32 +72,31 @@ fn test_eat_token() {
     let expected = vec![
         Token {
             kind: TokenType::ASSIGN,
-            literal: "=",
+            literal: "=".to_string(),
         },
         Token {
             kind: TokenType::PLUS,
-            literal: "+",
+            literal: "+".to_string(),
         },
         Token {
             kind: TokenType::LPAREN,
-            literal: "(",
+            literal: "(".to_string(),
         },
         Token {
             kind: TokenType::RPAREN,
-            literal: ")",
+            literal: ")".to_string(),
         },
         Token {
             kind: TokenType::LBRACE,
-            literal: "{",
+            literal: "{".to_string(),
         },
         Token {
             kind: TokenType::RBRACE,
-            literal: "}",
+            literal: "}".to_string(),
         },
     ];
-    let lexer = Lexer::new(input);
-    for (i, tt) in input.iter().enumerate() {
-        let tok = eat();
-        assert_eq!(tok, expected[i], "Token did not equal target")
+    let mut lexer = Lexer::new(input);
+    for i in 0..expected.len() {
+        assert_eq!(lexer.next_token(), expected[i])
     }
 }
