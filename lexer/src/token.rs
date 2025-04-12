@@ -82,6 +82,10 @@ impl Lexer {
                 kind: TokenType::RBRACE,
                 literal: self.ch_str(),
             },
+            0 => Token {
+                kind: TokenType::EOF,
+                literal: String::new(),
+            },
             _ => {
                 unreachable!("Why am i here")
             }
