@@ -35,6 +35,12 @@ impl Lexer {
         }
         self.input[self.read_position]
     }
+
+    fn ch_str(&self) -> String {
+        std::str::from_utf8(&[self.ch()])
+            .expect("Could not read byte")
+            .to_string()
+    }
 }
 
 impl Lexer {
@@ -53,11 +59,30 @@ impl Lexer {
     fn next_token(&mut self) -> Token {
         let token = match self.ch() {
             b'=' => Token {
-                literal: self.ch().to_string(),
                 kind: TokenType::ASSIGN,
+                literal: self.ch_str(),
+            },
+            b'+' => Token {
+                kind: TokenType::PLUS,
+                literal: self.ch_str(),
+            },
+            b'(' => Token {
+                kind: TokenType::LPAREN,
+                literal: self.ch_str(),
+            },
+            b')' => Token {
+                kind: TokenType::RPAREN,
+                literal: self.ch_str(),
+            },
+            b'{' => Token {
+                kind: TokenType::LBRACE,
+                literal: self.ch_str(),
+            },
+            b'}' => Token {
+                kind: TokenType::RBRACE,
+                literal: self.ch_str(),
             },
             _ => {
-                todo!("Add additional");
                 unreachable!("Why am i here")
             }
         };
@@ -67,7 +92,7 @@ impl Lexer {
 }
 
 #[test]
-fn test_eat_token() {
+fn test_next_token() {
     let input = String::from("=+(){},;");
     let expected = vec![
         Token {
