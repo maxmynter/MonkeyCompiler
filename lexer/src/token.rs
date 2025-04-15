@@ -41,9 +41,7 @@ impl Lexer {
             .expect("Could not read byte")
             .to_string()
     }
-}
 
-impl Lexer {
     fn new(input: String) -> Lexer {
         Lexer {
             input: input.into_bytes(),
@@ -51,9 +49,25 @@ impl Lexer {
             read_position: 0,
         }
     }
+
     fn read_char(&mut self) {
         self.position = self.read_position;
         self.read_position += 1;
+    }
+
+    fn is_letter(ch: u8) -> bool {
+        b'a' <= ch && ch <= b'z' || b'A' <= ch && ch <= b'Z' || ch == b'_'
+    }
+
+    fn read_identifier(&mut self) -> String {
+        let position = self.position.clone();
+
+        while Lexer::is_letter(self.ch()) {
+            self.read_char();
+        }
+        std::str::from_utf8(&self.input[position..self.position])
+            .expect("Could not parse")
+            .to_string()
     }
 
     fn next_token(&mut self) -> Token {
@@ -87,7 +101,8 @@ impl Lexer {
                 literal: String::new(),
             },
             _ => {
-                unreachable!("Why am i here")
+                // Handle is letter
+                todo!()
             }
         };
         self.read_char();
