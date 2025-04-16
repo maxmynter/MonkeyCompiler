@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 #[derive(Debug, Eq, PartialEq)]
 enum TokenType {
     STRING,
@@ -15,6 +17,24 @@ enum TokenType {
     RBRACE,
     FUNCTION,
     LET,
+}
+
+struct Keywords {}
+impl Keywords {
+    fn get(self, literal: &str) -> Option<TokenType> {
+        match literal {
+            "fn" => Some(TokenType::FUNCTION),
+            "let" => Some(TokenType::LET),
+            _ => None,
+        }
+    }
+    fn lookup_ident(self, ident: &str) -> TokenType {
+        if let Some(ident) = self.get(ident) {
+            return ident;
+        } else {
+            return TokenType::IDENT;
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -101,8 +121,17 @@ impl Lexer {
                 literal: String::new(),
             },
             _ => {
-                // Handle is letter
-                todo!()
+                if Lexer::is_letter(self.ch()) {
+                    Token {
+                        kind: TokenType::IDENT,
+                        literal: self.read_identifier(),
+                    }
+                } else {
+                    Token {
+                        kind: TokenType::ILLEGAL,
+                        literal: self.ch().to_string(),
+                    }
+                }
             }
         };
         self.read_char();
