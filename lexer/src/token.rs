@@ -102,6 +102,20 @@ impl Lexer {
         }
     }
 
+    fn is_digit(ch: u8) -> bool {
+        b'0' <= ch && ch <= b'9'
+    }
+
+    fn read_number(&mut self) -> String {
+        let position = self.position.clone();
+        while Lexer::is_digit(self.ch()) {
+            self.read_char();
+        }
+        std::str::from_utf8(&self.input[position..self.position])
+            .expect("Could not parse")
+            .to_string()
+    }
+
     fn next_token(&mut self) -> Token {
         self.skip_whitespace();
         let token = match self.ch() {
@@ -139,6 +153,12 @@ impl Lexer {
                     Token {
                         kind: Keywords::lookup_ident(&identifier),
                         literal: identifier,
+                    }
+                } else if Lexer::is_digit(self.ch()) {
+                    let number = self.read_number();
+                    Token {
+                        kind: TokenType::INT,
+                        literal: number,
                     }
                 } else {
                     Token {
