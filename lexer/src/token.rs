@@ -21,15 +21,15 @@ enum TokenType {
 
 struct Keywords {}
 impl Keywords {
-    fn get(self, literal: &str) -> Option<TokenType> {
+    fn get(literal: &str) -> Option<TokenType> {
         match literal {
             "fn" => Some(TokenType::FUNCTION),
             "let" => Some(TokenType::LET),
             _ => None,
         }
     }
-    fn lookup_ident(self, ident: &str) -> TokenType {
-        if let Some(ident) = self.get(ident) {
+    fn lookup_ident(ident: &str) -> TokenType {
+        if let Some(ident) = Keywords::get(ident) {
             return ident;
         } else {
             return TokenType::IDENT;
@@ -53,7 +53,7 @@ impl Lexer {
         if self.read_position > self.input.len() {
             return 0;
         }
-        self.input[self.read_position]
+        self.input[self.position]
     }
 
     fn ch_str(&self) -> String {
@@ -63,11 +63,13 @@ impl Lexer {
     }
 
     fn new(input: String) -> Lexer {
-        Lexer {
+        let mut lexer = Lexer {
             input: input.into_bytes(),
             position: 0,
             read_position: 0,
-        }
+        };
+        lexer.read_char();
+        lexer
     }
 
     fn read_char(&mut self) {
@@ -122,14 +124,15 @@ impl Lexer {
             },
             _ => {
                 if Lexer::is_letter(self.ch()) {
+                    let identifier = self.read_identifier();
                     Token {
-                        kind: TokenType::IDENT,
-                        literal: self.read_identifier(),
+                        kind: Keywords::lookup_ident(&identifier),
+                        literal: identifier,
                     }
                 } else {
                     Token {
                         kind: TokenType::ILLEGAL,
-                        literal: self.ch().to_string(),
+                        literal: self.ch_str(),
                     }
                 }
             }
@@ -176,14 +179,14 @@ fn test_next_token() {
 
 #[test]
 fn test_parse_code() {
-    let input = "
-let five = 5;
+    let input = String::from(
+        "let five = 5;
 let ten = 10;
 let add = fn(x, y) {
     x + y;
 };
-let result = add(five, ten);
-";
+let result = add(five, ten);",
+    );
     let expected = vec![
         // let five = 5;
         Token {
@@ -341,4 +344,8 @@ let result = add(five, ten);
             literal: "".to_string(),
         },
     ];
+    let mut lexer = Lexer::new(input);
+    for i in 0..expected.len() {
+        assert_eq!(lexer.next_token(), expected[i])
+    }
 }
