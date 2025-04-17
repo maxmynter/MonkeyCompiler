@@ -92,7 +92,18 @@ impl Lexer {
             .to_string()
     }
 
+    fn is_whitespace(ch: u8) -> bool {
+        ch == b' ' || ch == b'\t' || ch == b'\n' || ch == b'\r'
+    }
+
+    fn skip_whitespace(&mut self) {
+        while Lexer::is_whitespace(self.ch()) {
+            self.read_char();
+        }
+    }
+
     fn next_token(&mut self) -> Token {
+        self.skip_whitespace();
         let token = match self.ch() {
             b'=' => Token {
                 kind: TokenType::ASSIGN,
