@@ -11,12 +11,18 @@ enum TokenType {
     EOF,
     ASSIGN,
     PLUS,
+    MINUS,
     COMMA,
     SEMICOLON,
     LPAREN,
     RPAREN,
     LBRACE,
     RBRACE,
+    BANG,
+    ASTERISK,
+    SLASH,
+    LT,
+    GT,
     FUNCTION,
     LET,
 }
@@ -26,12 +32,18 @@ lazy_static! {
         [
             ('=', TokenType::ASSIGN),
             ('+', TokenType::PLUS),
+            ('-', TokenType::MINUS),
             ('(', TokenType::LPAREN),
             (')', TokenType::RPAREN),
             ('{', TokenType::LBRACE),
             ('}', TokenType::RBRACE),
             (';', TokenType::SEMICOLON),
             (',', TokenType::COMMA),
+            ('!', TokenType::BANG),
+            ('*', TokenType::ASTERISK),
+            ('/', TokenType::SLASH),
+            ('<', TokenType::LT),
+            ('>', TokenType::GT),
         ]
         .iter()
         .cloned()
@@ -242,7 +254,11 @@ fn test_parse_code() {
         let add = fn(x, y) {
             x + y;
         };
-        let result = add(five, ten);",
+        let result = add(five, ten);
+
+        !-/*5;
+        5 < 10 > 5;
+        ",
     );
     let expected = vec![
         // let five = 5;
@@ -395,6 +411,56 @@ fn test_parse_code() {
             kind: TokenType::SEMICOLON,
             literal: ";",
         },
+        // !-/*5;
+        Token {
+            kind: TokenType::BANG,
+            literal: "!",
+        },
+        Token {
+            kind: TokenType::MINUS,
+            literal: "-",
+        },
+        Token {
+            kind: TokenType::SLASH,
+            literal: "/",
+        },
+        Token {
+            kind: TokenType::ASTERISK,
+            literal: "*",
+        },
+        Token {
+            kind: TokenType::INT,
+            literal: "5",
+        },
+        Token {
+            kind: TokenType::SEMICOLON,
+            literal: ";",
+        },
+        // 5 < 10 > 5;
+        Token {
+            kind: TokenType::INT,
+            literal: "5",
+        },
+        Token {
+            kind: TokenType::LT,
+            literal: "<",
+        },
+        Token {
+            kind: TokenType::INT,
+            literal: "10",
+        },
+        Token {
+            kind: TokenType::GT,
+            literal: ">",
+        },
+        Token {
+            kind: TokenType::INT,
+            literal: "5",
+        },
+        Token {
+            kind: TokenType::SEMICOLON,
+            literal: ";",
+        },
         // EOF
         Token {
             kind: TokenType::EOF,
@@ -404,7 +470,7 @@ fn test_parse_code() {
     let mut lexer = Lexer::new(&input);
     for i in 0..expected.len() {
         let tok = lexer.next_token();
-        println!("{:?}-:-{:?}", &tok, &expected[i]);
-        assert_eq!(tok, expected[i])
+        println!("{:?} -|- {:?}", tok, expected[i]);
+        assert_eq!(tok, expected[i]);
     }
 }
