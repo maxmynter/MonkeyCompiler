@@ -71,13 +71,13 @@ struct Keywords {}
 impl Keywords {
     fn get(literal: &str) -> Option<TokenType> {
         match literal {
-            "fn" => Some(TokenType::FUNCTION),
-            "let" => Some(TokenType::LET),
-            "if" => Some(TokenType::IF),
-            "else" => Some(TokenType::ELSE),
-            "return" => Some(TokenType::RETURN),
-            "true" => Some(TokenType::TRUE),
-            "false" => Some(TokenType::FALSE),
+            "slay" => Some(TokenType::FUNCTION),
+            "hit" => Some(TokenType::LET),
+            "frfr" => Some(TokenType::IF),
+            "sike" => Some(TokenType::ELSE),
+            "yeet" => Some(TokenType::RETURN),
+            "fax" => Some(TokenType::TRUE),
+            "cap" => Some(TokenType::FALSE),
             _ => None,
         }
     }
@@ -281,20 +281,20 @@ fn test_next_token() {
 #[test]
 fn test_parse_code() {
     let input = String::from(
-        "let five = 5;
-        let ten = 10;
-        let add = fn(x, y) {
+        "hit five = 5;
+        hit ten = 10;
+        hit add = slay(x, y) {
             x + y;
         };
-        let result = add(five, ten);
+        hit result = add(five, ten);
 
         !-/*5;
         5 < 10 > 5;
 
-        if (5 < 10) {
-        return true;
-        } else {
-        return false;
+        frfr (5 < 10) {
+        yeet fax;
+        } sike {
+        yeet cap;
         }
 
         10 == 10;
@@ -305,7 +305,7 @@ fn test_parse_code() {
         // let five = 5;
         Token {
             kind: TokenType::LET,
-            literal: "let",
+            literal: "hit",
         },
         Token {
             kind: TokenType::IDENT,
@@ -326,7 +326,7 @@ fn test_parse_code() {
         // let ten = 10;
         Token {
             kind: TokenType::LET,
-            literal: "let",
+            literal: "hit",
         },
         Token {
             kind: TokenType::IDENT,
@@ -347,7 +347,7 @@ fn test_parse_code() {
         // let add = fn(x, y) {
         Token {
             kind: TokenType::LET,
-            literal: "let",
+            literal: "hit",
         },
         Token {
             kind: TokenType::IDENT,
@@ -359,7 +359,7 @@ fn test_parse_code() {
         },
         Token {
             kind: TokenType::FUNCTION,
-            literal: "fn",
+            literal: "slay",
         },
         Token {
             kind: TokenType::LPAREN,
@@ -414,7 +414,7 @@ fn test_parse_code() {
         // let result = add(five, ten);
         Token {
             kind: TokenType::LET,
-            literal: "let",
+            literal: "hit",
         },
         Token {
             kind: TokenType::IDENT,
@@ -505,7 +505,7 @@ fn test_parse_code() {
         // if (5 < 10) {
         Token {
             kind: TokenType::IF,
-            literal: "if",
+            literal: "frfr",
         },
         Token {
             kind: TokenType::LPAREN,
@@ -534,11 +534,11 @@ fn test_parse_code() {
         // return true;
         Token {
             kind: TokenType::RETURN,
-            literal: "return",
+            literal: "yeet",
         },
         Token {
             kind: TokenType::TRUE,
-            literal: "true",
+            literal: "fax",
         },
         Token {
             kind: TokenType::SEMICOLON,
@@ -551,7 +551,7 @@ fn test_parse_code() {
         },
         Token {
             kind: TokenType::ELSE,
-            literal: "else",
+            literal: "sike",
         },
         Token {
             kind: TokenType::LBRACE,
@@ -560,11 +560,11 @@ fn test_parse_code() {
         // return false;
         Token {
             kind: TokenType::RETURN,
-            literal: "return",
+            literal: "yeet",
         },
         Token {
             kind: TokenType::FALSE,
-            literal: "false",
+            literal: "cap",
         },
         Token {
             kind: TokenType::SEMICOLON,
