@@ -38,33 +38,29 @@ impl Keywords {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-struct Token {
+struct Token<'a> {
     kind: TokenType,
-    literal: String,
+    literal: &'a str,
 }
 
-struct Lexer {
-    input: Vec<u8>,
+struct Lexer<'a> {
+    input: &'a str,
+    chars: Vec<char>,
     position: usize,
     read_position: usize,
 }
-impl Lexer {
-    fn ch(&self) -> u8 {
+impl<'a> Lexer<'a> {
+    fn ch(&self) -> char {
         if self.read_position > self.input.len() {
-            return 0;
+            return '\0';
         }
-        self.input[self.position]
+        self.chars[self.position]
     }
 
-    fn ch_str(&self) -> String {
-        std::str::from_utf8(&[self.ch()])
-            .expect("Could not read byte")
-            .to_string()
-    }
-
-    fn new(input: String) -> Lexer {
+    fn new(input: &'a str) -> Lexer {
         let mut lexer = Lexer {
-            input: input.into_bytes(),
+            input,
+            chars: input.chars().collect(),
             position: 0,
             read_position: 0,
         };
@@ -72,37 +68,46 @@ impl Lexer {
         lexer
     }
 
-    fn read_char(&mut self) -> String {
-        let char = &self.input[self.position..self.read_position];
+    fn read_char(&mut self) -> &'a str {
+        let start_byte = self
+            .input
+            .char_indices()
+            .nth(self.position)
+            .map_or(self.input.len(), |(i, _)| i);
+        let end_byte = if self.position + 1 < self.chars.len() {
+            self.input
+                .char_indices()
+                .nth(self.position + 1)
+                .map_or(self.input.len(), |(i, _)| i)
+        } else {
+            self.input.len()
+        };
+        let char_slice = &self.input[start_byte..end_byte];
         self.position = self.read_position;
         self.read_position += 1;
-        std::str::from_utf8(&char)
-            .expect("Could not read char")
-            .to_string()
+        char_slice
     }
 
-    fn is_letter(ch: u8) -> bool {
-        b'a' <= ch && ch <= b'z' || b'A' <= ch && ch <= b'Z' || ch == b'_'
+    fn is_letter(ch: char) -> bool {
+        ch.is_alphabetic() || ch == '_'
     }
 
-    fn read_molecule<F>(&mut self, predicate: F) -> String
+    fn read_molecule<F>(&mut self, predicate: F) -> &str
     where
-        F: Fn(u8) -> bool,
+        F: Fn(char) -> bool,
     {
         let position = self.position.clone();
         while predicate(self.ch()) {
             self.read_char();
         }
-        std::str::from_utf8(&self.input[position..self.position])
-            .expect("Could not parse")
-            .to_string()
+        &self.input[position..self.position]
     }
-    fn read_identifier(&mut self) -> String {
+    fn read_identifier(&mut self) -> &str {
         self.read_molecule(Lexer::is_letter)
     }
 
-    fn is_whitespace(ch: u8) -> bool {
-        ch == b' ' || ch == b'\t' || ch == b'\n' || ch == b'\r'
+    fn is_whitespace(ch: char) -> bool {
+        ch.is_whitespace()
     }
 
     fn skip_whitespace(&mut self) {
@@ -111,40 +116,39 @@ impl Lexer {
         }
     }
 
-    fn is_digit(ch: u8) -> bool {
-        b'0' <= ch && ch <= b'9'
+    fn is_digit(ch: char) -> bool {
+        ch.is_digit(10)
     }
 
-    fn read_number(&mut self) -> String {
+    fn read_number(&mut self) -> &str {
         self.read_molecule(Lexer::is_digit)
     }
 
     fn next_token(&mut self) -> Token {
         self.skip_whitespace();
 
-        let atoms: HashMap<u8, TokenType> = [
-            (b'=', TokenType::ASSIGN),
-            (b'+', TokenType::PLUS),
-            (b'(', TokenType::LPAREN),
-            (b')', TokenType::RPAREN),
-            (b'{', TokenType::LBRACE),
-            (b'}', TokenType::RBRACE),
-            (b';', TokenType::SEMICOLON),
-            (b',', TokenType::COMMA),
+        let atoms: HashMap<char, TokenType> = [
+            ('=', TokenType::ASSIGN),
+            ('+', TokenType::PLUS),
+            ('(', TokenType::LPAREN),
+            (')', TokenType::RPAREN),
+            ('{', TokenType::LBRACE),
+            ('}', TokenType::RBRACE),
+            (';', TokenType::SEMICOLON),
+            (',', TokenType::COMMA),
         ]
         .iter()
         .cloned()
         .collect();
         let token = if let Some(atom) = atoms.get(&self.ch()) {
-            let char_str = self.read_char();
             Token {
                 kind: atom.clone(),
-                literal: char_str,
+                literal: self.read_char(),
             }
-        } else if self.ch() == 0 {
+        } else if self.ch() == '\0' {
             Token {
                 kind: TokenType::EOF,
-                literal: String::new(),
+                literal: "",
             }
         } else if Lexer::is_letter(self.ch()) {
             let identifier = self.read_identifier();
@@ -161,7 +165,7 @@ impl Lexer {
         } else {
             Token {
                 kind: TokenType::ILLEGAL,
-                literal: self.ch_str(),
+                literal: self.read_char(),
             }
         };
         token
@@ -174,30 +178,30 @@ fn test_next_token() {
     let expected = vec![
         Token {
             kind: TokenType::ASSIGN,
-            literal: "=".to_string(),
+            literal: "=",
         },
         Token {
             kind: TokenType::PLUS,
-            literal: "+".to_string(),
+            literal: "+",
         },
         Token {
             kind: TokenType::LPAREN,
-            literal: "(".to_string(),
+            literal: "(",
         },
         Token {
             kind: TokenType::RPAREN,
-            literal: ")".to_string(),
+            literal: ")",
         },
         Token {
             kind: TokenType::LBRACE,
-            literal: "{".to_string(),
+            literal: "{",
         },
         Token {
             kind: TokenType::RBRACE,
-            literal: "}".to_string(),
+            literal: "}",
         },
     ];
-    let mut lexer = Lexer::new(input);
+    let mut lexer = Lexer::new(&input);
     for i in 0..expected.len() {
         assert_eq!(lexer.next_token(), expected[i])
     }
@@ -217,160 +221,160 @@ fn test_parse_code() {
         // let five = 5;
         Token {
             kind: TokenType::LET,
-            literal: "let".to_string(),
+            literal: "let",
         },
         Token {
             kind: TokenType::IDENT,
-            literal: "five".to_string(),
+            literal: "five",
         },
         Token {
             kind: TokenType::ASSIGN,
-            literal: "=".to_string(),
+            literal: "=",
         },
         Token {
             kind: TokenType::INT,
-            literal: "5".to_string(),
+            literal: "5",
         },
         Token {
             kind: TokenType::SEMICOLON,
-            literal: ";".to_string(),
+            literal: ";",
         },
         // let ten = 10;
         Token {
             kind: TokenType::LET,
-            literal: "let".to_string(),
+            literal: "let",
         },
         Token {
             kind: TokenType::IDENT,
-            literal: "ten".to_string(),
+            literal: "ten",
         },
         Token {
             kind: TokenType::ASSIGN,
-            literal: "=".to_string(),
+            literal: "=",
         },
         Token {
             kind: TokenType::INT,
-            literal: "10".to_string(),
+            literal: "10",
         },
         Token {
             kind: TokenType::SEMICOLON,
-            literal: ";".to_string(),
+            literal: ";",
         },
         // let add = fn(x, y) {
         Token {
             kind: TokenType::LET,
-            literal: "let".to_string(),
+            literal: "let",
         },
         Token {
             kind: TokenType::IDENT,
-            literal: "add".to_string(),
+            literal: "add",
         },
         Token {
             kind: TokenType::ASSIGN,
-            literal: "=".to_string(),
+            literal: "=",
         },
         Token {
             kind: TokenType::FUNCTION,
-            literal: "fn".to_string(),
+            literal: "fn",
         },
         Token {
             kind: TokenType::LPAREN,
-            literal: "(".to_string(),
+            literal: "(",
         },
         Token {
             kind: TokenType::IDENT,
-            literal: "x".to_string(),
+            literal: "x",
         },
         Token {
             kind: TokenType::COMMA,
-            literal: ",".to_string(),
+            literal: ",",
         },
         Token {
             kind: TokenType::IDENT,
-            literal: "y".to_string(),
+            literal: "y",
         },
         Token {
             kind: TokenType::RPAREN,
-            literal: ")".to_string(),
+            literal: ")",
         },
         Token {
             kind: TokenType::LBRACE,
-            literal: "{".to_string(),
+            literal: "{",
         },
         // x + y;
         Token {
             kind: TokenType::IDENT,
-            literal: "x".to_string(),
+            literal: "x",
         },
         Token {
             kind: TokenType::PLUS,
-            literal: "+".to_string(),
+            literal: "+",
         },
         Token {
             kind: TokenType::IDENT,
-            literal: "y".to_string(),
+            literal: "y",
         },
         Token {
             kind: TokenType::SEMICOLON,
-            literal: ";".to_string(),
+            literal: ";",
         },
         // };
         Token {
             kind: TokenType::RBRACE,
-            literal: "}".to_string(),
+            literal: "}",
         },
         Token {
             kind: TokenType::SEMICOLON,
-            literal: ";".to_string(),
+            literal: ";",
         },
         // let result = add(five, ten);
         Token {
             kind: TokenType::LET,
-            literal: "let".to_string(),
+            literal: "let",
         },
         Token {
             kind: TokenType::IDENT,
-            literal: "result".to_string(),
+            literal: "result",
         },
         Token {
             kind: TokenType::ASSIGN,
-            literal: "=".to_string(),
+            literal: "=",
         },
         Token {
             kind: TokenType::IDENT,
-            literal: "add".to_string(),
+            literal: "add",
         },
         Token {
             kind: TokenType::LPAREN,
-            literal: "(".to_string(),
+            literal: "(",
         },
         Token {
             kind: TokenType::IDENT,
-            literal: "five".to_string(),
+            literal: "five",
         },
         Token {
             kind: TokenType::COMMA,
-            literal: ",".to_string(),
+            literal: ",",
         },
         Token {
             kind: TokenType::IDENT,
-            literal: "ten".to_string(),
+            literal: "ten",
         },
         Token {
             kind: TokenType::RPAREN,
-            literal: ")".to_string(),
+            literal: ")",
         },
         Token {
             kind: TokenType::SEMICOLON,
-            literal: ";".to_string(),
+            literal: ";",
         },
         // EOF
         Token {
             kind: TokenType::EOF,
-            literal: "".to_string(),
+            literal: "",
         },
     ];
-    let mut lexer = Lexer::new(input);
+    let mut lexer = Lexer::new(&input);
     for i in 0..expected.len() {
         let tok = lexer.next_token();
         println!("{:?}-:-{:?}", &tok, &expected[i]);
