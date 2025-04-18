@@ -23,8 +23,15 @@ enum TokenType {
     SLASH,
     LT,
     GT,
+    EQ,
+    UNEQ,
     FUNCTION,
     LET,
+    IF,
+    ELSE,
+    RETURN,
+    TRUE,
+    FALSE,
 }
 
 lazy_static! {
@@ -51,12 +58,26 @@ lazy_static! {
     };
 }
 
+lazy_static! {
+    static ref TWO_CHAR_ATOMS: HashMap<&'static str, TokenType> = {
+        let mut m = HashMap::new();
+        m.insert("==", TokenType::EQ);
+        m.insert("!=", TokenType::UNEQ);
+        m
+    };
+}
+
 struct Keywords {}
 impl Keywords {
     fn get(literal: &str) -> Option<TokenType> {
         match literal {
             "fn" => Some(TokenType::FUNCTION),
             "let" => Some(TokenType::LET),
+            "if" => Some(TokenType::IF),
+            "else" => Some(TokenType::ELSE),
+            "return" => Some(TokenType::RETURN),
+            "true" => Some(TokenType::TRUE),
+            "false" => Some(TokenType::FALSE),
             _ => None,
         }
     }
@@ -67,6 +88,11 @@ impl Keywords {
             TokenType::IDENT
         }
     }
+}
+
+enum ReadAtomResult<'a> {
+    TwoChar(TokenType, &'a str),
+    OneChar(TokenType, &'a str),
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -91,6 +117,21 @@ impl<'a> Lexer<'a> {
         };
         lexer.eat_symbol();
         lexer
+    }
+
+    fn read_atom(&mut self) -> ReadAtomResult<'a> {
+        let start_pos = self.position;
+        if (self.ch == '=' || self.ch == '!') && self.peek_symbol() == '=' {
+            self.eat_symbol();
+            self.eat_symbol();
+            let two_char = &self.input[start_pos..self.position];
+            ReadAtomResult::TwoChar(TWO_CHAR_ATOMS[two_char].clone(), two_char)
+        } else {
+            let current_char = self.ch.clone();
+            self.eat_symbol();
+            let one_char = &self.input[start_pos..self.position];
+            ReadAtomResult::OneChar(ATOMS[&current_char].clone(), one_char)
+        }
     }
 
     fn eat_symbol(&mut self) {
@@ -154,13 +195,6 @@ impl<'a> Lexer<'a> {
         self.read_molecule(Lexer::is_digit)
     }
 
-    fn read_symbol(&mut self) -> &str {
-        let literal_start = self.position;
-        let literal_end = self.position + self.ch.len_utf8();
-        self.eat_symbol();
-        &self.input[literal_start..literal_end]
-    }
-
     fn next_token(&mut self) -> Token {
         self.skip_whitespace();
         let token = match self.ch {
@@ -168,13 +202,10 @@ impl<'a> Lexer<'a> {
                 kind: TokenType::EOF,
                 literal: "",
             },
-            ch if ATOMS.contains_key(&ch) => {
-                let symbol = self.read_symbol();
-                Token {
-                    kind: ATOMS[&ch].clone(),
-                    literal: symbol,
-                }
-            }
+            ch if ATOMS.contains_key(&ch) => match self.read_atom() {
+                ReadAtomResult::TwoChar(kind, literal) => Token { kind, literal },
+                ReadAtomResult::OneChar(kind, literal) => Token { kind, literal },
+            },
             ch if Lexer::is_letter(ch) => {
                 let identifier = self.read_identifier();
                 Token {
@@ -258,6 +289,15 @@ fn test_parse_code() {
 
         !-/*5;
         5 < 10 > 5;
+
+        if (5 < 10) {
+        return true;
+        } else {
+        return false;
+        }
+
+        10 == 10;
+        10 != 9;
         ",
     );
     let expected = vec![
@@ -456,6 +496,113 @@ fn test_parse_code() {
         Token {
             kind: TokenType::INT,
             literal: "5",
+        },
+        Token {
+            kind: TokenType::SEMICOLON,
+            literal: ";",
+        },
+        // if (5 < 10) {
+        Token {
+            kind: TokenType::IF,
+            literal: "if",
+        },
+        Token {
+            kind: TokenType::LPAREN,
+            literal: "(",
+        },
+        Token {
+            kind: TokenType::INT,
+            literal: "5",
+        },
+        Token {
+            kind: TokenType::LT,
+            literal: "<",
+        },
+        Token {
+            kind: TokenType::INT,
+            literal: "10",
+        },
+        Token {
+            kind: TokenType::RPAREN,
+            literal: ")",
+        },
+        Token {
+            kind: TokenType::LBRACE,
+            literal: "{",
+        },
+        // return true;
+        Token {
+            kind: TokenType::RETURN,
+            literal: "return",
+        },
+        Token {
+            kind: TokenType::TRUE,
+            literal: "true",
+        },
+        Token {
+            kind: TokenType::SEMICOLON,
+            literal: ";",
+        },
+        // } else {
+        Token {
+            kind: TokenType::RBRACE,
+            literal: "}",
+        },
+        Token {
+            kind: TokenType::ELSE,
+            literal: "else",
+        },
+        Token {
+            kind: TokenType::LBRACE,
+            literal: "{",
+        },
+        // return false;
+        Token {
+            kind: TokenType::RETURN,
+            literal: "return",
+        },
+        Token {
+            kind: TokenType::FALSE,
+            literal: "false",
+        },
+        Token {
+            kind: TokenType::SEMICOLON,
+            literal: ";",
+        },
+        // }
+        Token {
+            kind: TokenType::RBRACE,
+            literal: "}",
+        },
+        // 10 == 10;
+        Token {
+            kind: TokenType::INT,
+            literal: "10",
+        },
+        Token {
+            kind: TokenType::EQ,
+            literal: "==",
+        },
+        Token {
+            kind: TokenType::INT,
+            literal: "10",
+        },
+        Token {
+            kind: TokenType::SEMICOLON,
+            literal: ";",
+        },
+        // 10 != 9;
+        Token {
+            kind: TokenType::INT,
+            literal: "10",
+        },
+        Token {
+            kind: TokenType::UNEQ,
+            literal: "!=",
+        },
+        Token {
+            kind: TokenType::INT,
+            literal: "9",
         },
         Token {
             kind: TokenType::SEMICOLON,
