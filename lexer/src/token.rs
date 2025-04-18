@@ -1,3 +1,4 @@
+use lazy_static::lazy_static;
 use std::collections::HashMap;
 
 #[derive(Debug, Eq, PartialEq, Clone)]
@@ -17,6 +18,24 @@ enum TokenType {
     RBRACE,
     FUNCTION,
     LET,
+}
+
+lazy_static! {
+    static ref ATOMS: HashMap<char, TokenType> = {
+        [
+            ('=', TokenType::ASSIGN),
+            ('+', TokenType::PLUS),
+            ('(', TokenType::LPAREN),
+            (')', TokenType::RPAREN),
+            ('{', TokenType::LBRACE),
+            ('}', TokenType::RBRACE),
+            (';', TokenType::SEMICOLON),
+            (',', TokenType::COMMA),
+        ]
+        .iter()
+        .cloned()
+        .collect()
+    };
 }
 
 struct Keywords {}
@@ -127,20 +146,7 @@ impl<'a> Lexer<'a> {
     fn next_token(&mut self) -> Token {
         self.skip_whitespace();
 
-        let atoms: HashMap<char, TokenType> = [
-            ('=', TokenType::ASSIGN),
-            ('+', TokenType::PLUS),
-            ('(', TokenType::LPAREN),
-            (')', TokenType::RPAREN),
-            ('{', TokenType::LBRACE),
-            ('}', TokenType::RBRACE),
-            (';', TokenType::SEMICOLON),
-            (',', TokenType::COMMA),
-        ]
-        .iter()
-        .cloned()
-        .collect();
-        let token = if let Some(atom) = atoms.get(&self.ch()) {
+        let token = if let Some(atom) = ATOMS.get(&self.ch()) {
             Token {
                 kind: atom.clone(),
                 literal: self.eat_symbol(),
