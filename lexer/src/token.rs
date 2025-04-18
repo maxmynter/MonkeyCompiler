@@ -119,18 +119,24 @@ impl<'a> Lexer<'a> {
         lexer
     }
 
-    fn read_atom(&mut self) -> ReadAtomResult<'a> {
+    fn read_atom(&mut self) -> Token {
         let start_pos = self.position;
         if (self.ch == '=' || self.ch == '!') && self.peek_symbol() == '=' {
             self.eat_symbol();
             self.eat_symbol();
             let two_char = &self.input[start_pos..self.position];
-            ReadAtomResult::TwoChar(TWO_CHAR_ATOMS[two_char].clone(), two_char)
+            Token {
+                kind: TWO_CHAR_ATOMS[two_char].clone(),
+                literal: two_char,
+            }
         } else {
             let current_char = self.ch.clone();
             self.eat_symbol();
             let one_char = &self.input[start_pos..self.position];
-            ReadAtomResult::OneChar(ATOMS[&current_char].clone(), one_char)
+            Token {
+                kind: ATOMS[&current_char].clone(),
+                literal: one_char,
+            }
         }
     }
 
@@ -163,7 +169,7 @@ impl<'a> Lexer<'a> {
         ch.is_alphabetic() || ch == '_'
     }
 
-    fn read_molecule<F>(&mut self, predicate: F) -> &str
+    fn eat_molecule<F>(&mut self, predicate: F) -> &str
     where
         F: Fn(char) -> bool,
     {
@@ -173,8 +179,12 @@ impl<'a> Lexer<'a> {
         }
         &self.input[position..self.position]
     }
-    fn read_identifier(&mut self) -> &str {
-        self.read_molecule(Lexer::is_letter)
+    fn read_identifier(&mut self) -> Token {
+        let identifier = self.eat_molecule(Lexer::is_letter);
+        Token {
+            kind: Keywords::lookup_ident(identifier),
+            literal: identifier,
+        }
     }
 
     fn is_whitespace(ch: char) -> bool {
@@ -191,8 +201,21 @@ impl<'a> Lexer<'a> {
         ch.is_ascii_digit() // Later use is_digit to support unicode
     }
 
-    fn read_number(&mut self) -> &str {
-        self.read_molecule(Lexer::is_digit)
+    fn read_number(&mut self) -> Token {
+        let number = self.eat_molecule(Lexer::is_digit);
+        Token {
+            kind: TokenType::INT,
+            literal: number,
+        }
+    }
+
+    fn read_illegal(&mut self) -> Token {
+        let position = self.position;
+        self.eat_symbol();
+        Token {
+            kind: TokenType::ILLEGAL,
+            literal: &self.input[position..self.position],
+        }
     }
 
     fn next_token(&mut self) -> Token {
@@ -202,32 +225,10 @@ impl<'a> Lexer<'a> {
                 kind: TokenType::EOF,
                 literal: "",
             },
-            ch if ATOMS.contains_key(&ch) => match self.read_atom() {
-                ReadAtomResult::TwoChar(kind, literal) => Token { kind, literal },
-                ReadAtomResult::OneChar(kind, literal) => Token { kind, literal },
-            },
-            ch if Lexer::is_letter(ch) => {
-                let identifier = self.read_identifier();
-                Token {
-                    kind: Keywords::lookup_ident(identifier),
-                    literal: identifier,
-                }
-            }
-            ch if Lexer::is_digit(ch) => {
-                let number = self.read_number();
-                Token {
-                    kind: TokenType::INT,
-                    literal: number,
-                }
-            }
-            _ch => {
-                let position = self.position;
-                self.eat_symbol();
-                Token {
-                    kind: TokenType::ILLEGAL,
-                    literal: &self.input[position..self.position],
-                }
-            }
+            ch if ATOMS.contains_key(&ch) => self.read_atom(),
+            ch if Lexer::is_letter(ch) => self.read_identifier(),
+            ch if Lexer::is_digit(ch) => self.read_number(),
+            _ch => self.read_illegal(),
         };
 
         token
