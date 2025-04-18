@@ -85,15 +85,20 @@ impl Lexer {
         b'a' <= ch && ch <= b'z' || b'A' <= ch && ch <= b'Z' || ch == b'_'
     }
 
-    fn read_identifier(&mut self) -> String {
+    fn read_molecule<F>(&mut self, predicate: F) -> String
+    where
+        F: Fn(u8) -> bool,
+    {
         let position = self.position.clone();
-
-        while Lexer::is_letter(self.ch()) {
+        while predicate(self.ch()) {
             self.read_char();
         }
         std::str::from_utf8(&self.input[position..self.position])
             .expect("Could not parse")
             .to_string()
+    }
+    fn read_identifier(&mut self) -> String {
+        self.read_molecule(Lexer::is_letter)
     }
 
     fn is_whitespace(ch: u8) -> bool {
@@ -111,13 +116,7 @@ impl Lexer {
     }
 
     fn read_number(&mut self) -> String {
-        let position = self.position.clone();
-        while Lexer::is_digit(self.ch()) {
-            self.read_char();
-        }
-        std::str::from_utf8(&self.input[position..self.position])
-            .expect("Could not parse")
-            .to_string()
+        self.read_molecule(Lexer::is_digit)
     }
 
     fn next_token(&mut self) -> Token {
