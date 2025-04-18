@@ -65,22 +65,15 @@ struct Token<'a> {
 
 struct Lexer<'a> {
     input: &'a str,
-    chars: Vec<char>,
+    ch: char,
     position: usize,
     read_position: usize,
 }
 impl<'a> Lexer<'a> {
-    fn ch(&self) -> char {
-        if self.read_position > self.input.len() {
-            return '\0';
-        }
-        self.chars[self.position]
-    }
-
     fn new(input: &'a str) -> Lexer {
         let mut lexer = Lexer {
             input,
-            chars: input.chars().collect(),
+            ch: '\0',
             position: 0,
             read_position: 0,
         };
@@ -88,24 +81,29 @@ impl<'a> Lexer<'a> {
         lexer
     }
 
-    fn eat_symbol(&mut self) -> &'a str {
-        let start_byte = self
-            .input
-            .char_indices()
-            .nth(self.position)
-            .map_or(self.input.len(), |(i, _)| i);
-        let end_byte = if self.position + 1 < self.chars.len() {
-            self.input
-                .char_indices()
-                .nth(self.position + 1)
-                .map_or(self.input.len(), |(i, _)| i)
+    fn eat_symbol(&mut self) {
+        if self.read_position >= self.input.len() {
+            self.ch = '\0';
         } else {
-            self.input.len()
-        };
-        let char_slice = &self.input[start_byte..end_byte];
+            self.ch = self.input[self.read_position..]
+                .chars()
+                .next()
+                .unwrap_or('\0')
+        }
         self.position = self.read_position;
-        self.read_position += 1;
-        char_slice
+        self.read_position += if self.ch == '\0' {
+            0
+        } else {
+            self.ch.len_utf8()
+        };
+    }
+
+    fn peek_symbol(&self) -> char {
+        if self.read_position >= self.input.len() {
+            '\0'
+        } else {
+            self.input[self.read_position..].chars().next().unwrap()
+        }
     }
 
     fn is_letter(ch: char) -> bool {
@@ -117,7 +115,7 @@ impl<'a> Lexer<'a> {
         F: Fn(char) -> bool,
     {
         let position = self.position;
-        while predicate(self.ch()) {
+        while predicate(self.ch) {
             self.eat_symbol();
         }
         &self.input[position..self.position]
@@ -131,7 +129,7 @@ impl<'a> Lexer<'a> {
     }
 
     fn skip_whitespace(&mut self) {
-        while Lexer::is_whitespace(self.ch()) {
+        while Lexer::is_whitespace(self.ch) {
             self.eat_symbol();
         }
     }
@@ -146,35 +144,45 @@ impl<'a> Lexer<'a> {
 
     fn next_token(&mut self) -> Token {
         self.skip_whitespace();
-
-        let token = if let Some(atom) = ATOMS.get(&self.ch()) {
-            Token {
-                kind: atom.clone(),
-                literal: self.eat_symbol(),
-            }
-        } else if self.ch() == '\0' {
-            Token {
+        let token = match self.ch {
+            '\0' => Token {
                 kind: TokenType::EOF,
                 literal: "",
+            },
+            ch if ATOMS.contains_key(&ch) => {
+                let literal_start = self.position;
+                let literal_end = self.position + ch.len_utf8();
+                let token = Token {
+                    kind: ATOMS[&ch].clone(),
+                    literal: &self.input[literal_start..literal_end],
+                };
+                self.eat_symbol();
+                token
             }
-        } else if Lexer::is_letter(self.ch()) {
-            let identifier = self.read_identifier();
-            Token {
-                kind: Keywords::lookup_ident(identifier),
-                literal: identifier,
+            ch if Lexer::is_letter(ch) => {
+                let identifier = self.read_identifier();
+                Token {
+                    kind: Keywords::lookup_ident(identifier),
+                    literal: identifier,
+                }
             }
-        } else if Lexer::is_digit(self.ch()) {
-            let number = self.read_number();
-            Token {
-                kind: TokenType::INT,
-                literal: number,
+            ch if Lexer::is_digit(ch) => {
+                let number = self.read_number();
+                Token {
+                    kind: TokenType::INT,
+                    literal: number,
+                }
             }
-        } else {
-            Token {
-                kind: TokenType::ILLEGAL,
-                literal: self.eat_symbol(),
+            ch => {
+                let position = self.position;
+                self.eat_symbol();
+                Token {
+                    kind: TokenType::ILLEGAL,
+                    literal: &self.input[position..self.position],
+                }
             }
         };
+
         token
     }
 }
