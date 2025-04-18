@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 enum TokenType {
     STRING,
     INT,
@@ -72,9 +72,13 @@ impl Lexer {
         lexer
     }
 
-    fn read_char(&mut self) {
+    fn read_char(&mut self) -> String {
+        let char = &self.input[self.position..self.read_position];
         self.position = self.read_position;
         self.read_position += 1;
+        std::str::from_utf8(&char)
+            .expect("Could not read char")
+            .to_string()
     }
 
     fn is_letter(ch: u8) -> bool {
@@ -118,57 +122,49 @@ impl Lexer {
 
     fn next_token(&mut self) -> Token {
         self.skip_whitespace();
-        let token = match self.ch() {
-            b'=' => Token {
-                kind: TokenType::ASSIGN,
-                literal: self.ch_str(),
-            },
-            b'+' => Token {
-                kind: TokenType::PLUS,
-                literal: self.ch_str(),
-            },
-            b'(' => Token {
-                kind: TokenType::LPAREN,
-                literal: self.ch_str(),
-            },
-            b')' => Token {
-                kind: TokenType::RPAREN,
-                literal: self.ch_str(),
-            },
-            b'{' => Token {
-                kind: TokenType::LBRACE,
-                literal: self.ch_str(),
-            },
-            b'}' => Token {
-                kind: TokenType::RBRACE,
-                literal: self.ch_str(),
-            },
-            0 => Token {
+
+        let atoms: HashMap<u8, TokenType> = [
+            (b'=', TokenType::ASSIGN),
+            (b'+', TokenType::PLUS),
+            (b'(', TokenType::LPAREN),
+            (b')', TokenType::RPAREN),
+            (b'{', TokenType::LBRACE),
+            (b'}', TokenType::RBRACE),
+            (b';', TokenType::SEMICOLON),
+            (b',', TokenType::COMMA),
+        ]
+        .iter()
+        .cloned()
+        .collect();
+        let token = if let Some(atom) = atoms.get(&self.ch()) {
+            let char_str = self.read_char();
+            Token {
+                kind: atom.clone(),
+                literal: char_str,
+            }
+        } else if self.ch() == 0 {
+            Token {
                 kind: TokenType::EOF,
                 literal: String::new(),
-            },
-            _ => {
-                if Lexer::is_letter(self.ch()) {
-                    let identifier = self.read_identifier();
-                    Token {
-                        kind: Keywords::lookup_ident(&identifier),
-                        literal: identifier,
-                    }
-                } else if Lexer::is_digit(self.ch()) {
-                    let number = self.read_number();
-                    Token {
-                        kind: TokenType::INT,
-                        literal: number,
-                    }
-                } else {
-                    Token {
-                        kind: TokenType::ILLEGAL,
-                        literal: self.ch_str(),
-                    }
-                }
+            }
+        } else if Lexer::is_letter(self.ch()) {
+            let identifier = self.read_identifier();
+            Token {
+                kind: Keywords::lookup_ident(&identifier),
+                literal: identifier,
+            }
+        } else if Lexer::is_digit(self.ch()) {
+            let number = self.read_number();
+            Token {
+                kind: TokenType::INT,
+                literal: number,
+            }
+        } else {
+            Token {
+                kind: TokenType::ILLEGAL,
+                literal: self.ch_str(),
             }
         };
-        self.read_char();
         token
     }
 }
@@ -212,11 +208,11 @@ fn test_next_token() {
 fn test_parse_code() {
     let input = String::from(
         "let five = 5;
-let ten = 10;
-let add = fn(x, y) {
-    x + y;
-};
-let result = add(five, ten);",
+        let ten = 10;
+        let add = fn(x, y) {
+            x + y;
+        };
+        let result = add(five, ten);",
     );
     let expected = vec![
         // let five = 5;
@@ -377,6 +373,8 @@ let result = add(five, ten);",
     ];
     let mut lexer = Lexer::new(input);
     for i in 0..expected.len() {
-        assert_eq!(lexer.next_token(), expected[i])
+        let tok = lexer.next_token();
+        println!("{:?}-:-{:?}", &tok, &expected[i]);
+        assert_eq!(tok, expected[i])
     }
 }
