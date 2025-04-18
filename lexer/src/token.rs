@@ -64,11 +64,11 @@ impl<'a> Lexer<'a> {
             position: 0,
             read_position: 0,
         };
-        lexer.read_char();
+        lexer.eat_symbol();
         lexer
     }
 
-    fn read_char(&mut self) -> &'a str {
+    fn eat_symbol(&mut self) -> &'a str {
         let start_byte = self
             .input
             .char_indices()
@@ -98,7 +98,7 @@ impl<'a> Lexer<'a> {
     {
         let position = self.position.clone();
         while predicate(self.ch()) {
-            self.read_char();
+            self.eat_symbol();
         }
         &self.input[position..self.position]
     }
@@ -112,7 +112,7 @@ impl<'a> Lexer<'a> {
 
     fn skip_whitespace(&mut self) {
         while Lexer::is_whitespace(self.ch()) {
-            self.read_char();
+            self.eat_symbol();
         }
     }
 
@@ -143,7 +143,7 @@ impl<'a> Lexer<'a> {
         let token = if let Some(atom) = atoms.get(&self.ch()) {
             Token {
                 kind: atom.clone(),
-                literal: self.read_char(),
+                literal: self.eat_symbol(),
             }
         } else if self.ch() == '\0' {
             Token {
@@ -165,7 +165,7 @@ impl<'a> Lexer<'a> {
         } else {
             Token {
                 kind: TokenType::ILLEGAL,
-                literal: self.read_char(),
+                literal: self.eat_symbol(),
             }
         };
         token
@@ -199,6 +199,14 @@ fn test_next_token() {
         Token {
             kind: TokenType::RBRACE,
             literal: "}",
+        },
+        Token {
+            kind: TokenType::COMMA,
+            literal: ",",
+        },
+        Token {
+            kind: TokenType::SEMICOLON,
+            literal: ";",
         },
     ];
     let mut lexer = Lexer::new(&input);
