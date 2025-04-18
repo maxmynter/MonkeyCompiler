@@ -1,6 +1,7 @@
 use lazy_static::lazy_static;
 use std::collections::HashMap;
 
+#[allow(clippy::upper_case_acronyms)]
 #[derive(Debug, Eq, PartialEq, Clone)]
 enum TokenType {
     STRING,
@@ -49,9 +50,9 @@ impl Keywords {
     }
     fn lookup_ident(ident: &str) -> TokenType {
         if let Some(ident) = Keywords::get(ident) {
-            return ident;
+            ident
         } else {
-            return TokenType::IDENT;
+            TokenType::IDENT
         }
     }
 }
@@ -115,7 +116,7 @@ impl<'a> Lexer<'a> {
     where
         F: Fn(char) -> bool,
     {
-        let position = self.position.clone();
+        let position = self.position;
         while predicate(self.ch()) {
             self.eat_symbol();
         }
@@ -136,7 +137,7 @@ impl<'a> Lexer<'a> {
     }
 
     fn is_digit(ch: char) -> bool {
-        ch.is_digit(10)
+        ch.is_ascii_digit() // Later use is_digit to support unicode
     }
 
     fn read_number(&mut self) -> &str {
@@ -159,7 +160,7 @@ impl<'a> Lexer<'a> {
         } else if Lexer::is_letter(self.ch()) {
             let identifier = self.read_identifier();
             Token {
-                kind: Keywords::lookup_ident(&identifier),
+                kind: Keywords::lookup_ident(identifier),
                 literal: identifier,
             }
         } else if Lexer::is_digit(self.ch()) {
