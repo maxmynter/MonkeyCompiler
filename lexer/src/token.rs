@@ -142,6 +142,13 @@ impl<'a> Lexer<'a> {
         self.read_molecule(Lexer::is_digit)
     }
 
+    fn read_symbol(&mut self) -> &str {
+        let literal_start = self.position;
+        let literal_end = self.position + self.ch.len_utf8();
+        self.eat_symbol();
+        &self.input[literal_start..literal_end]
+    }
+
     fn next_token(&mut self) -> Token {
         self.skip_whitespace();
         let token = match self.ch {
@@ -150,14 +157,11 @@ impl<'a> Lexer<'a> {
                 literal: "",
             },
             ch if ATOMS.contains_key(&ch) => {
-                let literal_start = self.position;
-                let literal_end = self.position + ch.len_utf8();
-                let token = Token {
+                let symbol = self.read_symbol();
+                Token {
                     kind: ATOMS[&ch].clone(),
-                    literal: &self.input[literal_start..literal_end],
-                };
-                self.eat_symbol();
-                token
+                    literal: symbol,
+                }
             }
             ch if Lexer::is_letter(ch) => {
                 let identifier = self.read_identifier();
@@ -173,7 +177,7 @@ impl<'a> Lexer<'a> {
                     literal: number,
                 }
             }
-            ch => {
+            _ch => {
                 let position = self.position;
                 self.eat_symbol();
                 Token {
