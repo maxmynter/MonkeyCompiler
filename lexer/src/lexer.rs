@@ -1,14 +1,15 @@
-mod token;
-use token::{Keywords, Token, TokenType, ATOMS, TWO_CHAR_ATOMS};
+pub mod token;
+pub use token::{Keywords, Token, TokenType};
+use token::{ATOMS, TWO_CHAR_ATOMS};
 
-struct Lexer<'a> {
+pub struct Lexer<'a> {
     input: &'a str,
     ch: char,
     position: usize,
     read_position: usize,
 }
 impl<'a> Lexer<'a> {
-    fn new(input: &'a str) -> Lexer {
+    pub fn new(input: &'a str) -> Lexer {
         let mut lexer = Lexer {
             input,
             ch: '\0',
@@ -109,7 +110,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn next_token(&mut self) -> Token {
+    pub fn next_token(&mut self) -> Token {
         self.skip_whitespace();
         let token = match self.ch {
             '\0' => Token {

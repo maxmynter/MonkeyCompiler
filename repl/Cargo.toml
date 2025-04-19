@@ -3,8 +3,9 @@ name = "repl"
 version = "0.1.0"
 edition = "2021"
 
-[lib]
+[[ bin ]]
 name = "repl"
-path = "src/repl.rs"
+path = "src/main.rs"
 
 [dependencies]
+lexer = { path ="../lexer" }

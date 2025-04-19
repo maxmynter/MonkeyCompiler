@@ -1,8 +1,9 @@
-use std::io::{self, stdin, Write};
+use lexer;
+use std::io::{self, Write};
 
 const PROMPT: &str = ">>";
 
-fn start() -> io::Result<()> {
+fn main() -> io::Result<()> {
     let stdin = io::stdin();
     let mut input = String::new();
 
@@ -22,8 +23,7 @@ fn start() -> io::Result<()> {
                     println!("\nexiting...");
                     break;
                 }
-                let result = eval(input);
-                println!("{}", result);
+                eval(input);
             }
             Err(e) => {
                 eprintln!("Error: {}", e);
@@ -35,6 +35,13 @@ fn start() -> io::Result<()> {
     Ok(())
 }
 
-fn eval(input: &str) -> String {
-    todo!();
+fn eval(input: &str) {
+    let mut lex = lexer::Lexer::new(input);
+    loop {
+        let tok = lex.next_token();
+        println!("{}", tok.literal);
+        if tok.kind == lexer::TokenType::EOF {
+            break;
+        }
+    }
 }
