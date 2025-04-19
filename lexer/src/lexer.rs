@@ -1,105 +1,5 @@
-use lazy_static::lazy_static;
-use std::collections::HashMap;
-
-#[allow(clippy::upper_case_acronyms)]
-#[derive(Debug, Eq, PartialEq, Clone)]
-enum TokenType {
-    STRING,
-    INT,
-    IDENT,
-    ILLEGAL,
-    EOF,
-    ASSIGN,
-    PLUS,
-    MINUS,
-    COMMA,
-    SEMICOLON,
-    LPAREN,
-    RPAREN,
-    LBRACE,
-    RBRACE,
-    BANG,
-    ASTERISK,
-    SLASH,
-    LT,
-    GT,
-    EQ,
-    UNEQ,
-    FUNCTION,
-    LET,
-    IF,
-    ELSE,
-    RETURN,
-    TRUE,
-    FALSE,
-}
-
-lazy_static! {
-    static ref ATOMS: HashMap<char, TokenType> = {
-        [
-            ('=', TokenType::ASSIGN),
-            ('+', TokenType::PLUS),
-            ('-', TokenType::MINUS),
-            ('(', TokenType::LPAREN),
-            (')', TokenType::RPAREN),
-            ('{', TokenType::LBRACE),
-            ('}', TokenType::RBRACE),
-            (';', TokenType::SEMICOLON),
-            (',', TokenType::COMMA),
-            ('!', TokenType::BANG),
-            ('*', TokenType::ASTERISK),
-            ('/', TokenType::SLASH),
-            ('<', TokenType::LT),
-            ('>', TokenType::GT),
-        ]
-        .iter()
-        .cloned()
-        .collect()
-    };
-}
-
-lazy_static! {
-    static ref TWO_CHAR_ATOMS: HashMap<&'static str, TokenType> = {
-        let mut m = HashMap::new();
-        m.insert("==", TokenType::EQ);
-        m.insert("!=", TokenType::UNEQ);
-        m
-    };
-}
-
-struct Keywords {}
-impl Keywords {
-    fn get(literal: &str) -> Option<TokenType> {
-        match literal {
-            "fn" => Some(TokenType::FUNCTION),
-            "let" => Some(TokenType::LET),
-            "if" => Some(TokenType::IF),
-            "else" => Some(TokenType::ELSE),
-            "return" => Some(TokenType::RETURN),
-            "true" => Some(TokenType::TRUE),
-            "false" => Some(TokenType::FALSE),
-            _ => None,
-        }
-    }
-    fn lookup_ident(ident: &str) -> TokenType {
-        if let Some(ident) = Keywords::get(ident) {
-            ident
-        } else {
-            TokenType::IDENT
-        }
-    }
-}
-
-enum ReadAtomResult<'a> {
-    TwoChar(TokenType, &'a str),
-    OneChar(TokenType, &'a str),
-}
-
-#[derive(Debug, PartialEq, Eq)]
-struct Token<'a> {
-    kind: TokenType,
-    literal: &'a str,
-}
+mod token;
+use token::{Keywords, Token, TokenType, ATOMS, TWO_CHAR_ATOMS};
 
 struct Lexer<'a> {
     input: &'a str,
@@ -125,18 +25,12 @@ impl<'a> Lexer<'a> {
             self.eat_symbol();
             self.eat_symbol();
             let two_char = &self.input[start_pos..self.position];
-            Token {
-                kind: TWO_CHAR_ATOMS[two_char].clone(),
-                literal: two_char,
-            }
+            Token::new(TWO_CHAR_ATOMS[two_char].clone(), two_char)
         } else {
-            let current_char = self.ch.clone();
+            let current_char = self.ch;
             self.eat_symbol();
             let one_char = &self.input[start_pos..self.position];
-            Token {
-                kind: ATOMS[&current_char].clone(),
-                literal: one_char,
-            }
+            Token::new(ATOMS[&current_char].clone(), one_char)
         }
     }
 
@@ -181,10 +75,7 @@ impl<'a> Lexer<'a> {
     }
     fn read_identifier(&mut self) -> Token {
         let identifier = self.eat_molecule(Lexer::is_letter);
-        Token {
-            kind: Keywords::lookup_ident(identifier),
-            literal: identifier,
-        }
+        Token::new(Keywords::lookup_ident(identifier), identifier)
     }
 
     fn is_whitespace(ch: char) -> bool {
