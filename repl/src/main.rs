@@ -4,6 +4,12 @@ use std::io::{self, Write};
 const PROMPT: &str = ">>";
 
 fn main() -> io::Result<()> {
+    println!("Welcome to the Monkey programming language!");
+    println!("Type commands.");
+    repl()
+}
+
+fn repl() -> io::Result<()> {
     let stdin = io::stdin();
     let mut input = String::new();
 
