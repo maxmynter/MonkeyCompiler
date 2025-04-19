@@ -1,0 +1,10 @@
+[package]
+name = "repl"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "repl"
+path = "src/repl.rs"
+
+[dependencies]
