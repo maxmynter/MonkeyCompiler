@@ -1,3 +1,5 @@
+use lexer::Token;
+
 pub trait Node {
     fn token_literal(&self) -> String;
 }
@@ -21,5 +23,25 @@ impl Node for Program {
         } else {
             String::new()
         }
+    }
+}
+
+struct Identifier<'a> {
+    token: Token<'a>,
+    value: String,
+}
+
+struct LetStatement<'a> {
+    token: Token<'a>,
+    name: Identifier<'a>,
+    value: Box<dyn Expression + 'a>,
+}
+impl<'a> Statement for LetStatement<'a> {
+    fn statement_node(&self) {}
+}
+
+impl<'a> Node for LetStatement<'a> {
+    fn token_literal(&self) -> String {
+        self.token.literal.to_string()
     }
 }

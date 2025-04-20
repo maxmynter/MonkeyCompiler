@@ -8,3 +8,5 @@ name = "ast"
 path = "src/ast.rs"
 
 [dependencies]
+lexer = { path = "../lexer" }
+
