@@ -1,4 +1,3 @@
-use lexer;
 use std::io::{self, Write};
 
 const PROMPT: &str = ">>";

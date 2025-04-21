@@ -101,8 +101,8 @@ pub struct Token {
     pub literal: String,
 }
 
-impl<'a> Token {
-    pub fn new(kind: TokenType, literal: &'a str) -> Self {
+impl Token {
+    pub fn new(kind: TokenType, literal: &str) -> Self {
         Token {
             kind,
             literal: literal.to_string(),

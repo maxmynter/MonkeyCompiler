@@ -112,7 +112,9 @@ impl<'a> Lexer<'a> {
 
     pub fn next_token(&mut self) -> Token {
         self.skip_whitespace();
-        let token = match self.ch {
+        
+
+        match self.ch {
             '\0' => Token {
                 kind: TokenType::EOF,
                 literal: "".to_string(),
@@ -121,9 +123,7 @@ impl<'a> Lexer<'a> {
             ch if Lexer::is_letter(ch) => self.read_identifier(),
             ch if Lexer::is_digit(ch) => self.read_number(),
             _ch => self.read_illegal(),
-        };
-
-        token
+        }
     }
 }
 

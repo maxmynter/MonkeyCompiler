@@ -18,7 +18,7 @@ pub struct Program {
 
 impl Node for Program {
     fn token_literal(&self) -> String {
-        if self.statements.len() > 0 {
+        if !self.statements.is_empty() {
             self.statements[0].token_literal()
         } else {
             String::new()
@@ -36,11 +36,11 @@ struct LetStatement<'a> {
     name: Identifier,
     value: Box<dyn Expression + 'a>,
 }
-impl<'a> Statement for LetStatement<'a> {
+impl Statement for LetStatement<'_> {
     fn statement_node(&self) {}
 }
 
-impl<'a> Node for LetStatement<'a> {
+impl Node for LetStatement<'_> {
     fn token_literal(&self) -> String {
         self.token.literal.to_string()
     }
