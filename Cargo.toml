@@ -1,4 +1,4 @@
 [workspace]
-members = [ "ast","lexer", "repl"]
+members = [ "ast","lexer", "parser", "repl"]
 resolver = "2"
 
