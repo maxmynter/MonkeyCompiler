@@ -9,7 +9,7 @@ pub struct Lexer<'a> {
     read_position: usize,
 }
 impl<'a> Lexer<'a> {
-    pub fn new(input: &'a str) -> Lexer {
+    pub fn new(input: &'a str) -> Lexer<'a> {
         let mut lexer = Lexer {
             input,
             ch: '\0',
@@ -112,8 +112,6 @@ impl<'a> Lexer<'a> {
 
     pub fn next_token(&mut self) -> Token {
         self.skip_whitespace();
-        
-
         match self.ch {
             '\0' => Token {
                 kind: TokenType::EOF,

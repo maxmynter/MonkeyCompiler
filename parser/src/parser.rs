@@ -14,7 +14,7 @@ impl<'a> Parser<'a> {
         Parser { lexer, curr, peek }
     }
 
-    fn next_token(&'a mut self) {
+    fn next_token(&mut self) {
         self.curr = std::mem::replace(&mut self.peek, self.lexer.next_token());
     }
 
