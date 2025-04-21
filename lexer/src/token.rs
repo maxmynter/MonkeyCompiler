@@ -95,14 +95,23 @@ enum ReadAtomResult<'a> {
     OneChar(TokenType, &'a str),
 }
 
-#[derive(Debug, PartialEq, Eq)]
-pub struct Token<'a> {
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Token {
     pub kind: TokenType,
-    pub literal: &'a str,
+    pub literal: String,
 }
 
-impl<'a> Token<'a> {
+impl<'a> Token {
     pub fn new(kind: TokenType, literal: &'a str) -> Self {
-        Token { kind, literal }
+        Token {
+            kind,
+            literal: literal.to_string(),
+        }
+    }
+    pub fn empty() -> Self {
+        Token {
+            kind: TokenType::EOF,
+            literal: "\0".to_string(),
+        }
     }
 }

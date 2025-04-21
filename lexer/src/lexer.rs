@@ -97,7 +97,7 @@ impl<'a> Lexer<'a> {
         let number = self.eat_molecule(Lexer::is_digit);
         Token {
             kind: TokenType::INT,
-            literal: number,
+            literal: number.to_string(),
         }
     }
 
@@ -106,7 +106,7 @@ impl<'a> Lexer<'a> {
         self.eat_symbol();
         Token {
             kind: TokenType::ILLEGAL,
-            literal: &self.input[position..self.position],
+            literal: self.input[position..self.position].to_string(),
         }
     }
 
@@ -115,7 +115,7 @@ impl<'a> Lexer<'a> {
         let token = match self.ch {
             '\0' => Token {
                 kind: TokenType::EOF,
-                literal: "",
+                literal: "".to_string(),
             },
             ch if ATOMS.contains_key(&ch) => self.read_atom(),
             ch if Lexer::is_letter(ch) => self.read_identifier(),
@@ -133,35 +133,35 @@ fn test_next_token() {
     let expected = vec![
         Token {
             kind: TokenType::ASSIGN,
-            literal: "=",
+            literal: "=".to_string(),
         },
         Token {
             kind: TokenType::PLUS,
-            literal: "+",
+            literal: "+".to_string(),
         },
         Token {
             kind: TokenType::LPAREN,
-            literal: "(",
+            literal: "(".to_string(),
         },
         Token {
             kind: TokenType::RPAREN,
-            literal: ")",
+            literal: ")".to_string(),
         },
         Token {
             kind: TokenType::LBRACE,
-            literal: "{",
+            literal: "{".to_string(),
         },
         Token {
             kind: TokenType::RBRACE,
-            literal: "}",
+            literal: "}".to_string(),
         },
         Token {
             kind: TokenType::COMMA,
-            literal: ",",
+            literal: ",".to_string(),
         },
         Token {
             kind: TokenType::SEMICOLON,
-            literal: ";",
+            literal: ";".to_string(),
         },
     ];
     let mut lexer = Lexer::new(&input);
@@ -197,314 +197,314 @@ fn test_parse_code() {
         // let five = 5;
         Token {
             kind: TokenType::LET,
-            literal: "let",
+            literal: "let".to_string(),
         },
         Token {
             kind: TokenType::IDENT,
-            literal: "five",
+            literal: "five".to_string(),
         },
         Token {
             kind: TokenType::ASSIGN,
-            literal: "=",
+            literal: "=".to_string(),
         },
         Token {
             kind: TokenType::INT,
-            literal: "5",
+            literal: "5".to_string(),
         },
         Token {
             kind: TokenType::SEMICOLON,
-            literal: ";",
+            literal: ";".to_string(),
         },
         // let ten = 10;
         Token {
             kind: TokenType::LET,
-            literal: "let",
+            literal: "let".to_string(),
         },
         Token {
             kind: TokenType::IDENT,
-            literal: "ten",
+            literal: "ten".to_string(),
         },
         Token {
             kind: TokenType::ASSIGN,
-            literal: "=",
+            literal: "=".to_string(),
         },
         Token {
             kind: TokenType::INT,
-            literal: "10",
+            literal: "10".to_string(),
         },
         Token {
             kind: TokenType::SEMICOLON,
-            literal: ";",
+            literal: ";".to_string(),
         },
         // let add = fn(x, y) {
         Token {
             kind: TokenType::LET,
-            literal: "let",
+            literal: "let".to_string(),
         },
         Token {
             kind: TokenType::IDENT,
-            literal: "add",
+            literal: "add".to_string(),
         },
         Token {
             kind: TokenType::ASSIGN,
-            literal: "=",
+            literal: "=".to_string(),
         },
         Token {
             kind: TokenType::FUNCTION,
-            literal: "fn",
+            literal: "fn".to_string(),
         },
         Token {
             kind: TokenType::LPAREN,
-            literal: "(",
+            literal: "(".to_string(),
         },
         Token {
             kind: TokenType::IDENT,
-            literal: "x",
+            literal: "x".to_string(),
         },
         Token {
             kind: TokenType::COMMA,
-            literal: ",",
+            literal: ",".to_string(),
         },
         Token {
             kind: TokenType::IDENT,
-            literal: "y",
+            literal: "y".to_string(),
         },
         Token {
             kind: TokenType::RPAREN,
-            literal: ")",
+            literal: ")".to_string(),
         },
         Token {
             kind: TokenType::LBRACE,
-            literal: "{",
+            literal: "{".to_string(),
         },
         // x + y;
         Token {
             kind: TokenType::IDENT,
-            literal: "x",
+            literal: "x".to_string(),
         },
         Token {
             kind: TokenType::PLUS,
-            literal: "+",
+            literal: "+".to_string(),
         },
         Token {
             kind: TokenType::IDENT,
-            literal: "y",
+            literal: "y".to_string(),
         },
         Token {
             kind: TokenType::SEMICOLON,
-            literal: ";",
+            literal: ";".to_string(),
         },
         // };
         Token {
             kind: TokenType::RBRACE,
-            literal: "}",
+            literal: "}".to_string(),
         },
         Token {
             kind: TokenType::SEMICOLON,
-            literal: ";",
+            literal: ";".to_string(),
         },
         // let result = add(five, ten);
         Token {
             kind: TokenType::LET,
-            literal: "let",
+            literal: "let".to_string(),
         },
         Token {
             kind: TokenType::IDENT,
-            literal: "result",
+            literal: "result".to_string(),
         },
         Token {
             kind: TokenType::ASSIGN,
-            literal: "=",
+            literal: "=".to_string(),
         },
         Token {
             kind: TokenType::IDENT,
-            literal: "add",
+            literal: "add".to_string(),
         },
         Token {
             kind: TokenType::LPAREN,
-            literal: "(",
+            literal: "(".to_string(),
         },
         Token {
             kind: TokenType::IDENT,
-            literal: "five",
+            literal: "five".to_string(),
         },
         Token {
             kind: TokenType::COMMA,
-            literal: ",",
+            literal: ",".to_string(),
         },
         Token {
             kind: TokenType::IDENT,
-            literal: "ten",
+            literal: "ten".to_string(),
         },
         Token {
             kind: TokenType::RPAREN,
-            literal: ")",
+            literal: ")".to_string(),
         },
         Token {
             kind: TokenType::SEMICOLON,
-            literal: ";",
+            literal: ";".to_string(),
         },
         // !-/*5;
         Token {
             kind: TokenType::BANG,
-            literal: "!",
+            literal: "!".to_string(),
         },
         Token {
             kind: TokenType::MINUS,
-            literal: "-",
+            literal: "-".to_string(),
         },
         Token {
             kind: TokenType::SLASH,
-            literal: "/",
+            literal: "/".to_string(),
         },
         Token {
             kind: TokenType::ASTERISK,
-            literal: "*",
+            literal: "*".to_string(),
         },
         Token {
             kind: TokenType::INT,
-            literal: "5",
+            literal: "5".to_string(),
         },
         Token {
             kind: TokenType::SEMICOLON,
-            literal: ";",
+            literal: ";".to_string(),
         },
         // 5 < 10 > 5;
         Token {
             kind: TokenType::INT,
-            literal: "5",
+            literal: "5".to_string(),
         },
         Token {
             kind: TokenType::LT,
-            literal: "<",
+            literal: "<".to_string(),
         },
         Token {
             kind: TokenType::INT,
-            literal: "10",
+            literal: "10".to_string(),
         },
         Token {
             kind: TokenType::GT,
-            literal: ">",
+            literal: ">".to_string(),
         },
         Token {
             kind: TokenType::INT,
-            literal: "5",
+            literal: "5".to_string(),
         },
         Token {
             kind: TokenType::SEMICOLON,
-            literal: ";",
+            literal: ";".to_string(),
         },
         // if (5 < 10) {
         Token {
             kind: TokenType::IF,
-            literal: "if",
+            literal: "if".to_string(),
         },
         Token {
             kind: TokenType::LPAREN,
-            literal: "(",
+            literal: "(".to_string(),
         },
         Token {
             kind: TokenType::INT,
-            literal: "5",
+            literal: "5".to_string(),
         },
         Token {
             kind: TokenType::LT,
-            literal: "<",
+            literal: "<".to_string(),
         },
         Token {
             kind: TokenType::INT,
-            literal: "10",
+            literal: "10".to_string(),
         },
         Token {
             kind: TokenType::RPAREN,
-            literal: ")",
+            literal: ")".to_string(),
         },
         Token {
             kind: TokenType::LBRACE,
-            literal: "{",
+            literal: "{".to_string(),
         },
         // return true;
         Token {
             kind: TokenType::RETURN,
-            literal: "return",
+            literal: "return".to_string(),
         },
         Token {
             kind: TokenType::TRUE,
-            literal: "true",
+            literal: "true".to_string(),
         },
         Token {
             kind: TokenType::SEMICOLON,
-            literal: ";",
+            literal: ";".to_string(),
         },
         // } else {
         Token {
             kind: TokenType::RBRACE,
-            literal: "}",
+            literal: "}".to_string(),
         },
         Token {
             kind: TokenType::ELSE,
-            literal: "else",
+            literal: "else".to_string(),
         },
         Token {
             kind: TokenType::LBRACE,
-            literal: "{",
+            literal: "{".to_string(),
         },
         // return false;
         Token {
             kind: TokenType::RETURN,
-            literal: "return",
+            literal: "return".to_string(),
         },
         Token {
             kind: TokenType::FALSE,
-            literal: "false",
+            literal: "false".to_string(),
         },
         Token {
             kind: TokenType::SEMICOLON,
-            literal: ";",
+            literal: ";".to_string(),
         },
         // }
         Token {
             kind: TokenType::RBRACE,
-            literal: "}",
+            literal: "}".to_string(),
         },
         // 10 == 10;
         Token {
             kind: TokenType::INT,
-            literal: "10",
+            literal: "10".to_string(),
         },
         Token {
             kind: TokenType::EQ,
-            literal: "==",
+            literal: "==".to_string(),
         },
         Token {
             kind: TokenType::INT,
-            literal: "10",
+            literal: "10".to_string(),
         },
         Token {
             kind: TokenType::SEMICOLON,
-            literal: ";",
+            literal: ";".to_string(),
         },
         // 10 != 9;
         Token {
             kind: TokenType::INT,
-            literal: "10",
+            literal: "10".to_string(),
         },
         Token {
             kind: TokenType::UNEQ,
-            literal: "!=",
+            literal: "!=".to_string(),
         },
         Token {
             kind: TokenType::INT,
-            literal: "9",
+            literal: "9".to_string(),
         },
         Token {
             kind: TokenType::SEMICOLON,
-            literal: ";",
+            literal: ";".to_string(),
         },
         // EOF
         Token {
             kind: TokenType::EOF,
-            literal: "",
+            literal: "".to_string(),
         },
     ];
     let mut lexer = Lexer::new(&input);

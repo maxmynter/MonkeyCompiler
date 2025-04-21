@@ -26,14 +26,14 @@ impl Node for Program {
     }
 }
 
-struct Identifier<'a> {
-    token: Token<'a>,
+struct Identifier {
+    token: Token,
     value: String,
 }
 
 struct LetStatement<'a> {
-    token: Token<'a>,
-    name: Identifier<'a>,
+    token: Token,
+    name: Identifier,
     value: Box<dyn Expression + 'a>,
 }
 impl<'a> Statement for LetStatement<'a> {
