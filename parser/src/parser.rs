@@ -1,5 +1,5 @@
 use ast::{Identifier, Node, Program, Statement};
-use lexer::{Lexer, Token};
+use lexer::{Lexer, Token, TokenType};
 
 struct Parser<'a> {
     lexer: Lexer<'a>,
@@ -18,8 +18,18 @@ impl<'a> Parser<'a> {
         self.curr = std::mem::replace(&mut self.peek, self.lexer.next_token());
     }
 
-    fn parse_program(&mut self) -> Program {
+    fn parse_statement(&mut self) -> Statement {
         todo!()
+    }
+
+    fn parse_program(&mut self) -> Program {
+        let mut statements: Vec<Statement> = vec![];
+        while self.curr.kind != TokenType::EOF {
+            let stmt = self.parse_statement();
+            statements.push(stmt);
+            self.next_token();
+        }
+        Program { statements }
     }
 }
 
