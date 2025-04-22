@@ -18,8 +18,65 @@ impl<'a> Parser<'a> {
         self.curr = std::mem::replace(&mut self.peek, self.lexer.next_token());
     }
 
+    fn peek_token_is(&self, t: TokenType) -> bool {
+        self.peek.kind == t
+    }
+
+    fn curr_token_is(&self, t: TokenType) -> bool {
+        self.curr.kind == t
+    }
+
+    fn expect_peek_token(&mut self, token: TokenType) -> bool {
+        if self.peek_token_is(token) {
+            self.next_token();
+            true
+        } else {
+            false
+        }
+    }
+
+    fn parse_let_statement(&mut self) -> Option<Statement> {
+        let token = self.curr.clone();
+
+        if !self.expect_peek_token(TokenType::IDENT) {
+            return None;
+        }
+
+        let name = Identifier {
+            token: self.curr.clone(),
+            value: self.curr.literal.clone(),
+        };
+
+        if !self.expect_peek_token(TokenType::ASSIGN) {
+            return None;
+        }
+
+        // TODO: skip expressions until ;
+        while !self.curr_token_is(TokenType::SEMICOLON) {
+            self.next_token();
+        }
+
+        let stmt = ast::LetStatement {
+            token,
+            name,
+            value: None,
+        };
+        Some(Statement::Let(stmt))
+    }
+
     fn parse_statement(&mut self) -> Statement {
-        todo!()
+        match self.curr.kind {
+            TokenType::LET => {
+                if let Some(stmt) = self.parse_let_statement() {
+                    stmt
+                } else {
+                    panic!()
+                }
+            }
+            _ => {
+                todo!()
+            }
+        }
     }
 
     fn parse_program(&mut self) -> Program {

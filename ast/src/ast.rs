@@ -52,7 +52,7 @@ pub struct Identifier {
 pub struct LetStatement {
     pub token: Token,
     pub name: Identifier,
-    pub value: Box<Expression>,
+    pub value: Option<Box<Expression>>,
 }
 
 pub enum Expression {
