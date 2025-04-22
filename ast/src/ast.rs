@@ -1,19 +1,15 @@
 use lexer::Token;
 
+pub enum Statement {
+    Let(LetStatement),
+}
+
 pub trait Node {
     fn token_literal(&self) -> String;
 }
 
-pub trait Statement: Node {
-    fn statement_node(&self) {}
-}
-
-pub trait Expression: Node {
-    fn expression_node(&self) {}
-}
-
 pub struct Program {
-    pub statements: Vec<Box<dyn Statement>>,
+    pub statements: Vec<Statement>,
 }
 
 impl Node for Program {
@@ -26,22 +22,45 @@ impl Node for Program {
     }
 }
 
-struct Identifier {
-    token: Token,
-    value: String,
-}
-
-struct LetStatement<'a> {
-    token: Token,
-    name: Identifier,
-    value: Box<dyn Expression + 'a>,
-}
-impl Statement for LetStatement<'_> {
-    fn statement_node(&self) {}
-}
-
-impl Node for LetStatement<'_> {
+impl Node for Statement {
     fn token_literal(&self) -> String {
-        self.token.literal.to_string()
+        match self {
+            Statement::Let(let_stmt) => let_stmt.token.literal.clone(),
+        }
+    }
+}
+
+impl Node for Expression {
+    fn token_literal(&self) -> String {
+        match self {
+            Expression::Identifier(ident) => ident.token_literal(),
+        }
+    }
+}
+
+impl Node for Identifier {
+    fn token_literal(&self) -> String {
+        self.token.literal.clone()
+    }
+}
+
+pub struct Identifier {
+    pub token: Token,
+    pub value: String,
+}
+
+pub struct LetStatement {
+    pub token: Token,
+    pub name: Identifier,
+    pub value: Box<Expression>,
+}
+
+pub enum Expression {
+    Identifier(Identifier),
+}
+
+impl Node for LetStatement {
+    fn token_literal(&self) -> String {
+        self.token.literal.clone()
     }
 }
