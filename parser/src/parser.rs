@@ -5,34 +5,49 @@ struct Parser<'a> {
     lexer: Lexer<'a>,
     curr: Token,
     peek: Token,
+    errors: Vec<String>,
 }
 
 impl<'a> Parser<'a> {
     fn new(mut lexer: Lexer<'a>) -> Self {
         let curr = lexer.next_token();
         let peek = lexer.next_token();
-        Parser { lexer, curr, peek }
+        Parser {
+            lexer,
+            curr,
+            peek,
+            errors: vec![],
+        }
     }
 
     fn next_token(&mut self) {
         self.curr = std::mem::replace(&mut self.peek, self.lexer.next_token());
     }
 
-    fn peek_token_is(&self, t: TokenType) -> bool {
-        self.peek.kind == t
+    fn peek_token_is(&self, t: &TokenType) -> bool {
+        self.peek.kind == *t
     }
 
-    fn curr_token_is(&self, t: TokenType) -> bool {
-        self.curr.kind == t
+    fn curr_token_is(&self, t: &TokenType) -> bool {
+        self.curr.kind == *t
     }
 
     fn expect_peek_token(&mut self, token: TokenType) -> bool {
-        if self.peek_token_is(token) {
+        if self.peek_token_is(&token) {
             self.next_token();
             true
         } else {
+            self.peek_error(&token);
             false
         }
+    }
+
+    fn peek_error(&mut self, expected_token: &TokenType) {
+        let message = format!(
+            "expected next token to be {:?}, got {:?}",
+            *expected_token, self.peek.kind
+        );
+        self.errors.push(message);
     }
 
     fn parse_let_statement(&mut self) -> Option<Statement> {
@@ -52,7 +67,7 @@ impl<'a> Parser<'a> {
         }
 
         // TODO: skip expressions until ;
-        while !self.curr_token_is(TokenType::SEMICOLON) {
+        while !self.curr_token_is(&TokenType::SEMICOLON) {
             self.next_token();
         }
 
@@ -136,4 +151,17 @@ fn test_let_stmt(stmt: &ast::Statement, name: &str) -> bool {
         println!("Statement is not a LetStatement");
         false
     }
+}
+
+#[test]
+fn test_let_statments() {
+    let input = "";
+    let l = Lexer::new(input);
+    let mut p = Parser::new(l);
+    let program = p.parse_program();
+    check_parse_errors(p);
+}
+
+fn check_parse_errors(p: Parser) {
+    todo!()
 }
