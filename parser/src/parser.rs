@@ -64,26 +64,19 @@ impl<'a> Parser<'a> {
         Some(Statement::Let(stmt))
     }
 
-    fn parse_statement(&mut self) -> Statement {
+    fn parse_statement(&mut self) -> Option<Statement> {
         match self.curr.kind {
-            TokenType::LET => {
-                if let Some(stmt) = self.parse_let_statement() {
-                    stmt
-                } else {
-                    panic!()
-                }
-            }
-            _ => {
-                todo!()
-            }
+            TokenType::LET => self.parse_let_statement(),
+            _ => None,
         }
     }
 
     fn parse_program(&mut self) -> Program {
         let mut statements: Vec<Statement> = vec![];
         while self.curr.kind != TokenType::EOF {
-            let stmt = self.parse_statement();
-            statements.push(stmt);
+            if let Some(stmt) = self.parse_statement() {
+                statements.push(stmt);
+            }
             self.next_token();
         }
         Program { statements }
