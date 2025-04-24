@@ -124,10 +124,10 @@ let foobar = 838383;
 
 fn test_let_stmt(stmt: &ast::Statement, name: &str) -> bool {
     if let Statement::Let(let_stmt) = stmt {
-        if let_stmt.token_literal() != "let" {
+        if stmt.token_literal() != "let" {
             println!(
                 "statement token literal not `let`, got={}",
-                let_stmt.token_literal()
+                stmt.token_literal()
             );
             return false;
         }
