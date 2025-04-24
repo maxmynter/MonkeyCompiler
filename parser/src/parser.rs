@@ -1,4 +1,4 @@
-use ast::{Identifier, Node, Program, Statement};
+use ast::{Identifier, LetStatement, Node, Program, ReturnStatement, Statement};
 use lexer::{Lexer, Token, TokenType};
 
 struct Parser<'a> {
@@ -24,8 +24,12 @@ impl<'a> Parser<'a> {
         self.curr = std::mem::replace(&mut self.peek, self.lexer.next_token());
     }
 
-    fn peek_token_is(&self, t: &TokenType) -> bool {
-        self.peek.kind == *t
+    fn peek_token_is(&mut self, t: &TokenType) -> bool {
+        let token_match = self.peek.kind == *t;
+        if !token_match {
+            self.peek_error(t);
+        }
+        token_match
     }
 
     fn curr_token_is(&self, t: &TokenType) -> bool {
@@ -50,6 +54,15 @@ impl<'a> Parser<'a> {
         self.errors.push(message);
     }
 
+    fn parse_return_statement(&mut self) -> Option<Statement> {
+        let token = self.curr.clone();
+        while self.curr_token_is(&TokenType::SEMICOLON) {
+            self.next_token();
+        }
+        let return_statment = ReturnStatement { token, value: None };
+        Some(Statement::Return(return_statment))
+    }
+
     fn parse_let_statement(&mut self) -> Option<Statement> {
         let token = self.curr.clone();
 
@@ -71,7 +84,7 @@ impl<'a> Parser<'a> {
             self.next_token();
         }
 
-        let stmt = ast::LetStatement {
+        let stmt = LetStatement {
             token,
             name,
             value: None,
@@ -82,6 +95,7 @@ impl<'a> Parser<'a> {
     fn parse_statement(&mut self) -> Option<Statement> {
         match self.curr.kind {
             TokenType::LET => self.parse_let_statement(),
+            TokenType::RETURN => self.parse_return_statement(),
             _ => None,
         }
     }
@@ -107,8 +121,9 @@ let foobar = 838383;
     let l = Lexer::new(input);
     let mut p = Parser::new(l);
     let program = p.parse_program();
-
     assert_eq!(program.statements.len(), 3);
+
+    check_parse_errors(p);
 
     let expected_identifiers = ["x", "y", "foobar"];
 
@@ -122,7 +137,7 @@ let foobar = 838383;
     }
 }
 
-fn test_let_stmt(stmt: &ast::Statement, name: &str) -> bool {
+fn test_let_stmt(stmt: &Statement, name: &str) -> bool {
     if let Statement::Let(let_stmt) = stmt {
         if stmt.token_literal() != "let" {
             println!(
@@ -153,15 +168,34 @@ fn test_let_stmt(stmt: &ast::Statement, name: &str) -> bool {
     }
 }
 
+fn check_parse_errors(p: Parser) {
+    println!("Parser has {} errors", p.errors.len());
+    for msg in &p.errors {
+        eprintln!("Error: {}", msg);
+    }
+    assert_eq!(p.errors.len(), 0);
+}
+
 #[test]
-fn test_let_statments() {
-    let input = "";
+fn test_return_statement() {
+    let input = "
+return 5;
+return 10;
+return 993322;
+";
+
     let l = Lexer::new(input);
     let mut p = Parser::new(l);
     let program = p.parse_program();
     check_parse_errors(p);
-}
+    assert_eq!(program.statements.len(), 3);
 
-fn check_parse_errors(p: Parser) {
-    todo!()
+    for stmt in &program.statements {
+        match stmt {
+            Statement::Return(ReturnStatement { token, .. }) => {
+                assert_eq!(token.literal, "return")
+            }
+            _ => panic!("Did not get `return` statement"),
+        }
+    }
 }
