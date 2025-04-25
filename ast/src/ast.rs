@@ -3,6 +3,7 @@ use lexer::Token;
 pub enum Statement {
     Let(LetStatement),
     Return(ReturnStatement),
+    Expression(ExpressionStatement),
 }
 
 pub trait Node {
@@ -28,15 +29,15 @@ impl Node for Statement {
         match self {
             Statement::Let(let_stmt) => let_stmt.token.literal.clone(),
             Statement::Return(return_stmt) => return_stmt.token.literal.clone(),
+            Statement::Expression(expression_stmt) => expression_stmt.token.literal.clone(),
         }
     }
 }
 
 impl Node for Expression {
     fn token_literal(&self) -> String {
-        match self {
-            Expression::Identifier(ident) => ident.token_literal(),
-        }
+        let Expression::Identifier(ident) = &self;
+        ident.token_literal()
     }
 }
 
@@ -59,6 +60,11 @@ pub struct ReturnStatement {
 pub struct LetStatement {
     pub token: Token,
     pub name: Identifier,
+    pub value: Option<Box<Expression>>,
+}
+
+pub struct ExpressionStatement {
+    pub token: Token,
     pub value: Option<Box<Expression>>,
 }
 
