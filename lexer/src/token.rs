@@ -2,7 +2,7 @@ use lazy_static::lazy_static;
 use std::collections::HashMap;
 
 #[allow(clippy::upper_case_acronyms)]
-#[derive(Debug, Eq, PartialEq, Clone)]
+#[derive(Hash, Debug, Eq, PartialEq, Clone)]
 pub enum TokenType {
     STRING,
     INT,

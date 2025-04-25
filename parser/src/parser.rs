@@ -1,11 +1,18 @@
-use ast::{Identifier, LetStatement, Node, Program, ReturnStatement, Statement};
+use std::collections::HashMap;
+
+use ast::{Expression, Identifier, LetStatement, Node, Program, ReturnStatement, Statement};
 use lexer::{Lexer, Token, TokenType};
+
+type PrefixParseFn = fn() -> Expression;
+type InfixParseFn = fn(Expression) -> Expression;
 
 struct Parser<'a> {
     lexer: Lexer<'a>,
     curr: Token,
     peek: Token,
     errors: Vec<String>,
+    prefix_parse_fns: HashMap<TokenType, PrefixParseFn>,
+    infix_parse_fns: HashMap<TokenType, InfixParseFn>,
 }
 
 impl<'a> Parser<'a> {
@@ -17,7 +24,17 @@ impl<'a> Parser<'a> {
             curr,
             peek,
             errors: vec![],
+            prefix_parse_fns: HashMap::new(),
+            infix_parse_fns: HashMap::new(),
         }
+    }
+
+    fn register_prefix(&mut self, token: TokenType, prefix_parse_fn: PrefixParseFn) {
+        self.prefix_parse_fns.insert(token, prefix_parse_fn);
+    }
+
+    fn register_infix(&mut self, token: TokenType, infix_parse_fn: InfixParseFn) {
+        self.infix_parse_fns.insert(token, infix_parse_fn);
     }
 
     fn next_token(&mut self) {
