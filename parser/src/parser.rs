@@ -1,6 +1,10 @@
+use core::panic::{self, PanicInfo};
 use std::collections::HashMap;
 
-use ast::{Expression, Identifier, LetStatement, Node, Program, ReturnStatement, Statement};
+use ast::{
+    Expression, ExpressionStatement, Identifier, LetStatement, Node, Program, ReturnStatement,
+    Statement,
+};
 use lexer::{Lexer, Token, TokenType};
 
 type PrefixParseFn = fn() -> Expression;
@@ -113,7 +117,15 @@ impl<'a> Parser<'a> {
         match self.curr.kind {
             TokenType::LET => self.parse_let_statement(),
             TokenType::RETURN => self.parse_return_statement(),
-            _ => None,
+            _ => self.parse_expression_statement(),
+        }
+    }
+
+    fn parse_expression_statement(&mut self) -> Option<Statement> {
+        let stmt = self.curr;
+        self.parse_expression(LOWEST);
+        if self.peek_token_is(&TokenType::SEMICOLON) {
+            self.next_token();
         }
     }
 
@@ -214,5 +226,26 @@ return 993322;
             }
             _ => panic!("Did not get `return` statement"),
         }
+    }
+}
+
+#[test]
+fn test_identifier() {
+    let input = String::from("foobar;");
+    let l = Lexer::new(&input);
+    let mut p = Parser::new(l);
+    let program = p.parse_program();
+    check_parse_errors(p);
+    assert_eq!(program.statements.len(), 1);
+    let stmt = &program.statements[0];
+    if let Statement::Expression(expr_stmt) = stmt {
+        if let Some(val) = &expr_stmt.value {
+            if let Expression::Identifier(Identifier { token, value }) = &**val {
+                assert_eq!(value, "foobar");
+                assert_eq!(token.literal, "foobar");
+            }
+        }
+    } else {
+        panic!("Is not expression statement")
     }
 }
