@@ -10,6 +10,24 @@ use lexer::{Lexer, Token, TokenType};
 type PrefixParseFn = fn() -> Expression;
 type InfixParseFn = fn(Expression) -> Expression;
 
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+pub enum Precedence {
+    Int,
+    Lowest,
+    Equals,      // ==
+    LessGreater, // > or
+    Sum,         // +
+    Product,     // *
+    Prefix,      // -X or !X
+    Call,        // myFunction(X)
+}
+
+impl Precedence {
+    fn numeric(self) -> u8 {
+        self as u8
+    }
+}
+
 struct Parser<'a> {
     lexer: Lexer<'a>,
     curr: Token,
