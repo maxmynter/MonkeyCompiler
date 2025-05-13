@@ -131,6 +131,11 @@ impl<'a> Parser<'a> {
         Some(Statement::Let(stmt))
     }
 
+    fn parse_expression(&mut self, precedence: u64) -> Option<Expression> {
+        let prefix = self.prefix_parse_fns[&self.curr.kind];
+        Some(prefix())
+    }
+
     fn parse_statement(&mut self) -> Option<Statement> {
         match self.curr.kind {
             TokenType::LET => self.parse_let_statement(),
