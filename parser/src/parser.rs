@@ -1,25 +1,22 @@
 use core::panic::{self, PanicInfo};
 use std::collections::HashMap;
 
-use ast::{
-    Expression, ExpressionStatement, Identifier, LetStatement, Node, Program, ReturnStatement,
-    Statement,
-};
+use ast::{Expression, Identifier, Node, Program, Statement};
 use lexer::{Lexer, Token, TokenType};
 
-type PrefixParseFn = fn() -> Expression;
-type InfixParseFn = fn(Expression) -> Expression;
+type PrefixParseFn<'a> = for<'b> fn(&'b Parser<'a>) -> Expression;
+type InfixParseFn<'a> = for<'b> fn(&'b Parser<'a>, Expression) -> Expression;
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub enum Precedence {
-    Int,
-    Lowest,
-    Equals,      // ==
-    LessGreater, // > or
-    Sum,         // +
-    Product,     // *
-    Prefix,      // -X or !X
-    Call,        // myFunction(X)
+    INT,
+    LOWEST,
+    EQUALS,      // ==
+    LESSGREATER, // > OR
+    SUM,         // +
+    PRODUCT,     // *
+    PREFIX,      // -x OR !x
+    CALL,        // MYfUNCTION(x)
 }
 
 impl Precedence {
@@ -33,29 +30,41 @@ struct Parser<'a> {
     curr: Token,
     peek: Token,
     errors: Vec<String>,
-    prefix_parse_fns: HashMap<TokenType, PrefixParseFn>,
-    infix_parse_fns: HashMap<TokenType, InfixParseFn>,
+    prefix_parse_fns: HashMap<TokenType, PrefixParseFn<'a>>,
+    infix_parse_fns: HashMap<TokenType, InfixParseFn<'a>>,
 }
 
 impl<'a> Parser<'a> {
     fn new(mut lexer: Lexer<'a>) -> Self {
         let curr = lexer.next_token();
         let peek = lexer.next_token();
-        Parser {
+
+        let mut parser = Parser {
             lexer,
             curr,
             peek,
             errors: vec![],
             prefix_parse_fns: HashMap::new(),
             infix_parse_fns: HashMap::new(),
-        }
+        };
+
+        parser.register_prefix(TokenType::IDENT, Parser::parse_identifier);
+
+        parser
     }
 
-    fn register_prefix(&mut self, token: TokenType, prefix_parse_fn: PrefixParseFn) {
+    fn parse_identifier(&self) -> Expression {
+        Expression::Identifier(ast::Identifier {
+            token: self.curr.clone(),
+            value: self.curr.literal.clone(),
+        })
+    }
+
+    fn register_prefix(&mut self, token: TokenType, prefix_parse_fn: PrefixParseFn<'a>) {
         self.prefix_parse_fns.insert(token, prefix_parse_fn);
     }
 
-    fn register_infix(&mut self, token: TokenType, infix_parse_fn: InfixParseFn) {
+    fn register_infix(&mut self, token: TokenType, infix_parse_fn: InfixParseFn<'a>) {
         self.infix_parse_fns.insert(token, infix_parse_fn);
     }
 
@@ -95,11 +104,10 @@ impl<'a> Parser<'a> {
 
     fn parse_return_statement(&mut self) -> Option<Statement> {
         let token = self.curr.clone();
-        while self.curr_token_is(&TokenType::SEMICOLON) {
+        while !self.curr_token_is(&TokenType::SEMICOLON) {
             self.next_token();
         }
-        let return_statment = ReturnStatement { token, value: None };
-        Some(Statement::Return(return_statment))
+        Some(Statement::Return { token, value: None })
     }
 
     fn parse_let_statement(&mut self) -> Option<Statement> {
@@ -123,17 +131,16 @@ impl<'a> Parser<'a> {
             self.next_token();
         }
 
-        let stmt = LetStatement {
+        Some(Statement::Let {
             token,
             name,
             value: None,
-        };
-        Some(Statement::Let(stmt))
+        })
     }
 
-    fn parse_expression(&mut self, precedence: u64) -> Option<Expression> {
+    fn parse_expression(&mut self, _precedence: Precedence) -> Option<Expression> {
         let prefix = self.prefix_parse_fns[&self.curr.kind];
-        Some(prefix())
+        Some(prefix(self))
     }
 
     fn parse_statement(&mut self) -> Option<Statement> {
@@ -145,11 +152,17 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_expression_statement(&mut self) -> Option<Statement> {
-        let stmt = self.curr;
-        self.parse_expression(LOWEST);
+        let expr = Statement::Expression {
+            token: self.curr.clone(),
+            value: self
+                .parse_expression(Precedence::LOWEST)
+                .map(|exp| Box::new(exp)),
+        };
+
         if self.peek_token_is(&TokenType::SEMICOLON) {
             self.next_token();
         }
+        Some(expr)
     }
 
     fn parse_program(&mut self) -> Program {
@@ -190,29 +203,31 @@ let foobar = 838383;
 }
 
 fn test_let_stmt(stmt: &Statement, name: &str) -> bool {
-    if let Statement::Let(let_stmt) = stmt {
-        if stmt.token_literal() != "let" {
-            println!(
-                "statement token literal not `let`, got={}",
-                stmt.token_literal()
-            );
+    if let Statement::Let {
+        token,
+        name: identifier,
+        ..
+    } = stmt
+    {
+        if *token.literal != "let" {
+            println!("statement token literal not `let`, got={}", token.literal);
             return false;
         }
-        if let_stmt.name.value != name {
-            println!(
-                "let_stmt.name.token_literal not {}, got={}",
-                name,
-                let_stmt.name.token_literal()
-            );
+
+        if *identifier.value != name {
+            println!("let_stmt.name.value not {}, got={}", name, identifier.value);
             return false;
         }
-        if let_stmt.name.token_literal() != name {
+
+        if *identifier.token_literal() != name {
             println!(
                 "let_stmt.name.token_literal not `{}`, got={}",
                 name,
-                let_stmt.name.token_literal()
+                identifier.token_literal()
             );
+            return false;
         }
+
         true
     } else {
         println!("Statement is not a LetStatement");
@@ -235,17 +250,15 @@ return 5;
 return 10;
 return 993322;
 ";
-
     let l = Lexer::new(input);
     let mut p = Parser::new(l);
     let program = p.parse_program();
     check_parse_errors(p);
     assert_eq!(program.statements.len(), 3);
-
     for stmt in &program.statements {
         match stmt {
-            Statement::Return(ReturnStatement { token, .. }) => {
-                assert_eq!(token.literal, "return")
+            Statement::Return { token, .. } => {
+                assert_eq!(*token.literal, "return")
             }
             _ => panic!("Did not get `return` statement"),
         }
@@ -261,12 +274,16 @@ fn test_identifier() {
     check_parse_errors(p);
     assert_eq!(program.statements.len(), 1);
     let stmt = &program.statements[0];
-    if let Statement::Expression(expr_stmt) = stmt {
-        if let Some(val) = &expr_stmt.value {
+    if let Statement::Expression { value, .. } = stmt {
+        if let Some(val) = value {
             if let Expression::Identifier(Identifier { token, value }) = &**val {
-                assert_eq!(value, "foobar");
-                assert_eq!(token.literal, "foobar");
+                assert_eq!(**value, "foobar");
+                assert_eq!(*token.literal, "foobar");
+            } else {
+                panic!("Expression is not an Identifier");
             }
+        } else {
+            panic!("Expression statement has no value");
         }
     } else {
         panic!("Is not expression statement")
