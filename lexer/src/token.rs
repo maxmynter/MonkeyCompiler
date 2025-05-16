@@ -1,8 +1,9 @@
 use lazy_static::lazy_static;
 use std::collections::HashMap;
+use std::rc::Rc;
 
 #[allow(clippy::upper_case_acronyms)]
-#[derive(Hash, Debug, Eq, PartialEq, Clone)]
+#[derive(Copy, Hash, Debug, Eq, PartialEq, Clone)]
 pub enum TokenType {
     STRING,
     INT,
@@ -98,20 +99,20 @@ enum ReadAtomResult<'a> {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Token {
     pub kind: TokenType,
-    pub literal: String,
+    pub literal: Rc<String>,
 }
 
 impl Token {
     pub fn new(kind: TokenType, literal: &str) -> Self {
         Token {
             kind,
-            literal: literal.to_string(),
+            literal: literal.to_string().into(),
         }
     }
     pub fn empty() -> Self {
         Token {
             kind: TokenType::EOF,
-            literal: "\0".to_string(),
+            literal: "\0".to_string().into(),
         }
     }
 }

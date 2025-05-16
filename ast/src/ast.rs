@@ -1,13 +1,35 @@
 use lexer::{Token, TokenType};
+use std::rc::Rc;
+
+#[derive(Clone)]
+pub struct Identifier {
+    pub token: Token,
+    pub value: Rc<String>,
+}
+
+pub enum Expression {
+    Identifier(Identifier),
+    Statement(Statement),
+}
 
 pub enum Statement {
-    Let(LetStatement),
-    Return(ReturnStatement),
-    Expression(ExpressionStatement),
+    Let {
+        token: Token,
+        name: Identifier,
+        value: Option<Box<Expression>>,
+    },
+    Return {
+        token: Token,
+        value: Option<Box<Expression>>,
+    },
+    Expression {
+        token: Token,
+        value: Option<Box<Expression>>,
+    },
 }
 
 pub trait Node {
-    fn token_literal(&self) -> String;
+    fn token_literal(&self) -> Rc<String>;
     fn as_string(&self) -> String;
 }
 
@@ -16,11 +38,11 @@ pub struct Program {
 }
 
 impl Node for Program {
-    fn token_literal(&self) -> String {
+    fn token_literal(&self) -> Rc<String> {
         if !self.statements.is_empty() {
             self.statements[0].token_literal()
         } else {
-            String::new()
+            Rc::new(String::new())
         }
     }
 
@@ -34,37 +56,37 @@ impl Node for Program {
 }
 
 impl Node for Statement {
-    fn token_literal(&self) -> String {
+    fn token_literal(&self) -> Rc<String> {
         match self {
-            Statement::Let(let_stmt) => let_stmt.token.literal.clone(),
-            Statement::Return(return_stmt) => return_stmt.token.literal.clone(),
-            Statement::Expression(expression_stmt) => expression_stmt.token.literal.clone(),
+            Statement::Let { token, .. } => token.literal.clone(),
+            Statement::Return { token, .. } => token.literal.clone(),
+            Statement::Expression { token, .. } => token.literal.clone(),
         }
     }
 
     fn as_string(&self) -> String {
         let mut out = String::new();
         match self {
-            Statement::Let(stmt) => {
-                out.push_str(&stmt.token.literal);
+            Statement::Let { token, name, value } => {
+                out.push_str(&*token.literal);
                 out.push_str(" ");
-                out.push_str(&stmt.name.value);
+                out.push_str(&*name.value);
                 out.push_str(" = ");
-                if let Some(expr) = &stmt.value {
+                if let Some(expr) = &*value {
                     out.push_str(&expr.as_string());
                 }
                 out.push_str(";");
             }
-            Statement::Return(return_stmt) => {
-                out.push_str(&return_stmt.token.literal);
+            Statement::Return { token, value } => {
+                out.push_str(&*token.literal);
                 out.push_str(" ");
-                if let Some(ret_val) = &return_stmt.value {
+                if let Some(ret_val) = &*value {
                     out.push_str(&ret_val.as_string());
                 }
                 out.push_str(";");
             }
-            Statement::Expression(expr_stmt) => {
-                if let Some(expression) = &expr_stmt.value {
+            Statement::Expression { value, .. } => {
+                if let Some(expression) = &*value {
                     out.push_str(&expression.as_string());
                 }
             }
@@ -74,16 +96,20 @@ impl Node for Statement {
 }
 
 impl Node for Expression {
-    fn token_literal(&self) -> String {
+    fn token_literal(&self) -> Rc<String> {
         match self {
             Expression::Identifier(ident) => ident.token_literal(),
-            Expression::Statement(expr_statement) => expr_statement.token.literal.clone(),
+            Expression::Statement(Statement::Expression { token, .. })
+            | Expression::Statement(Statement::Let { token, .. })
+            | Expression::Statement(Statement::Return { token, .. }) => token.literal.clone(),
         }
     }
     fn as_string(&self) -> String {
         match self {
             Expression::Identifier(Identifier { value, .. }) => value.to_string(),
-            Expression::Statement(ExpressionStatement { value, .. }) => {
+            Expression::Statement(Statement::Expression { value, .. })
+            | Expression::Statement(Statement::Let { value, .. })
+            | Expression::Statement(Statement::Return { value, .. }) => {
                 if let Some(expression) = value {
                     expression.as_string()
                 } else {
@@ -95,63 +121,36 @@ impl Node for Expression {
 }
 
 impl Node for Identifier {
-    fn token_literal(&self) -> String {
+    fn token_literal(&self) -> Rc<String> {
         self.token.literal.clone()
     }
     fn as_string(&self) -> String {
         self.value.to_string()
     }
 }
-
-pub struct Identifier {
-    pub token: Token,
-    pub value: String,
-}
-
-pub struct ReturnStatement {
-    pub token: Token,
-    pub value: Option<Box<Expression>>,
-}
-
-pub struct LetStatement {
-    pub token: Token,
-    pub name: Identifier,
-    pub value: Option<Box<Expression>>,
-}
-
-pub struct ExpressionStatement {
-    pub token: Token,
-    pub value: Option<Box<Expression>>,
-}
-
-pub enum Expression {
-    Identifier(Identifier),
-    Statement(ExpressionStatement),
-}
-
 #[test]
 fn test_ast() {
     let prog = Program {
-        statements: vec![Statement::Let(LetStatement {
+        statements: vec![Statement::Let {
             token: Token {
                 kind: TokenType::LET,
-                literal: "let".to_string(),
+                literal: "let".to_string().into(),
             },
             name: Identifier {
                 token: Token {
                     kind: TokenType::IDENT,
-                    literal: "myVar".to_string(),
+                    literal: "myVar".to_string().into(),
                 },
-                value: "myVar".to_string(),
+                value: "myVar".to_string().into(),
             },
             value: Some(Box::new(Expression::Identifier(Identifier {
                 token: Token {
                     kind: TokenType::IDENT,
-                    literal: "anotherVar".to_string(),
+                    literal: "anotherVar".to_string().into(),
                 },
-                value: "anotherVar".to_string(),
+                value: "anotherVar".to_string().into(),
             }))),
-        })],
+        }],
     };
     assert_eq!(prog.as_string(), "let myVar = anotherVar;");
 }
