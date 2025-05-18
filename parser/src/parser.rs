@@ -1,7 +1,8 @@
 use core::panic::{self, PanicInfo};
 use std::collections::HashMap;
+use std::rc::Rc;
 
-use ast::{Expression, Identifier, Node, Program, Statement};
+use ast::{Expression, Identifier, IntegerLiteral, Node, Program, Statement};
 use lexer::{Lexer, Token, TokenType};
 
 type PrefixParseFn<'a> = for<'b> fn(&'b Parser<'a>) -> Expression;
@@ -49,8 +50,16 @@ impl<'a> Parser<'a> {
         };
 
         parser.register_prefix(TokenType::IDENT, Parser::parse_identifier);
+        parser.register_prefix(TokenType::INT, Parser::parse_integer_literal);
 
         parser
+    }
+
+    fn parse_integer_literal(&self) -> Expression {
+        Expression::IntegerLiteral(IntegerLiteral {
+            token: self.curr.clone(),
+            value: Rc::new(self.curr.literal.parse::<u64>().unwrap()),
+        })
     }
 
     fn parse_identifier(&self) -> Expression {
@@ -287,5 +296,30 @@ fn test_identifier() {
         }
     } else {
         panic!("Is not expression statement")
+    }
+}
+
+#[test]
+fn test_integer() {
+    let input = String::from("5;");
+    let l = Lexer::new(&input);
+    let mut p = Parser::new(l);
+    let program = p.parse_program();
+    check_parse_errors(p);
+    assert_eq!(program.statements.len(), 1);
+    let stmt = &program.statements[0];
+    if let Statement::Expression { value, .. } = stmt {
+        if let Some(val) = value {
+            if let Expression::IntegerLiteral(IntegerLiteral { token, value }) = &**val {
+                assert_eq!(**value, 5);
+                assert_eq!(*token.literal, "5");
+            } else {
+                panic!("Expression is not an integer literal");
+            }
+        } else {
+            panic!("Expression statement has no value");
+        }
+    } else {
+        panic!("Is not an integer literal statement");
     }
 }

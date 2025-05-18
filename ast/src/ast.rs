@@ -7,9 +7,31 @@ pub struct Identifier {
     pub value: Rc<String>,
 }
 
+#[derive(Clone)]
+pub struct IntegerLiteral {
+    pub token: Token,
+    pub value: Rc<u64>,
+}
+
+impl IntegerLiteral {
+    pub fn expression_node() {
+        todo!()
+    }
+}
+
+impl Node for IntegerLiteral {
+    fn token_literal(&self) -> Rc<String> {
+        self.token.literal.clone()
+    }
+    fn as_string(&self) -> String {
+        self.token.literal.to_string()
+    }
+}
+
 pub enum Expression {
     Identifier(Identifier),
     Statement(Statement),
+    IntegerLiteral(IntegerLiteral),
 }
 
 pub enum Statement {
@@ -101,12 +123,14 @@ impl Node for Expression {
             Expression::Identifier(ident) => ident.token_literal(),
             Expression::Statement(Statement::Expression { token, .. })
             | Expression::Statement(Statement::Let { token, .. })
-            | Expression::Statement(Statement::Return { token, .. }) => token.literal.clone(),
+            | Expression::Statement(Statement::Return { token, .. })
+            | Expression::IntegerLiteral(IntegerLiteral { token, .. }) => token.literal.clone(),
         }
     }
     fn as_string(&self) -> String {
         match self {
             Expression::Identifier(Identifier { value, .. }) => value.to_string(),
+            Expression::IntegerLiteral(IntegerLiteral { value, .. }) => value.to_string(),
             Expression::Statement(Statement::Expression { value, .. })
             | Expression::Statement(Statement::Let { value, .. })
             | Expression::Statement(Statement::Return { value, .. }) => {
