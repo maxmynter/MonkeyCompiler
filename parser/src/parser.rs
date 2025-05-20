@@ -1,12 +1,11 @@
-use core::panic::{self, PanicInfo};
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use ast::{Expression, Identifier, IntegerLiteral, Node, Program, Statement};
+use ast::{Expression, Identifier, IntegerLiteral, Node, PrefixExpression, Program, Statement};
 use lexer::{Lexer, Token, TokenType};
 
-type PrefixParseFn<'a> = for<'b> fn(&'b Parser<'a>) -> Expression;
-type InfixParseFn<'a> = for<'b> fn(&'b Parser<'a>, Expression) -> Expression;
+type PrefixParseFn<'a> = for<'b> fn(&'b mut Parser<'a>) -> Expression;
+type InfixParseFn<'a> = for<'b> fn(&'b mut Parser<'a>, Expression) -> Expression;
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub enum Precedence {
@@ -51,18 +50,32 @@ impl<'a> Parser<'a> {
 
         parser.register_prefix(TokenType::IDENT, Parser::parse_identifier);
         parser.register_prefix(TokenType::INT, Parser::parse_integer_literal);
+        parser.register_prefix(TokenType::BANG, Parser::parse_prefix_expression);
+        parser.register_prefix(TokenType::MINUS, Parser::parse_prefix_expression);
 
         parser
     }
 
-    fn parse_integer_literal(&self) -> Expression {
+    fn parse_integer_literal(&mut self) -> Expression {
         Expression::IntegerLiteral(IntegerLiteral {
             token: self.curr.clone(),
-            value: Rc::new(self.curr.literal.parse::<u64>().unwrap()),
+            value: Rc::new(self.curr.literal.parse::<i64>().unwrap()),
         })
     }
 
-    fn parse_identifier(&self) -> Expression {
+    fn parse_prefix_expression(&mut self) -> Expression {
+        let token = self.curr.clone();
+        let operator = self.curr.literal.to_string();
+        self.next_token();
+        let right = self.parse_expression(Precedence::PREFIX).unwrap();
+        Expression::PrefixExpression(PrefixExpression {
+            token,
+            operator,
+            right: Box::new(right),
+        })
+    }
+
+    fn parse_identifier(&mut self) -> Expression {
         Expression::Identifier(ast::Identifier {
             token: self.curr.clone(),
             value: self.curr.literal.clone(),
@@ -321,5 +334,56 @@ fn test_integer() {
         }
     } else {
         panic!("Is not an integer literal statement");
+    }
+}
+
+fn test_integer_literal(expr: Expression, val: i64) {
+    let Expression::IntegerLiteral(il) = expr else {
+        panic!()
+    };
+    assert_eq!(val, *il.value);
+    assert_eq!(val.to_string(), *il.token.literal);
+}
+
+#[test]
+fn test_prefix_expressions() {
+    struct PrefixExpressionTest<'a> {
+        input: &'a str,
+        operator: &'a str,
+        integer_value: i64,
+    }
+    let prefix_tests = vec![
+        PrefixExpressionTest {
+            input: "!5;",
+            operator: "!",
+            integer_value: 5,
+        },
+        PrefixExpressionTest {
+            input: "-15;",
+            operator: "-",
+            integer_value: 15,
+        },
+    ];
+
+    for tt in prefix_tests {
+        let l = Lexer::new(tt.input);
+        let mut p = Parser::new(l);
+        let program = p.parse_program();
+        check_parse_errors(p);
+
+        assert_eq!(program.statements.len(), 1);
+        let Statement::Expression { value, .. } = &program.statements[0] else {
+            panic!()
+        };
+        match *(value.clone().unwrap()) {
+            Expression::PrefixExpression(prefix) => {
+                let PrefixExpression {
+                    operator, right, ..
+                } = prefix;
+                assert_eq!(operator, tt.operator);
+                test_integer_literal(*right, tt.integer_value);
+            }
+            _ => panic!(),
+        }
     }
 }
