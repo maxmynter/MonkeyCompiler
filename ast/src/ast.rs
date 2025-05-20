@@ -10,7 +10,7 @@ pub struct Identifier {
 #[derive(Clone)]
 pub struct IntegerLiteral {
     pub token: Token,
-    pub value: Rc<u64>,
+    pub value: Rc<i64>,
 }
 
 impl IntegerLiteral {
@@ -28,12 +28,37 @@ impl Node for IntegerLiteral {
     }
 }
 
+#[derive(Clone)]
+pub struct PrefixExpression {
+    pub token: Token,
+    pub operator: String,
+    pub right: Box<Expression>,
+}
+
+impl Node for PrefixExpression {
+    fn token_literal(&self) -> Rc<String> {
+        self.token.literal.clone()
+    }
+
+    fn as_string(&self) -> String {
+        let mut out = String::new();
+        out.push_str("(");
+        out.push_str(&self.operator);
+        out.push_str(&self.right.as_string());
+        out.push_str(")");
+        out
+    }
+}
+
+#[derive(Clone)]
 pub enum Expression {
     Identifier(Identifier),
     Statement(Statement),
     IntegerLiteral(IntegerLiteral),
+    PrefixExpression(PrefixExpression),
 }
 
+#[derive(Clone)]
 pub enum Statement {
     Let {
         token: Token,
@@ -124,13 +149,15 @@ impl Node for Expression {
             Expression::Statement(Statement::Expression { token, .. })
             | Expression::Statement(Statement::Let { token, .. })
             | Expression::Statement(Statement::Return { token, .. })
-            | Expression::IntegerLiteral(IntegerLiteral { token, .. }) => token.literal.clone(),
+            | Expression::IntegerLiteral(IntegerLiteral { token, .. })
+            | Expression::PrefixExpression(PrefixExpression { token, .. }) => token.literal.clone(),
         }
     }
     fn as_string(&self) -> String {
         match self {
             Expression::Identifier(Identifier { value, .. }) => value.to_string(),
             Expression::IntegerLiteral(IntegerLiteral { value, .. }) => value.to_string(),
+            Expression::PrefixExpression(prefix) => prefix.as_string(),
             Expression::Statement(Statement::Expression { value, .. })
             | Expression::Statement(Statement::Let { value, .. })
             | Expression::Statement(Statement::Return { value, .. }) => {
