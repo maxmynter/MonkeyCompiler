@@ -1,7 +1,10 @@
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use ast::{Expression, Identifier, IntegerLiteral, Node, PrefixExpression, Program, Statement};
+use ast::{
+    Expression, Identifier, InfixExpression, IntegerLiteral, Node, PrefixExpression, Program,
+    Statement,
+};
 use lexer::{Lexer, Token, TokenType};
 
 type PrefixParseFn<'a> = for<'b> fn(&'b mut Parser<'a>) -> Expression;
@@ -382,6 +385,91 @@ fn test_prefix_expressions() {
                 } = prefix;
                 assert_eq!(operator, tt.operator);
                 test_integer_literal(*right, tt.integer_value);
+            }
+            _ => panic!(),
+        }
+    }
+}
+
+#[test]
+fn test_infix_expressions() {
+    struct InfixExpressionTest<'a> {
+        input: &'a str,
+        operator: &'a str,
+        left: i64,
+        right: i64,
+    }
+    let infix_tests = vec![
+        InfixExpressionTest {
+            input: "5+5;",
+            operator: "+",
+            left: 5,
+            right: 5,
+        },
+        InfixExpressionTest {
+            input: "5-5;",
+            operator: "-",
+            left: 5,
+            right: 5,
+        },
+        InfixExpressionTest {
+            input: "5*5;",
+            operator: "*",
+            left: 5,
+            right: 5,
+        },
+        InfixExpressionTest {
+            input: "5/5;",
+            operator: "/",
+            left: 5,
+            right: 5,
+        },
+        InfixExpressionTest {
+            input: "5>5;",
+            operator: ">",
+            left: 5,
+            right: 5,
+        },
+        InfixExpressionTest {
+            input: "5<5;",
+            operator: "<",
+            left: 5,
+            right: 5,
+        },
+        InfixExpressionTest {
+            input: "5==5;",
+            operator: "==",
+            left: 5,
+            right: 5,
+        },
+        InfixExpressionTest {
+            input: "5!=5;",
+            operator: "!=",
+            left: 5,
+            right: 5,
+        },
+    ];
+
+    for tt in infix_tests {
+        let l = Lexer::new(tt.input);
+        let mut p = Parser::new(l);
+        let program = p.parse_program();
+        check_parse_errors(p);
+        assert_eq!(program.statements.len(), 1);
+        let Statement::Expression { value, .. } = &program.statements[0] else {
+            panic!("Is not infix expression");
+        };
+        match *(value.clone().unwrap()) {
+            Expression::InfixExpression(infix) => {
+                let InfixExpression {
+                    token: _,
+                    operator,
+                    right,
+                    left,
+                } = infix;
+                test_integer_literal(*left, tt.left);
+                test_integer_literal(*right, tt.right);
+                assert_eq!(operator, tt.operator);
             }
             _ => panic!(),
         }
