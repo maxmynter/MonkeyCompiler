@@ -6,7 +6,7 @@ use ast::{
     Expression, Identifier, InfixExpression, IntegerLiteral, Node, PrefixExpression, Program,
     Statement,
 };
-use lexer::{Lexer, Token, TokenType, token};
+use lexer::{Lexer, Token, TokenType};
 
 type PrefixParseFn<'a> = for<'b> fn(&'b mut Parser<'a>) -> Expression;
 type InfixParseFn<'a> = for<'b> fn(&'b mut Parser<'a>, Expression) -> Expression;
@@ -116,7 +116,7 @@ impl<'a> Parser<'a> {
         let right = self
             .parse_expression(right_precedence)
             .unwrap_or_else(|| panic!("Could not parse expression around {}", operator));
-        Expression::InfixExpression(ast::InfixExpression {
+        Expression::InfixExpression(InfixExpression {
             token,
             operator,
             left: Box::new(left),

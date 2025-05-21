@@ -26,12 +26,12 @@ impl<'a> Lexer<'a> {
             self.eat_symbol();
             self.eat_symbol();
             let two_char = &self.input[start_pos..self.position];
-            Token::new(TWO_CHAR_ATOMS[two_char].clone(), two_char)
+            Token::new(TWO_CHAR_ATOMS[two_char], two_char)
         } else {
             let current_char = self.ch;
             self.eat_symbol();
             let one_char = &self.input[start_pos..self.position];
-            Token::new(ATOMS[&current_char].clone(), one_char)
+            Token::new(ATOMS[&current_char], one_char)
         }
     }
 
@@ -128,8 +128,7 @@ impl<'a> Lexer<'a> {
 #[test]
 fn test_next_token() {
     let input = String::from("=+(){},;");
-    let expected = vec![
-        Token {
+    let expected = [Token {
             kind: TokenType::ASSIGN,
             literal: "=".to_string().into(),
         },
@@ -160,8 +159,7 @@ fn test_next_token() {
         Token {
             kind: TokenType::SEMICOLON,
             literal: ";".to_string().into(),
-        },
-    ];
+        }];
     let mut lexer = Lexer::new(&input);
     for i in 0..expected.len() {
         assert_eq!(lexer.next_token(), expected[i])

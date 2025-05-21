@@ -1,4 +1,6 @@
-use lexer::{Token, TokenType};
+use lexer::Token;
+#[cfg(test)]
+use lexer::TokenType;
 use std::rc::Rc;
 
 #[derive(Clone, Debug)]
@@ -42,10 +44,10 @@ impl Node for PrefixExpression {
 
     fn as_string(&self) -> String {
         let mut out = String::new();
-        out.push_str("(");
+        out.push('(');
         out.push_str(&self.operator);
         out.push_str(&self.right.as_string());
-        out.push_str(")");
+        out.push(')');
         out
     }
 }
@@ -64,13 +66,13 @@ impl Node for InfixExpression {
     }
     fn as_string(&self) -> String {
         let mut out = String::new();
-        out.push_str("(");
+        out.push('(');
         out.push_str(&self.left.as_string());
-        out.push_str(" ");
+        out.push(' ');
         out.push_str(&self.operator);
-        out.push_str(" ");
+        out.push(' ');
         out.push_str(&self.right.as_string());
-        out.push_str(")");
+        out.push(')');
         out
     }
 }
@@ -142,25 +144,25 @@ impl Node for Statement {
         let mut out = String::new();
         match self {
             Statement::Let { token, name, value } => {
-                out.push_str(&*token.literal);
-                out.push_str(" ");
-                out.push_str(&*name.value);
+                out.push_str(&token.literal);
+                out.push(' ');
+                out.push_str(&name.value);
                 out.push_str(" = ");
-                if let Some(expr) = &*value {
+                if let Some(expr) = value {
                     out.push_str(&expr.as_string());
                 }
-                out.push_str(";");
+                out.push(';');
             }
             Statement::Return { token, value } => {
-                out.push_str(&*token.literal);
-                out.push_str(" ");
-                if let Some(ret_val) = &*value {
+                out.push_str(&token.literal);
+                out.push(' ');
+                if let Some(ret_val) = value {
                     out.push_str(&ret_val.as_string());
                 }
-                out.push_str(";");
+                out.push(';');
             }
             Statement::Expression { value, .. } => {
-                if let Some(expression) = &*value {
+                if let Some(expression) = value {
                     out.push_str(&expression.as_string());
                 }
             }
