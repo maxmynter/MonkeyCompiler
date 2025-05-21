@@ -1,13 +1,13 @@
 use lexer::{Token, TokenType};
 use std::rc::Rc;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Identifier {
     pub token: Token,
     pub value: Rc<String>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct IntegerLiteral {
     pub token: Token,
     pub value: Rc<i64>,
@@ -28,7 +28,7 @@ impl Node for IntegerLiteral {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct PrefixExpression {
     pub token: Token,
     pub operator: String,
@@ -50,7 +50,7 @@ impl Node for PrefixExpression {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct InfixExpression {
     pub token: Token,
     pub operator: String,
@@ -75,7 +75,7 @@ impl Node for InfixExpression {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Expression {
     Identifier(Identifier),
     Statement(Statement),
@@ -84,7 +84,7 @@ pub enum Expression {
     InfixExpression(InfixExpression),
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Statement {
     Let {
         token: Token,
@@ -106,6 +106,7 @@ pub trait Node {
     fn as_string(&self) -> String;
 }
 
+#[derive(Debug)]
 pub struct Program {
     pub statements: Vec<Statement>,
 }
