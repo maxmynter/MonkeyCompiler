@@ -322,7 +322,7 @@ impl TestLiteral for i64 {
 impl TestLiteral for &str {
     fn test_literal(&self, expr: &Expression) -> bool {
         if let Expression::Identifier(id) = expr {
-            id.value.as_str() == *self && id.token.literal.as_str() == *self
+            id.value.as_str() == *self && id.token_literal().as_str() == *self
         } else {
             false
         }
@@ -332,7 +332,7 @@ impl TestLiteral for &str {
 impl TestLiteral for bool {
     fn test_literal(&self, expr: &Expression) -> bool {
         if let Expression::Boolean(b) = expr {
-            b.value == *self
+            b.value == *self && b.token_literal() == self.to_string().into()
         } else {
             false
         }
