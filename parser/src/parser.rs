@@ -541,3 +541,72 @@ fn test_infix_expressions() {
         }
     }
 }
+
+#[test]
+fn test_operator_precedence_parsing() {
+    struct OperatorPrecedenceTest<'a> {
+        input: &'a str,
+        expected: &'a str,
+    }
+
+    let tests = vec![
+        OperatorPrecedenceTest {
+            input: "-a * b",
+            expected: "((-a) * b)",
+        },
+        OperatorPrecedenceTest {
+            input: "!-a",
+            expected: "(!(-a))",
+        },
+        OperatorPrecedenceTest {
+            input: "a + b + c",
+            expected: "((a + b) + c)",
+        },
+        OperatorPrecedenceTest {
+            input: "a + b - c",
+            expected: "((a + b) - c)",
+        },
+        OperatorPrecedenceTest {
+            input: "a * b * c",
+            expected: "((a * b) * c)",
+        },
+        OperatorPrecedenceTest {
+            input: "a * b / c",
+            expected: "((a * b) / c)",
+        },
+        OperatorPrecedenceTest {
+            input: "a + b / c",
+            expected: "(a + (b / c))",
+        },
+        OperatorPrecedenceTest {
+            input: "a + b * c + d / e - f",
+            expected: "(((a + (b * c)) + (d / e)) - f)",
+        },
+        OperatorPrecedenceTest {
+            input: "3 + 4; -5 * 5",
+            expected: "(3 + 4)((-5) * 5)",
+        },
+        OperatorPrecedenceTest {
+            input: "5 > 4 == 3 < 4",
+            expected: "((5 > 4) == (3 < 4))",
+        },
+        OperatorPrecedenceTest {
+            input: "5 < 4 != 3 > 4",
+            expected: "((5 < 4) != (3 > 4))",
+        },
+        OperatorPrecedenceTest {
+            input: "3 + 4 * 5 == 3 * 1 + 4 * 5",
+            expected: "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))",
+        },
+    ];
+
+    for tt in tests {
+        let l = Lexer::new(tt.input);
+        let mut p = Parser::new(l);
+        let program = p.parse_program();
+        check_parse_errors(p);
+
+        let actual = program.to_string();
+        assert_eq!(actual, tt.expected, "for input: {}", tt.input);
+    }
+}

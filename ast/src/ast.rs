@@ -1,3 +1,4 @@
+use core::fmt;
 use lexer::Token;
 #[cfg(test)]
 use lexer::TokenType;
@@ -131,6 +132,15 @@ impl Node for Program {
     }
 }
 
+impl fmt::Display for Program {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for stmt in &self.statements {
+            write!(f, "{}", stmt)?;
+        }
+        Ok(())
+    }
+}
+
 impl Node for Statement {
     fn token_literal(&self) -> Rc<String> {
         match self {
@@ -168,6 +178,50 @@ impl Node for Statement {
             }
         }
         out
+    }
+}
+
+impl fmt::Display for Statement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Statement::Let { name, value, .. } => {
+                write!(f, "let {} = ", name.value)?;
+                if let Some(val) = value {
+                    write!(f, "{}", val)?;
+                }
+                write!(f, ";")
+            }
+            Statement::Return { value, .. } => {
+                write!(f, "return ")?;
+                if let Some(val) = value {
+                    write!(f, "{}", val)?;
+                }
+                write!(f, ";")
+            }
+            Statement::Expression { value, .. } => {
+                if let Some(val) = value {
+                    write!(f, "{}", val)
+                } else {
+                    Ok(())
+                }
+            }
+        }
+    }
+}
+
+impl fmt::Display for Expression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Expression::Statement(stmt) => write!(f, "{}", stmt),
+            Expression::Identifier(ident) => write!(f, "{}", ident.value),
+            Expression::IntegerLiteral(int_lit) => write!(f, "{}", int_lit.value),
+            Expression::PrefixExpression(prefix) => {
+                write!(f, "({}{})", prefix.operator, prefix.right)
+            }
+            Expression::InfixExpression(infix) => {
+                write!(f, "({} {} {})", infix.left, infix.operator, infix.right)
+            }
+        }
     }
 }
 

@@ -128,7 +128,8 @@ impl<'a> Lexer<'a> {
 #[test]
 fn test_next_token() {
     let input = String::from("=+(){},;");
-    let expected = [Token {
+    let expected = [
+        Token {
             kind: TokenType::ASSIGN,
             literal: "=".to_string().into(),
         },
@@ -159,7 +160,8 @@ fn test_next_token() {
         Token {
             kind: TokenType::SEMICOLON,
             literal: ";".to_string().into(),
-        }];
+        },
+    ];
     let mut lexer = Lexer::new(&input);
     for i in 0..expected.len() {
         assert_eq!(lexer.next_token(), expected[i])
