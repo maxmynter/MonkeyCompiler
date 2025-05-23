@@ -334,6 +334,14 @@ fn check_parse_errors(p: Parser) {
     assert_eq!(p.errors.len(), 0);
 }
 
+fn prepare_program_for_test(input: &str) -> Program {
+    let l = Lexer::new(input);
+    let mut p = Parser::new(l);
+    let program = p.parse_program();
+    check_parse_errors(p);
+    program
+}
+
 #[test]
 fn test_return_statement() {
     let input = "
@@ -341,10 +349,7 @@ return 5;
 return 10;
 return 993322;
 ";
-    let l = Lexer::new(input);
-    let mut p = Parser::new(l);
-    let program = p.parse_program();
-    check_parse_errors(p);
+    let program = prepare_program_for_test(input);
     assert_eq!(program.statements.len(), 3);
     for stmt in &program.statements {
         match stmt {
@@ -359,10 +364,7 @@ return 993322;
 #[test]
 fn test_identifier() {
     let input = String::from("foobar;");
-    let l = Lexer::new(&input);
-    let mut p = Parser::new(l);
-    let program = p.parse_program();
-    check_parse_errors(p);
+    let program = prepare_program_for_test(&input);
     assert_eq!(program.statements.len(), 1);
     let stmt = &program.statements[0];
     if let Statement::Expression { value, .. } = stmt {
@@ -384,10 +386,7 @@ fn test_identifier() {
 #[test]
 fn test_integer() {
     let input = String::from("5;");
-    let l = Lexer::new(&input);
-    let mut p = Parser::new(l);
-    let program = p.parse_program();
-    check_parse_errors(p);
+    let program = prepare_program_for_test(&input);
     assert_eq!(program.statements.len(), 1);
     let stmt = &program.statements[0];
     if let Statement::Expression { value, .. } = stmt {
@@ -435,11 +434,7 @@ fn test_prefix_expressions() {
     ];
 
     for tt in prefix_tests {
-        let l = Lexer::new(tt.input);
-        let mut p = Parser::new(l);
-        let program = p.parse_program();
-        check_parse_errors(p);
-
+        let program = prepare_program_for_test(&tt.input);
         assert_eq!(program.statements.len(), 1);
         let Statement::Expression { value, .. } = &program.statements[0] else {
             panic!()
@@ -601,11 +596,7 @@ fn test_operator_precedence_parsing() {
     ];
 
     for tt in tests {
-        let l = Lexer::new(tt.input);
-        let mut p = Parser::new(l);
-        let program = p.parse_program();
-        check_parse_errors(p);
-
+        let program = prepare_program_for_test(&tt.input);
         let actual = program.to_string();
         assert_eq!(actual, tt.expected, "for input: {}", tt.input);
     }
