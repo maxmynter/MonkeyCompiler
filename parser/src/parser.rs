@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use ast::{
-    Expression, Identifier, InfixExpression, IntegerLiteral, Node, PrefixExpression, Program,
-    Statement,
+    Boolean, Expression, Identifier, InfixExpression, IntegerLiteral, Node, PrefixExpression,
+    Program, Statement,
 };
 use lexer::{Lexer, Token, TokenType};
 
@@ -74,6 +74,8 @@ impl<'a> Parser<'a> {
         parser.register_prefix(TokenType::INT, Parser::parse_integer_literal);
         parser.register_prefix(TokenType::BANG, Parser::parse_prefix_expression);
         parser.register_prefix(TokenType::MINUS, Parser::parse_prefix_expression);
+        parser.register_prefix(TokenType::TRUE, Parser::parse_boolean);
+        parser.register_prefix(TokenType::FALSE, Parser::parse_boolean);
 
         parser.register_infix(TokenType::PLUS, Parser::parse_infix_expression);
         parser.register_infix(TokenType::MINUS, Parser::parse_infix_expression);
@@ -85,6 +87,13 @@ impl<'a> Parser<'a> {
         parser.register_infix(TokenType::GT, Parser::parse_infix_expression);
 
         parser
+    }
+
+    fn parse_boolean(&mut self) -> Expression {
+        Expression::Boolean(Boolean {
+            token: self.curr.clone(),
+            value: self.curr_token_is(&TokenType::TRUE),
+        })
     }
 
     fn parse_integer_literal(&mut self) -> Expression {

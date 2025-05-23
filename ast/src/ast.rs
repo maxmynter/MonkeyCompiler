@@ -5,6 +5,22 @@ use lexer::TokenType;
 use std::rc::Rc;
 
 #[derive(Clone, Debug)]
+pub struct Boolean {
+    pub token: Token,
+    pub value: bool,
+}
+
+impl Node for Boolean {
+    fn token_literal(&self) -> Rc<String> {
+        self.token.literal.clone()
+    }
+
+    fn as_string(&self) -> String {
+        self.token.literal.to_string()
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct Identifier {
     pub token: Token,
     pub value: Rc<String>,
@@ -14,12 +30,6 @@ pub struct Identifier {
 pub struct IntegerLiteral {
     pub token: Token,
     pub value: Rc<i64>,
-}
-
-impl IntegerLiteral {
-    pub fn expression_node() {
-        todo!()
-    }
 }
 
 impl Node for IntegerLiteral {
@@ -83,6 +93,7 @@ pub enum Expression {
     Identifier(Identifier),
     Statement(Statement),
     IntegerLiteral(IntegerLiteral),
+    Boolean(Boolean),
     PrefixExpression(PrefixExpression),
     InfixExpression(InfixExpression),
 }
@@ -214,6 +225,7 @@ impl fmt::Display for Expression {
         match self {
             Expression::Statement(stmt) => write!(f, "{}", stmt),
             Expression::Identifier(ident) => write!(f, "{}", ident.value),
+            Expression::Boolean(boolean) => write!(f, "{}", boolean.value),
             Expression::IntegerLiteral(int_lit) => write!(f, "{}", int_lit.value),
             Expression::PrefixExpression(prefix) => {
                 write!(f, "({}{})", prefix.operator, prefix.right)
@@ -232,6 +244,7 @@ impl Node for Expression {
             Expression::Statement(Statement::Expression { token, .. })
             | Expression::Statement(Statement::Let { token, .. })
             | Expression::Statement(Statement::Return { token, .. })
+            | Expression::Boolean(Boolean { token, .. })
             | Expression::IntegerLiteral(IntegerLiteral { token, .. })
             | Expression::InfixExpression(InfixExpression { token, .. })
             | Expression::PrefixExpression(PrefixExpression { token, .. }) => token.literal.clone(),
@@ -242,8 +255,8 @@ impl Node for Expression {
             Expression::Identifier(Identifier { value, .. }) => value.to_string(),
             Expression::IntegerLiteral(IntegerLiteral { value, .. }) => value.to_string(),
             Expression::PrefixExpression(prefix) => prefix.as_string(),
-
             Expression::InfixExpression(infix) => infix.as_string(),
+            Expression::Boolean(boolean) => boolean.as_string(),
             Expression::Statement(Statement::Expression { value, .. })
             | Expression::Statement(Statement::Let { value, .. })
             | Expression::Statement(Statement::Return { value, .. }) => {
