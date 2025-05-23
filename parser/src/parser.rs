@@ -277,29 +277,113 @@ impl<'a> Parser<'a> {
     }
 }
 
-#[test]
-fn test_let_parsing() {
-    let input = "let x = 5;
-let y = 10;
-let foobar = 838383;
-";
+fn unwrap_expression(stmt: &Statement) -> &Expression {
+    if let Statement::Expression { value, .. } = stmt {
+        if let Some(val) = value {
+            val
+        } else {
+            panic!("Expression statement has no value")
+        }
+    } else {
+        panic!("Statement is not an expression statment")
+    }
+}
+
+fn check_parse_errors(p: Parser) {
+    println!("Parser has {} errors", p.errors.len());
+    for msg in &p.errors {
+        eprintln!("Error: {}", msg);
+    }
+    assert_eq!(p.errors.len(), 0);
+}
+
+fn prepare_program_for_test(input: &str) -> Program {
     let l = Lexer::new(input);
     let mut p = Parser::new(l);
     let program = p.parse_program();
-    assert_eq!(program.statements.len(), 3);
-
     check_parse_errors(p);
+    program
+}
 
-    let expected_identifiers = ["x", "y", "foobar"];
+trait TestLiteral {
+    fn test_literal(&self, expr: &Expression) -> bool;
+}
 
-    for (i, tt) in expected_identifiers.iter().enumerate() {
-        let stmt = &program.statements[i];
-        assert!(
-            test_let_stmt(stmt, tt),
-            "Let statemtent parsing failed: {}",
-            i
-        );
+impl TestLiteral for i64 {
+    fn test_literal(&self, expr: &Expression) -> bool {
+        if let Expression::IntegerLiteral(il) = expr {
+            *il.value == *self && il.token_literal() == self.to_string().into()
+        } else {
+            false
+        }
     }
+}
+
+impl TestLiteral for &str {
+    fn test_literal(&self, expr: &Expression) -> bool {
+        if let Expression::Identifier(id) = expr {
+            id.value.as_str() == *self && id.token.literal.as_str() == *self
+        } else {
+            false
+        }
+    }
+}
+
+impl TestLiteral for bool {
+    fn test_literal(&self, expr: &Expression) -> bool {
+        if let Expression::Boolean(b) = expr {
+            b.value == *self
+        } else {
+            false
+        }
+    }
+}
+
+fn test_literal_expression<T: TestLiteral>(expr: &Expression, expected: T) -> bool {
+    expected.test_literal(expr)
+}
+
+fn test_infix_expression<L, R>(
+    expr: &Expression,
+    left_expected: L,
+    operator: &str,
+    right_expected: R,
+) -> bool
+where
+    L: TestLiteral,
+    R: TestLiteral,
+{
+    if let Expression::InfixExpression(infix) = expr {
+        test_literal_expression(&infix.left, left_expected)
+            && infix.operator == operator
+            && test_literal_expression(&infix.right, right_expected)
+    } else {
+        false
+    }
+}
+
+fn test_prefix_expression<P: TestLiteral>(
+    expr: &Expression,
+    operator: &str,
+    right_expected: P,
+) -> bool {
+    if let Expression::PrefixExpression(prefix) = expr {
+        prefix.operator == operator && test_literal_expression(&prefix.right, right_expected)
+    } else {
+        false
+    }
+}
+
+fn test_integer_literal(expr: &Expression, expected: i64) -> bool {
+    test_literal_expression(expr, expected)
+}
+
+fn test_identifier(expr: &Expression, expected: &str) -> bool {
+    test_literal_expression(expr, expected)
+}
+
+fn test_boolean_literal(expr: &Expression, expected: bool) -> bool {
+    test_literal_expression(expr, expected)
 }
 
 fn test_let_stmt(stmt: &Statement, name: &str) -> bool {
@@ -335,59 +419,25 @@ fn test_let_stmt(stmt: &Statement, name: &str) -> bool {
     }
 }
 
-fn unwrap_expression(stmt: &Statement) -> &Expression {
-    if let Statement::Expression { value, .. } = stmt {
-        if let Some(val) = value {
-            val
-        } else {
-            panic!("Expression statement has no value")
-        }
-    } else {
-        panic!("Statement is not an expression statment")
-    }
-}
+#[test]
+fn test_let_parsing() {
+    let input = "let x = 5;
+let y = 10;
+let foobar = 838383;
+";
+    let program = prepare_program_for_test(input);
+    assert_eq!(program.statements.len(), 3);
 
-fn test_literal_expression<'a, T: PartialEq + std::fmt::Debug>(
-    expr: &'a Expression,
-    expected: T,
-    extractor: impl Fn(&'a Expression) -> Option<T>,
-) {
-    match extractor(expr) {
-        Some(actual) => assert_eq!(actual, expected),
-        None => panic!("Failed to extract type for expression: {:?}", expr),
-    }
-}
+    let expected_identifiers = ["x", "y", "foobar"];
 
-fn extract_integer(expr: &Expression) -> Option<i64> {
-    if let Expression::IntegerLiteral(il) = expr {
-        Some(*il.value)
-    } else {
-        None
+    for (i, tt) in expected_identifiers.iter().enumerate() {
+        let stmt = &program.statements[i];
+        assert!(
+            test_let_stmt(stmt, tt),
+            "Let statemtent parsing failed: {}",
+            i
+        );
     }
-}
-
-fn extract_identifier(expr: &Expression) -> Option<&str> {
-    if let Expression::Identifier(id) = expr {
-        Some(&id.value)
-    } else {
-        None
-    }
-}
-
-fn check_parse_errors(p: Parser) {
-    println!("Parser has {} errors", p.errors.len());
-    for msg in &p.errors {
-        eprintln!("Error: {}", msg);
-    }
-    assert_eq!(p.errors.len(), 0);
-}
-
-fn prepare_program_for_test(input: &str) -> Program {
-    let l = Lexer::new(input);
-    let mut p = Parser::new(l);
-    let program = p.parse_program();
-    check_parse_errors(p);
-    program
 }
 
 #[test]
@@ -410,12 +460,12 @@ return 993322;
 }
 
 #[test]
-fn test_identifier() {
+fn test_identifiers() {
     let input = String::from("foobar;");
     let program = prepare_program_for_test(&input);
     assert_eq!(program.statements.len(), 1);
     let expr = unwrap_expression(&program.statements[0]);
-    test_literal_expression(expr, "foobar", extract_identifier);
+    assert!(test_literal_expression(expr, "foobar"));
 }
 
 #[test]
@@ -424,15 +474,7 @@ fn test_integer() {
     let program = prepare_program_for_test(&input);
     assert_eq!(program.statements.len(), 1);
     let expr = unwrap_expression(&program.statements[0]);
-    test_literal_expression(expr, 5i64, extract_integer);
-}
-
-fn test_integer_literal(expr: Expression, val: i64) {
-    let Expression::IntegerLiteral(il) = expr else {
-        panic!()
-    };
-    assert_eq!(val, *il.value);
-    assert_eq!(val.to_string(), *il.token.literal);
+    test_literal_expression(expr, 5i64);
 }
 
 #[test]
@@ -459,13 +501,11 @@ fn test_prefix_expressions() {
         let program = prepare_program_for_test(tt.input);
         assert_eq!(program.statements.len(), 1);
         let expr = unwrap_expression(&program.statements[0]);
-
-        if let Expression::PrefixExpression(prefix) = expr {
-            assert_eq!(prefix.operator, tt.operator);
-            test_integer_literal(*prefix.right.clone(), tt.integer_value);
-        } else {
-            panic!("Expected prefix expression, got: {:?}", expr);
-        }
+        assert!(
+            test_prefix_expression(expr, tt.operator, tt.integer_value),
+            "Expected prefix expression, got: {:?}",
+            expr
+        );
     }
 }
 
@@ -531,23 +571,12 @@ fn test_infix_expressions() {
     for tt in infix_tests {
         let program = prepare_program_for_test(tt.input);
         assert_eq!(program.statements.len(), 1);
-        let Statement::Expression { value, .. } = &program.statements[0] else {
-            panic!("Is not infix expression");
-        };
-        match *(value.clone().unwrap()) {
-            Expression::InfixExpression(infix) => {
-                let InfixExpression {
-                    token: _,
-                    operator,
-                    right,
-                    left,
-                } = infix;
-                test_integer_literal(*left, tt.left);
-                test_integer_literal(*right, tt.right);
-                assert_eq!(operator, tt.operator);
-            }
-            _ => panic!(),
-        }
+        let expr = unwrap_expression(&program.statements[0]);
+        assert!(
+            test_infix_expression(expr, tt.left, tt.operator, tt.right),
+            "Failed infix test for input: {}",
+            tt.input
+        );
     }
 }
 
@@ -606,6 +635,22 @@ fn test_operator_precedence_parsing() {
         OperatorPrecedenceTest {
             input: "3 + 4 * 5 == 3 * 1 + 4 * 5",
             expected: "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))",
+        },
+        OperatorPrecedenceTest {
+            input: "true",
+            expected: "true",
+        },
+        OperatorPrecedenceTest {
+            input: "false",
+            expected: "false",
+        },
+        OperatorPrecedenceTest {
+            input: "3 > 5 == false",
+            expected: "((3 > 5) == false)",
+        },
+        OperatorPrecedenceTest {
+            input: "3 < 5 == true",
+            expected: "((3 < 5) == true)",
         },
     ];
 
