@@ -326,6 +326,45 @@ fn test_let_stmt(stmt: &Statement, name: &str) -> bool {
     }
 }
 
+fn unwrap_expression(stmt: &Statement) -> &Expression {
+    if let Statement::Expression { value, .. } = stmt {
+        if let Some(val) = value {
+            val
+        } else {
+            panic!("Expression statement has no value")
+        }
+    } else {
+        panic!("Statement is not an expression statment")
+    }
+}
+
+fn test_literal_expression<'a, T: PartialEq + std::fmt::Debug>(
+    expr: &'a Expression,
+    expected: T,
+    extractor: impl Fn(&'a Expression) -> Option<T>,
+) {
+    match extractor(expr) {
+        Some(actual) => assert_eq!(actual, expected),
+        None => panic!("Failed to extract type for expression: {:?}", expr),
+    }
+}
+
+fn extract_integer(expr: &Expression) -> Option<i64> {
+    if let Expression::IntegerLiteral(il) = expr {
+        Some(*il.value)
+    } else {
+        None
+    }
+}
+
+fn extract_identifier(expr: &Expression) -> Option<&str> {
+    if let Expression::Identifier(id) = expr {
+        Some(&id.value)
+    } else {
+        None
+    }
+}
+
 fn check_parse_errors(p: Parser) {
     println!("Parser has {} errors", p.errors.len());
     for msg in &p.errors {
@@ -366,21 +405,8 @@ fn test_identifier() {
     let input = String::from("foobar;");
     let program = prepare_program_for_test(&input);
     assert_eq!(program.statements.len(), 1);
-    let stmt = &program.statements[0];
-    if let Statement::Expression { value, .. } = stmt {
-        if let Some(val) = value {
-            if let Expression::Identifier(Identifier { token, value }) = &**val {
-                assert_eq!(**value, "foobar");
-                assert_eq!(*token.literal, "foobar");
-            } else {
-                panic!("Expression is not an Identifier");
-            }
-        } else {
-            panic!("Expression statement has no value");
-        }
-    } else {
-        panic!("Is not expression statement")
-    }
+    let expr = unwrap_expression(&program.statements[0]);
+    test_literal_expression(expr, "foobar", extract_identifier);
 }
 
 #[test]
@@ -388,21 +414,8 @@ fn test_integer() {
     let input = String::from("5;");
     let program = prepare_program_for_test(&input);
     assert_eq!(program.statements.len(), 1);
-    let stmt = &program.statements[0];
-    if let Statement::Expression { value, .. } = stmt {
-        if let Some(val) = value {
-            if let Expression::IntegerLiteral(IntegerLiteral { token, value }) = &**val {
-                assert_eq!(**value, 5);
-                assert_eq!(*token.literal, "5");
-            } else {
-                panic!("Expression is not an integer literal");
-            }
-        } else {
-            panic!("Expression statement has no value");
-        }
-    } else {
-        panic!("Is not an integer literal statement");
-    }
+    let expr = unwrap_expression(&program.statements[0]);
+    test_literal_expression(expr, 5i64, extract_integer);
 }
 
 fn test_integer_literal(expr: Expression, val: i64) {
@@ -434,20 +447,15 @@ fn test_prefix_expressions() {
     ];
 
     for tt in prefix_tests {
-        let program = prepare_program_for_test(&tt.input);
+        let program = prepare_program_for_test(tt.input);
         assert_eq!(program.statements.len(), 1);
-        let Statement::Expression { value, .. } = &program.statements[0] else {
-            panic!()
-        };
-        match *(value.clone().unwrap()) {
-            Expression::PrefixExpression(prefix) => {
-                let PrefixExpression {
-                    operator, right, ..
-                } = prefix;
-                assert_eq!(operator, tt.operator);
-                test_integer_literal(*right, tt.integer_value);
-            }
-            _ => panic!(),
+        let expr = unwrap_expression(&program.statements[0]);
+
+        if let Expression::PrefixExpression(prefix) = expr {
+            assert_eq!(prefix.operator, tt.operator);
+            test_integer_literal(*prefix.right.clone(), tt.integer_value);
+        } else {
+            panic!("Expected prefix expression, got: {:?}", expr);
         }
     }
 }
@@ -512,10 +520,7 @@ fn test_infix_expressions() {
     ];
 
     for tt in infix_tests {
-        let l = Lexer::new(tt.input);
-        let mut p = Parser::new(l);
-        let program = p.parse_program();
-        check_parse_errors(p);
+        let program = prepare_program_for_test(tt.input);
         assert_eq!(program.statements.len(), 1);
         let Statement::Expression { value, .. } = &program.statements[0] else {
             panic!("Is not infix expression");
@@ -596,7 +601,7 @@ fn test_operator_precedence_parsing() {
     ];
 
     for tt in tests {
-        let program = prepare_program_for_test(&tt.input);
+        let program = prepare_program_for_test(tt.input);
         let actual = program.to_string();
         assert_eq!(actual, tt.expected, "for input: {}", tt.input);
     }
