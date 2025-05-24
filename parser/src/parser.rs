@@ -339,6 +339,23 @@ impl TestLiteral for bool {
     }
 }
 
+impl TestLiteral for Expression {
+    fn test_literal(&self, expr: &Expression) -> bool {
+        match (self, expr) {
+            (Expression::IntegerLiteral(expected), Expression::IntegerLiteral(actual)) => {
+                *expected.value == *actual.value
+            }
+            (Expression::Boolean(expected), Expression::Boolean(actual)) => {
+                expected.value == actual.value
+            }
+            (Expression::Identifier(expected), Expression::Identifier(actual)) => {
+                expected.value == actual.value
+            }
+            _ => false,
+        }
+    }
+}
+
 fn test_literal_expression<T: TestLiteral>(expr: &Expression, expected: T) -> bool {
     expected.test_literal(expr)
 }
@@ -482,18 +499,18 @@ fn test_prefix_expressions() {
     struct PrefixExpressionTest<'a> {
         input: &'a str,
         operator: &'a str,
-        integer_value: i64,
+        integer_value: Expression,
     }
     let prefix_tests = vec![
         PrefixExpressionTest {
             input: "!5;",
             operator: "!",
-            integer_value: 5,
+            integer_value: Expression::from_int(5),
         },
         PrefixExpressionTest {
             input: "-15;",
             operator: "-",
-            integer_value: 15,
+            integer_value: Expression::from_int(15),
         },
     ];
 
@@ -514,57 +531,75 @@ fn test_infix_expressions() {
     struct InfixExpressionTest<'a> {
         input: &'a str,
         operator: &'a str,
-        left: i64,
-        right: i64,
+        left: Expression,
+        right: Expression,
     }
     let infix_tests = vec![
         InfixExpressionTest {
             input: "5+5;",
             operator: "+",
-            left: 5,
-            right: 5,
+            left: Expression::from_int(5),
+            right: Expression::from_int(5),
         },
         InfixExpressionTest {
             input: "5-5;",
             operator: "-",
-            left: 5,
-            right: 5,
+            left: Expression::from_int(5),
+            right: Expression::from_int(5),
         },
         InfixExpressionTest {
             input: "5*5;",
             operator: "*",
-            left: 5,
-            right: 5,
+            left: Expression::from_int(5),
+            right: Expression::from_int(5),
         },
         InfixExpressionTest {
             input: "5/5;",
             operator: "/",
-            left: 5,
-            right: 5,
+            left: Expression::from_int(5),
+            right: Expression::from_int(5),
         },
         InfixExpressionTest {
             input: "5>5;",
             operator: ">",
-            left: 5,
-            right: 5,
+            left: Expression::from_int(5),
+            right: Expression::from_int(5),
         },
         InfixExpressionTest {
             input: "5<5;",
             operator: "<",
-            left: 5,
-            right: 5,
+            left: Expression::from_int(5),
+            right: Expression::from_int(5),
         },
         InfixExpressionTest {
             input: "5==5;",
             operator: "==",
-            left: 5,
-            right: 5,
+            left: Expression::from_int(5),
+            right: Expression::from_int(5),
         },
         InfixExpressionTest {
             input: "5!=5;",
             operator: "!=",
-            left: 5,
-            right: 5,
+            left: Expression::from_int(5),
+            right: Expression::from_int(5),
+        },
+        InfixExpressionTest {
+            input: "true == true",
+            operator: "==",
+            left: Expression::from_bool(true),
+            right: Expression::from_bool(true),
+        },
+        InfixExpressionTest {
+            input: "true != false;",
+            operator: "!=",
+            left: Expression::from_bool(true),
+            right: Expression::from_bool(false),
+        },
+        InfixExpressionTest {
+            input: "false == false;",
+            operator: "==",
+            left: Expression::from_bool(false),
+            right: Expression::from_bool(false),
         },
     ];
 

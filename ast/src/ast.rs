@@ -1,7 +1,5 @@
 use core::fmt;
-use lexer::Token;
-#[cfg(test)]
-use lexer::TokenType;
+use lexer::{Token, TokenType};
 use std::rc::Rc;
 
 #[derive(Clone, Debug)]
@@ -96,6 +94,32 @@ pub enum Expression {
     Boolean(Boolean),
     PrefixExpression(PrefixExpression),
     InfixExpression(InfixExpression),
+}
+
+impl Expression {
+    pub fn from_int(int: i64) -> Expression {
+        Self::IntegerLiteral(IntegerLiteral {
+            token: Token {
+                kind: TokenType::INT,
+                literal: int.to_string().into(),
+            },
+            value: int.into(),
+        })
+    }
+
+    pub fn from_bool(boolean: bool) -> Expression {
+        Self::Boolean(Boolean {
+            token: Token {
+                kind: if boolean {
+                    TokenType::TRUE
+                } else {
+                    TokenType::FALSE
+                },
+                literal: boolean.to_string().into(),
+            },
+            value: boolean.into(),
+        })
+    }
 }
 
 #[derive(Clone, Debug)]
