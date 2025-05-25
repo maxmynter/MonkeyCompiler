@@ -1,3 +1,4 @@
+use core::panic;
 use lazy_static::lazy_static;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -76,6 +77,7 @@ impl<'a> Parser<'a> {
         parser.register_prefix(TokenType::MINUS, Parser::parse_prefix_expression);
         parser.register_prefix(TokenType::TRUE, Parser::parse_boolean);
         parser.register_prefix(TokenType::FALSE, Parser::parse_boolean);
+        parser.register_prefix(TokenType::LPAREN, Parser::parse_grouped_expression);
 
         parser.register_infix(TokenType::PLUS, Parser::parse_infix_expression);
         parser.register_infix(TokenType::MINUS, Parser::parse_infix_expression);
@@ -164,8 +166,8 @@ impl<'a> Parser<'a> {
         self.curr = std::mem::replace(&mut self.peek, self.lexer.next_token());
     }
 
-    fn peek_token_is(&mut self, t: &TokenType) -> bool {
-        self.peek.kind == *t
+    fn peek_token_is(&mut self, t: TokenType) -> bool {
+        self.peek.kind == t
     }
 
     fn curr_token_is(&self, t: &TokenType) -> bool {
@@ -173,7 +175,7 @@ impl<'a> Parser<'a> {
     }
 
     fn expect_peek_token(&mut self, token: TokenType) -> bool {
-        if self.peek_token_is(&token) {
+        if self.peek_token_is(token) {
             self.next_token();
             true
         } else {
@@ -234,7 +236,7 @@ impl<'a> Parser<'a> {
             panic!("Cannot parse prefix: {}", self.curr.literal)
         }
 
-        while !self.peek_token_is(&TokenType::SEMICOLON) && precedence < self.peek_precedence() {
+        while !self.peek_token_is(TokenType::SEMICOLON) && precedence < self.peek_precedence() {
             if let Some(infix_parse_fn) = self.infix_parse_fns.get(&self.peek.kind).cloned() {
                 self.next_token();
                 prefix = infix_parse_fn(self, prefix);
@@ -253,13 +255,22 @@ impl<'a> Parser<'a> {
         }
     }
 
+    fn parse_grouped_expression(&mut self) -> Expression {
+        self.next_token();
+        let expr = self.parse_expression(PRECEDENCE::LOWEST).unwrap();
+        if !self.expect_peek_token(TokenType::RPAREN) {
+            panic!("Unclosed Parenthesis")
+        }
+        expr
+    }
+
     fn parse_expression_statement(&mut self) -> Option<Statement> {
         let expr = Statement::Expression {
             token: self.curr.clone(),
             value: self.parse_expression(PRECEDENCE::LOWEST).map(Box::new),
         };
 
-        if self.peek_token_is(&TokenType::SEMICOLON) {
+        if self.peek_token_is(TokenType::SEMICOLON) {
             self.next_token();
         }
         Some(expr)
@@ -686,6 +697,26 @@ fn test_operator_precedence_parsing() {
         OperatorPrecedenceTest {
             input: "3 < 5 == true",
             expected: "((3 < 5) == true)",
+        },
+        OperatorPrecedenceTest {
+            input: "1 + (2 + 3) + 4",
+            expected: "((1 + (2 + 3)) + 4)",
+        },
+        OperatorPrecedenceTest {
+            input: "(5 + 5) * 2",
+            expected: "((5 + 5) * 2)",
+        },
+        OperatorPrecedenceTest {
+            input: "2 / (5 + 5)",
+            expected: "(2 / (5 + 5))",
+        },
+        OperatorPrecedenceTest {
+            input: "-(5 + 5)",
+            expected: "(-(5 + 5))",
+        },
+        OperatorPrecedenceTest {
+            input: "!(true == true)",
+            expected: "(!(true == true))",
         },
     ];
 
