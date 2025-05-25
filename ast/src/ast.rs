@@ -117,7 +117,7 @@ impl Expression {
                 },
                 literal: boolean.to_string().into(),
             },
-            value: boolean.into(),
+            value: boolean,
         })
     }
 }
