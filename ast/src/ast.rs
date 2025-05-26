@@ -145,6 +145,19 @@ pub trait Node {
 }
 
 #[derive(Debug)]
+pub struct BlockStatement {
+    token: TokenType,
+    statements: Vec<Statement>,
+}
+#[derive(Debug)]
+pub struct IfExpression {
+    pub token: TokenType,
+    pub condition: Expression,
+    pub consequence: BlockStatement,
+    pub alternative: BlockStatement,
+}
+
+#[derive(Debug)]
 pub struct Program {
     pub statements: Vec<Statement>,
 }
