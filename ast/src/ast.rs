@@ -146,17 +146,48 @@ pub trait Node {
 
 #[derive(Debug)]
 pub struct BlockStatement {
-    token: TokenType,
+    token: Token,
     statements: Vec<Statement>,
 }
-#[derive(Debug)]
-pub struct IfExpression {
-    pub token: TokenType,
-    pub condition: Expression,
-    pub consequence: BlockStatement,
-    pub alternative: BlockStatement,
+
+impl Node for BlockStatement {
+    fn as_string(&self) -> String {
+        let mut out = String::new();
+        for s in &self.statements {
+            out.push_str(&s.to_string())
+        }
+        out
+    }
+
+    fn token_literal(&self) -> Rc<String> {
+        self.token.literal.clone()
+    }
 }
 
+#[derive(Debug)]
+pub struct IfExpression {
+    pub token: Token,
+    pub condition: Expression,
+    pub consequence: BlockStatement,
+    pub alternative: Option<BlockStatement>,
+}
+
+impl Node for IfExpression {
+    fn token_literal(&self) -> Rc<String> {
+        self.token.literal.clone()
+    }
+
+    fn as_string(&self) -> String {
+        let mut out = String::new();
+        out.push_str("if");
+        out.push_str(&self.condition.as_string());
+        out.push_str(&self.consequence.as_string());
+        if let Some(alternative) = &self.alternative {
+            out.push_str(&alternative.as_string());
+        }
+        out
+    }
+}
 #[derive(Debug)]
 pub struct Program {
     pub statements: Vec<Statement>,
