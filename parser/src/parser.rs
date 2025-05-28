@@ -4,8 +4,8 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use ast::{
-    Boolean, Expression, Identifier, InfixExpression, IntegerLiteral, Node, PrefixExpression,
-    Program, Statement,
+    BlockStatement, Boolean, Expression, Identifier, IfExpression, InfixExpression, IntegerLiteral,
+    Node, PrefixExpression, Program, Statement,
 };
 use lexer::{Lexer, Token, TokenType};
 
@@ -78,6 +78,7 @@ impl<'a> Parser<'a> {
         parser.register_prefix(TokenType::TRUE, Parser::parse_boolean);
         parser.register_prefix(TokenType::FALSE, Parser::parse_boolean);
         parser.register_prefix(TokenType::LPAREN, Parser::parse_grouped_expression);
+        parser.register_prefix(TokenType::IF, Parser::parse_if_expression);
 
         parser.register_infix(TokenType::PLUS, Parser::parse_infix_expression);
         parser.register_infix(TokenType::MINUS, Parser::parse_infix_expression);
@@ -117,6 +118,47 @@ impl<'a> Parser<'a> {
             return PRECEDENCES[&self.curr.kind];
         }
         PRECEDENCE::LOWEST
+    }
+
+    fn parse_block_statement(&mut self) -> BlockStatement {
+        let block_token = self.curr.clone();
+        let mut statements = vec![];
+        self.next_token();
+
+        while !self.curr_token_is(&TokenType::RBRACE) && !self.curr_token_is(&TokenType::EOF) {
+            let statement = self.parse_statement().unwrap();
+            statements.push(statement);
+            self.next_token();
+        }
+        BlockStatement {
+            token: block_token,
+            statements,
+        }
+    }
+
+    fn parse_if_expression(&mut self) -> Expression {
+        let current_token = self.curr.clone();
+        self.expect_peek_token(TokenType::LPAREN);
+        self.next_token();
+        let condition = self.parse_expression(PRECEDENCE::LOWEST).unwrap();
+        self.expect_peek_token(TokenType::RPAREN);
+        self.expect_peek_token(TokenType::LBRACE);
+
+        let consequence = self.parse_block_statement();
+        let alternative = if self.peek_token_is(TokenType::ELSE) {
+            self.next_token();
+            self.expect_peek_token(TokenType::LBRACE);
+            Some(self.parse_block_statement())
+        } else {
+            None
+        };
+
+        Expression::IfExpression(IfExpression {
+            token: current_token,
+            condition: Box::new(condition),
+            consequence,
+            alternative,
+        })
     }
 
     fn parse_infix_expression(&mut self, left: Expression) -> Expression {
@@ -724,5 +766,57 @@ fn test_operator_precedence_parsing() {
         let program = prepare_program_for_test(tt.input);
         let actual = program.to_string();
         assert_eq!(actual, tt.expected, "for input: {}", tt.input);
+    }
+}
+
+#[test]
+fn test_if_expression() {
+    let input = "if (x < y) { x };";
+    let program = prepare_program_for_test(input);
+    assert!(program.statements.len() == 1);
+    let expr = unwrap_expression(&program.statements[0]);
+    if let Expression::IfExpression(IfExpression {
+        condition,
+        consequence,
+        alternative,
+        ..
+    }) = expr
+    {
+        test_infix_expression(condition, "x", "<", "y");
+        assert!(consequence.statements.len() == 1);
+        let consequence_expr = unwrap_expression(&consequence.statements[0]);
+        test_identifier(consequence_expr, "x");
+        assert!(alternative.is_none());
+    } else {
+        panic!("Expected if expression")
+    }
+}
+
+#[test]
+fn test_if_else_expression() {
+    let input = "if (x < y) { x } else { y };";
+    let program = prepare_program_for_test(input);
+    assert!(program.statements.len() == 1);
+    let expr = unwrap_expression(&program.statements[0]);
+    if let Expression::IfExpression(IfExpression {
+        condition,
+        consequence,
+        alternative,
+        ..
+    }) = expr
+    {
+        test_infix_expression(condition, "x", "<", "y");
+        assert!(consequence.statements.len() == 1);
+        let consequence_expr = unwrap_expression(&consequence.statements[0]);
+        test_identifier(consequence_expr, "x");
+        if let Some(else_expr) = alternative {
+            assert!(else_expr.statements.len() == 1);
+            let alternative_expr = unwrap_expression(&else_expr.statements[0]);
+            test_identifier(alternative_expr, "y");
+        } else {
+            panic!("Error with else expression")
+        }
+    } else {
+        panic!("Expected if expression")
     }
 }

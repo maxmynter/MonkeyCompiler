@@ -94,6 +94,7 @@ pub enum Expression {
     Boolean(Boolean),
     PrefixExpression(PrefixExpression),
     InfixExpression(InfixExpression),
+    IfExpression(IfExpression),
 }
 
 impl Expression {
@@ -144,10 +145,10 @@ pub trait Node {
     fn as_string(&self) -> String;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct BlockStatement {
-    token: Token,
-    statements: Vec<Statement>,
+    pub token: Token,
+    pub statements: Vec<Statement>,
 }
 
 impl Node for BlockStatement {
@@ -164,10 +165,16 @@ impl Node for BlockStatement {
     }
 }
 
-#[derive(Debug)]
+impl fmt::Display for BlockStatement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.as_string())
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct IfExpression {
     pub token: Token,
-    pub condition: Expression,
+    pub condition: Box<Expression>,
     pub consequence: BlockStatement,
     pub alternative: Option<BlockStatement>,
 }
@@ -301,6 +308,17 @@ impl fmt::Display for Expression {
             Expression::InfixExpression(infix) => {
                 write!(f, "({} {} {})", infix.left, infix.operator, infix.right)
             }
+            Expression::IfExpression(ifex) => {
+                if let Some(alternative) = &ifex.alternative {
+                    write!(
+                        f,
+                        "(if ({}) {{{}}} else {{{}}})",
+                        ifex.condition, ifex.consequence, alternative
+                    )
+                } else {
+                    write!(f, "(if ({}) {{{}}})", ifex.condition, ifex.consequence)
+                }
+            }
         }
     }
 }
@@ -315,9 +333,11 @@ impl Node for Expression {
             | Expression::Boolean(Boolean { token, .. })
             | Expression::IntegerLiteral(IntegerLiteral { token, .. })
             | Expression::InfixExpression(InfixExpression { token, .. })
-            | Expression::PrefixExpression(PrefixExpression { token, .. }) => token.literal.clone(),
+            | Expression::PrefixExpression(PrefixExpression { token, .. })
+            | Expression::IfExpression(IfExpression { token, .. }) => token.literal.clone(),
         }
     }
+
     fn as_string(&self) -> String {
         match self {
             Expression::Identifier(Identifier { value, .. }) => value.to_string(),
@@ -325,6 +345,7 @@ impl Node for Expression {
             Expression::PrefixExpression(prefix) => prefix.as_string(),
             Expression::InfixExpression(infix) => infix.as_string(),
             Expression::Boolean(boolean) => boolean.as_string(),
+            Expression::IfExpression(ifex) => ifex.as_string(),
             Expression::Statement(Statement::Expression { value, .. })
             | Expression::Statement(Statement::Let { value, .. })
             | Expression::Statement(Statement::Return { value, .. }) => {
