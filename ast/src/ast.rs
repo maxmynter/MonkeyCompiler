@@ -165,15 +165,15 @@ pub enum Statement {
     Let {
         token: Token,
         name: Identifier,
-        value: Option<Box<Expression>>,
+        value: Option<Expression>,
     },
     Return {
         token: Token,
-        value: Option<Box<Expression>>,
+        value: Option<Expression>,
     },
     Expression {
         token: Token,
-        value: Option<Box<Expression>>,
+        value: Expression,
     },
 }
 
@@ -295,9 +295,7 @@ impl Node for Statement {
                 out.push(';');
             }
             Statement::Expression { value, .. } => {
-                if let Some(expression) = value {
-                    out.push_str(&expression.as_string());
-                }
+                out.push_str(&value.as_string());
             }
         }
         out
@@ -322,11 +320,7 @@ impl fmt::Display for Statement {
                 write!(f, ";")
             }
             Statement::Expression { value, .. } => {
-                if let Some(val) = value {
-                    write!(f, "{}", val)
-                } else {
-                    Ok(())
-                }
+                write!(f, "{}", value)
             }
         }
     }
@@ -417,13 +411,13 @@ fn test_ast() {
                 },
                 value: "myVar".to_string().into(),
             },
-            value: Some(Box::new(Expression::Identifier(Identifier {
+            value: Some(Expression::Identifier(Identifier {
                 token: Token {
                     kind: TokenType::IDENT,
                     literal: "anotherVar".to_string().into(),
                 },
                 value: "anotherVar".to_string().into(),
-            }))),
+            })),
         }],
     };
     assert_eq!(prog.as_string(), "let myVar = anotherVar;");

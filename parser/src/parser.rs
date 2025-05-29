@@ -352,7 +352,7 @@ impl<'a> Parser<'a> {
     fn parse_expression_statement(&mut self) -> Option<Statement> {
         let expr = Statement::Expression {
             token: self.curr.clone(),
-            value: self.parse_expression(PRECEDENCE::LOWEST).map(Box::new),
+            value: self.parse_expression(PRECEDENCE::LOWEST)?,
         };
 
         if self.peek_token_is(TokenType::SEMICOLON) {
@@ -375,11 +375,7 @@ impl<'a> Parser<'a> {
 
 fn unwrap_expression(stmt: &Statement) -> &Expression {
     if let Statement::Expression { value, .. } = stmt {
-        if let Some(val) = value {
-            val
-        } else {
-            panic!("Expression statement has no value")
-        }
+        value
     } else {
         panic!("Statement is not an expression statment")
     }
@@ -878,15 +874,8 @@ fn test_function_literal() {
         test_literal_expression(&parameters[0].as_expression(), "x");
         test_literal_expression(&parameters[1].as_expression(), "y");
         assert_eq!(body.statements.len(), 1);
-        if let Statement::Expression {
-            value: Some(boxed_expr),
-            ..
-        } = &body.statements[0]
-        {
-            test_infix_expression(boxed_expr.as_ref(), "x", "+", "y");
-        } else {
-            panic!("Didn't get contained expression");
-        }
+        let expr = unwrap_expression(&body.statements[0]);
+        test_infix_expression(expr, "x", "+", "y");
     } else {
         panic!("Expected a function literal");
     }
@@ -915,19 +904,11 @@ fn test_function_parameter_parsing() {
 
     for tt in tests {
         let program = prepare_program_for_test(&tt.input);
-        let stmt = &program.statements[0];
-
-        if let Statement::Expression {
-            value: Some(expr), ..
-        } = stmt
-        {
-            if let Expression::FunctionLiteral(FunctionLiteral { parameters, .. }) = expr.as_ref() {
-                assert_eq!(parameters.len(), tt.expected.len());
-                for (i, param) in parameters.iter().enumerate() {
-                    assert_eq!(param.as_string(), tt.expected[i]);
-                }
-            } else {
-                panic!("Expected FunctionLiteral expression");
+        let expr = unwrap_expression(&program.statements[0]);
+        if let Expression::FunctionLiteral(FunctionLiteral { parameters, .. }) = expr {
+            assert_eq!(parameters.len(), tt.expected.len());
+            for (i, param) in parameters.iter().enumerate() {
+                assert_eq!(param.as_string(), tt.expected[i]);
             }
         } else {
             panic!("Expected Expression statement");
