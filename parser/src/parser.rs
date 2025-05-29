@@ -4,8 +4,8 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use ast::{
-    BlockStatement, Boolean, Expression, Identifier, IfExpression, InfixExpression, IntegerLiteral,
-    Node, PrefixExpression, Program, Statement,
+    BlockStatement, Boolean, Expression, FunctionLiteral, Identifier, IfExpression,
+    InfixExpression, IntegerLiteral, Node, PrefixExpression, Program, Statement,
 };
 use lexer::{Lexer, Token, TokenType};
 
@@ -79,6 +79,7 @@ impl<'a> Parser<'a> {
         parser.register_prefix(TokenType::FALSE, Parser::parse_boolean);
         parser.register_prefix(TokenType::LPAREN, Parser::parse_grouped_expression);
         parser.register_prefix(TokenType::IF, Parser::parse_if_expression);
+        parser.register_prefix(TokenType::FUNCTION, Parser::parse_function_literal);
 
         parser.register_infix(TokenType::PLUS, Parser::parse_infix_expression);
         parser.register_infix(TokenType::MINUS, Parser::parse_infix_expression);
@@ -159,6 +160,48 @@ impl<'a> Parser<'a> {
             consequence,
             alternative,
         })
+    }
+
+    fn parse_function_literal(&mut self) -> Expression {
+        let token = self.curr.clone();
+        self.expect_peek_token(TokenType::LPAREN);
+        let parameters = self.parse_function_parameters();
+        self.expect_peek_token(TokenType::LBRACE);
+
+        let body = self.parse_block_statement();
+        Expression::FunctionLiteral(FunctionLiteral {
+            token,
+            parameters,
+            body,
+        })
+    }
+
+    fn parse_function_parameters(&mut self) -> Vec<Identifier> {
+        let mut identifiers = vec![];
+        if self.peek_token_is(TokenType::RPAREN) {
+            self.next_token();
+            return identifiers;
+        }
+        self.next_token();
+        identifiers.push(Identifier {
+            token: self.curr.clone(),
+            value: self.curr.literal.clone(),
+        });
+
+        while self.peek_token_is(TokenType::COMMA) {
+            self.next_token();
+            self.next_token();
+            identifiers.push(Identifier {
+                token: self.curr.clone(),
+                value: self.curr.literal.clone(),
+            });
+        }
+
+        if !self.expect_peek_token(TokenType::RPAREN) {
+            panic!("Expected closing parenthesis, found {}", self.peek.literal);
+        };
+
+        identifiers
     }
 
     fn parse_infix_expression(&mut self, left: Expression) -> Expression {
@@ -818,5 +861,33 @@ fn test_if_else_expression() {
         }
     } else {
         panic!("Expected if expression")
+    }
+}
+
+#[test]
+fn test_function_literal() {
+    let input = "fn(x, y) { x + y; };";
+    let program = prepare_program_for_test(input);
+    assert!(program.statements.len() == 1);
+    let expr = unwrap_expression(&program.statements[0]);
+    if let Expression::FunctionLiteral(FunctionLiteral {
+        parameters, body, ..
+    }) = expr
+    {
+        assert_eq!(parameters.len(), 2);
+        test_literal_expression(&parameters[0].as_expression(), "x");
+        test_literal_expression(&parameters[1].as_expression(), "y");
+        assert_eq!(body.statements.len(), 1);
+        if let Statement::Expression {
+            value: Some(boxed_expr),
+            ..
+        } = &body.statements[0]
+        {
+            test_infix_expression(boxed_expr.as_ref(), "x", "+", "y");
+        } else {
+            panic!("Didn't get contained expression");
+        }
+    } else {
+        panic!("Expected a function literal");
     }
 }

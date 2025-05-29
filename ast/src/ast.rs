@@ -24,6 +24,15 @@ pub struct Identifier {
     pub value: Rc<String>,
 }
 
+impl Identifier {
+    pub fn as_expression(&self) -> Expression {
+        Expression::Identifier(Identifier {
+            token: self.token.clone(),
+            value: self.value.clone(),
+        })
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct IntegerLiteral {
     pub token: Token,
@@ -87,6 +96,34 @@ impl Node for InfixExpression {
 }
 
 #[derive(Clone, Debug)]
+pub struct FunctionLiteral {
+    pub token: Token,
+    pub parameters: Vec<Identifier>,
+    pub body: BlockStatement,
+}
+
+impl Node for FunctionLiteral {
+    fn token_literal(&self) -> Rc<String> {
+        self.token.literal.clone()
+    }
+
+    fn as_string(&self) -> String {
+        let mut out = String::new();
+        out.push_str("(");
+        out.push_str(
+            &self
+                .parameters
+                .iter()
+                .map(|f| f.as_string())
+                .collect::<Vec<_>>()
+                .join(", "),
+        );
+        out.push_str(")");
+        out
+    }
+}
+
+#[derive(Clone, Debug)]
 pub enum Expression {
     Identifier(Identifier),
     Statement(Statement),
@@ -95,6 +132,7 @@ pub enum Expression {
     PrefixExpression(PrefixExpression),
     InfixExpression(InfixExpression),
     IfExpression(IfExpression),
+    FunctionLiteral(FunctionLiteral),
 }
 
 impl Expression {
@@ -319,6 +357,15 @@ impl fmt::Display for Expression {
                     write!(f, "(if ({}) {{{}}})", ifex.condition, ifex.consequence)
                 }
             }
+            Expression::FunctionLiteral(fn_lit) => {
+                let params = fn_lit
+                    .parameters
+                    .iter()
+                    .map(|f| f.as_string())
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                write!(f, "fn ({}) {{{}}}", params, fn_lit.body)
+            }
         }
     }
 }
@@ -334,7 +381,8 @@ impl Node for Expression {
             | Expression::IntegerLiteral(IntegerLiteral { token, .. })
             | Expression::InfixExpression(InfixExpression { token, .. })
             | Expression::PrefixExpression(PrefixExpression { token, .. })
-            | Expression::IfExpression(IfExpression { token, .. }) => token.literal.clone(),
+            | Expression::IfExpression(IfExpression { token, .. })
+            | Expression::FunctionLiteral(FunctionLiteral { token, .. }) => token.literal.clone(),
         }
     }
 
@@ -344,6 +392,7 @@ impl Node for Expression {
             Expression::IntegerLiteral(IntegerLiteral { value, .. }) => value.to_string(),
             Expression::PrefixExpression(prefix) => prefix.as_string(),
             Expression::InfixExpression(infix) => infix.as_string(),
+            Expression::FunctionLiteral(fn_lit) => fn_lit.as_string(),
             Expression::Boolean(boolean) => boolean.as_string(),
             Expression::IfExpression(ifex) => ifex.as_string(),
             Expression::Statement(Statement::Expression { value, .. })
