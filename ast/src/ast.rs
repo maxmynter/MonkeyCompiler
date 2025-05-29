@@ -126,7 +126,6 @@ impl Node for FunctionLiteral {
 #[derive(Clone, Debug)]
 pub enum Expression {
     Identifier(Identifier),
-    Statement(Statement),
     IntegerLiteral(IntegerLiteral),
     Boolean(Boolean),
     PrefixExpression(PrefixExpression),
@@ -336,7 +335,6 @@ impl fmt::Display for Statement {
 impl fmt::Display for Expression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Expression::Statement(stmt) => write!(f, "{}", stmt),
             Expression::Identifier(ident) => write!(f, "{}", ident.value),
             Expression::Boolean(boolean) => write!(f, "{}", boolean.value),
             Expression::IntegerLiteral(int_lit) => write!(f, "{}", int_lit.value),
@@ -374,10 +372,7 @@ impl Node for Expression {
     fn token_literal(&self) -> Rc<String> {
         match self {
             Expression::Identifier(ident) => ident.token_literal(),
-            Expression::Statement(Statement::Expression { token, .. })
-            | Expression::Statement(Statement::Let { token, .. })
-            | Expression::Statement(Statement::Return { token, .. })
-            | Expression::Boolean(Boolean { token, .. })
+            Expression::Boolean(Boolean { token, .. })
             | Expression::IntegerLiteral(IntegerLiteral { token, .. })
             | Expression::InfixExpression(InfixExpression { token, .. })
             | Expression::PrefixExpression(PrefixExpression { token, .. })
@@ -395,15 +390,6 @@ impl Node for Expression {
             Expression::FunctionLiteral(fn_lit) => fn_lit.as_string(),
             Expression::Boolean(boolean) => boolean.as_string(),
             Expression::IfExpression(ifex) => ifex.as_string(),
-            Expression::Statement(Statement::Expression { value, .. })
-            | Expression::Statement(Statement::Let { value, .. })
-            | Expression::Statement(Statement::Return { value, .. }) => {
-                if let Some(expression) = value {
-                    expression.as_string()
-                } else {
-                    String::new()
-                }
-            }
         }
     }
 }
