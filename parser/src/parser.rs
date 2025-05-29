@@ -891,3 +891,46 @@ fn test_function_literal() {
         panic!("Expected a function literal");
     }
 }
+
+#[test]
+fn test_function_parameter_parsing() {
+    struct fn_parameter_test<'a> {
+        input: String,
+        expected: Vec<&'a str>,
+    }
+    let tests = [
+        fn_parameter_test {
+            input: "fn(){};".to_string(),
+            expected: [].to_vec(),
+        },
+        fn_parameter_test {
+            input: "fn(x){};".to_string(),
+            expected: vec!["x"].to_vec(),
+        },
+        fn_parameter_test {
+            input: "fn(x, y, z){};".to_string(),
+            expected: vec!["x", "y", "z"].to_vec(),
+        },
+    ];
+
+    for tt in tests {
+        let program = prepare_program_for_test(&tt.input);
+        let stmt = &program.statements[0];
+
+        if let Statement::Expression {
+            value: Some(expr), ..
+        } = stmt
+        {
+            if let Expression::FunctionLiteral(FunctionLiteral { parameters, .. }) = expr.as_ref() {
+                assert_eq!(parameters.len(), tt.expected.len());
+                for (i, param) in parameters.iter().enumerate() {
+                    assert_eq!(param.as_string(), tt.expected[i]);
+                }
+            } else {
+                panic!("Expected FunctionLiteral expression");
+            }
+        } else {
+            panic!("Expected Expression statement");
+        }
+    }
+}
