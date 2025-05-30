@@ -306,10 +306,12 @@ impl<'a> Parser<'a> {
 
     fn parse_return_statement(&mut self) -> Option<Statement> {
         let token = self.curr.clone();
+        self.next_token();
+        let value = self.parse_expression(PRECEDENCE::LOWEST);
         while !self.curr_token_is(&TokenType::SEMICOLON) {
             self.next_token();
         }
-        Some(Statement::Return { token, value: None })
+        Some(Statement::Return { token, value })
     }
 
     fn parse_let_statement(&mut self) -> Option<Statement> {
@@ -328,16 +330,13 @@ impl<'a> Parser<'a> {
             return None;
         }
 
-        // TODO: skip expressions until ;
+        self.next_token();
+        let value = self.parse_expression(PRECEDENCE::LOWEST);
         while !self.curr_token_is(&TokenType::SEMICOLON) {
             self.next_token();
         }
 
-        Some(Statement::Let {
-            token,
-            name,
-            value: None,
-        })
+        Some(Statement::Let { token, name, value })
     }
 
     fn parse_expression(&mut self, precedence: PRECEDENCE) -> Option<Expression> {
@@ -527,11 +526,16 @@ mod tests {
         test_literal_expression(expr, expected)
     }
 
-    fn test_let_stmt(stmt: &Statement, name: &str) -> bool {
+    struct ExpectedLet<'a> {
+        name: &'a str,
+        value: Expression,
+    }
+
+    fn test_let_stmt(stmt: &Statement, expected: &ExpectedLet) -> bool {
         if let Statement::Let {
             token,
             name: identifier,
-            ..
+            value: Some(expr),
         } = stmt
         {
             if *token.literal != "let" {
@@ -539,16 +543,26 @@ mod tests {
                 return false;
             }
 
-            if *identifier.value != name {
-                println!("let_stmt.name.value not {}, got={}", name, identifier.value);
+            if *identifier.value != expected.name {
+                println!(
+                    "let_stmt.name.value not {}, got={}",
+                    expected.name, identifier.value
+                );
                 return false;
             }
 
-            if *identifier.token_literal() != name {
+            if *identifier.token_literal() != expected.name {
                 println!(
                     "let_stmt.name.token_literal not `{}`, got={}",
-                    name,
+                    expected.name,
                     identifier.token_literal()
+                );
+                return false;
+            }
+            if !test_literal_expression(expr, expected.value.clone()) {
+                println!(
+                    "let expression incorrect. Got={}, Expected={}",
+                    expr, expected.value
                 );
                 return false;
             }
@@ -569,9 +583,40 @@ let foobar = 838383;
         let program = prepare_program_for_test(input);
         assert_eq!(program.statements.len(), 3);
 
-        let expected_identifiers = ["x", "y", "foobar"];
+        let expected = [
+            ExpectedLet {
+                name: "x",
+                value: Expression::IntegerLiteral(IntegerLiteral {
+                    token: Token {
+                        kind: TokenType::INT,
+                        literal: Rc::new("5".to_string()),
+                    },
+                    value: 5.into(),
+                }),
+            },
+            ExpectedLet {
+                name: "y",
+                value: Expression::IntegerLiteral(IntegerLiteral {
+                    token: Token {
+                        kind: TokenType::INT,
+                        literal: Rc::new("10".to_string()),
+                    },
+                    value: 10.into(),
+                }),
+            },
+            ExpectedLet {
+                name: "foobar",
+                value: Expression::IntegerLiteral(IntegerLiteral {
+                    token: Token {
+                        kind: TokenType::INT,
+                        literal: Rc::new("838383".to_string()),
+                    },
+                    value: 838383.into(),
+                }),
+            },
+        ];
 
-        for (i, tt) in expected_identifiers.iter().enumerate() {
+        for (i, tt) in expected.iter().enumerate() {
             let stmt = &program.statements[i];
             assert!(
                 test_let_stmt(stmt, tt),
@@ -588,12 +633,18 @@ return 5;
 return 10;
 return 993322;
 ";
+        let expected_values = [5, 10, 993322];
         let program = prepare_program_for_test(input);
         assert_eq!(program.statements.len(), 3);
-        for stmt in &program.statements {
+        for (i, stmt) in program.statements.iter().enumerate() {
             match stmt {
-                Statement::Return { token, .. } => {
-                    assert_eq!(*token.literal, "return")
+                Statement::Return { token, value } => {
+                    assert_eq!(*token.literal, "return");
+                    if let Some(expr) = value {
+                        test_literal_expression(expr, expected_values[i]);
+                    } else {
+                        panic!("Expected Return value");
+                    }
                 }
                 _ => panic!("Did not get `return` statement"),
             }
