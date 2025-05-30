@@ -1,11 +1,10 @@
-use core::panic;
 use lazy_static::lazy_static;
 use std::collections::HashMap;
 use std::rc::Rc;
 
 use ast::{
     BlockStatement, Boolean, Expression, FunctionLiteral, Identifier, IfExpression,
-    InfixExpression, IntegerLiteral, Node, PrefixExpression, Program, Statement,
+    InfixExpression, IntegerLiteral, PrefixExpression, Program, Statement,
 };
 use lexer::{Lexer, Token, TokenType};
 
@@ -48,7 +47,7 @@ lazy_static! {
     };
 }
 
-struct Parser<'a> {
+pub struct Parser<'a> {
     lexer: Lexer<'a>,
     curr: Token,
     peek: Token,
@@ -58,7 +57,7 @@ struct Parser<'a> {
 }
 
 impl<'a> Parser<'a> {
-    fn new(mut lexer: Lexer<'a>) -> Self {
+    pub fn new(mut lexer: Lexer<'a>) -> Self {
         let curr = lexer.next_token();
         let peek = lexer.next_token();
 
@@ -361,7 +360,7 @@ impl<'a> Parser<'a> {
         Some(expr)
     }
 
-    fn parse_program(&mut self) -> Program {
+    pub fn parse_program(&mut self) -> Program {
         let mut statements: Vec<Statement> = vec![];
         while self.curr.kind != TokenType::EOF {
             if let Some(stmt) = self.parse_statement() {
@@ -373,545 +372,551 @@ impl<'a> Parser<'a> {
     }
 }
 
-fn unwrap_expression(stmt: &Statement) -> &Expression {
-    if let Statement::Expression { value, .. } = stmt {
-        value
-    } else {
-        panic!("Statement is not an expression statment")
-    }
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ast::Node;
 
-fn check_parse_errors(p: Parser) {
-    println!("Parser has {} errors", p.errors.len());
-    for msg in &p.errors {
-        eprintln!("Error: {}", msg);
-    }
-    assert_eq!(p.errors.len(), 0);
-}
-
-fn prepare_program_for_test(input: &str) -> Program {
-    let l = Lexer::new(input);
-    let mut p = Parser::new(l);
-    let program = p.parse_program();
-    check_parse_errors(p);
-    program
-}
-
-trait TestLiteral {
-    fn test_literal(&self, expr: &Expression) -> bool;
-}
-
-impl TestLiteral for i64 {
-    fn test_literal(&self, expr: &Expression) -> bool {
-        if let Expression::IntegerLiteral(il) = expr {
-            *il.value == *self && il.token_literal() == self.to_string().into()
+    fn unwrap_expression(stmt: &Statement) -> &Expression {
+        if let Statement::Expression { value, .. } = stmt {
+            value
         } else {
-            false
+            panic!("Statement is not an expression statment")
         }
     }
-}
 
-impl TestLiteral for &str {
-    fn test_literal(&self, expr: &Expression) -> bool {
-        if let Expression::Identifier(id) = expr {
-            id.value.as_str() == *self && id.token_literal().as_str() == *self
-        } else {
-            false
+    fn check_parse_errors(p: Parser) {
+        println!("Parser has {} errors", p.errors.len());
+        for msg in &p.errors {
+            eprintln!("Error: {}", msg);
         }
+        assert_eq!(p.errors.len(), 0);
     }
-}
 
-impl TestLiteral for bool {
-    fn test_literal(&self, expr: &Expression) -> bool {
-        if let Expression::Boolean(b) = expr {
-            b.value == *self && b.token_literal() == self.to_string().into()
-        } else {
-            false
-        }
+    fn prepare_program_for_test(input: &str) -> Program {
+        let l = Lexer::new(input);
+        let mut p = Parser::new(l);
+        let program = p.parse_program();
+        check_parse_errors(p);
+        program
     }
-}
 
-impl TestLiteral for Expression {
-    fn test_literal(&self, expr: &Expression) -> bool {
-        match (self, expr) {
-            (Expression::IntegerLiteral(expected), Expression::IntegerLiteral(actual)) => {
-                *expected.value == *actual.value
+    trait TestLiteral {
+        fn test_literal(&self, expr: &Expression) -> bool;
+    }
+
+    impl TestLiteral for i64 {
+        fn test_literal(&self, expr: &Expression) -> bool {
+            if let Expression::IntegerLiteral(il) = expr {
+                *il.value == *self && il.token_literal() == self.to_string().into()
+            } else {
+                false
             }
-            (Expression::Boolean(expected), Expression::Boolean(actual)) => {
-                expected.value == actual.value
-            }
-            (Expression::Identifier(expected), Expression::Identifier(actual)) => {
-                expected.value == actual.value
-            }
-            _ => false,
         }
     }
-}
 
-fn test_literal_expression<T: TestLiteral>(expr: &Expression, expected: T) -> bool {
-    expected.test_literal(expr)
-}
-
-fn test_infix_expression<L, R>(
-    expr: &Expression,
-    left_expected: L,
-    operator: &str,
-    right_expected: R,
-) -> bool
-where
-    L: TestLiteral,
-    R: TestLiteral,
-{
-    if let Expression::InfixExpression(infix) = expr {
-        test_literal_expression(&infix.left, left_expected)
-            && infix.operator == operator
-            && test_literal_expression(&infix.right, right_expected)
-    } else {
-        false
+    impl TestLiteral for &str {
+        fn test_literal(&self, expr: &Expression) -> bool {
+            if let Expression::Identifier(id) = expr {
+                id.value.as_str() == *self && id.token_literal().as_str() == *self
+            } else {
+                false
+            }
+        }
     }
-}
 
-fn test_prefix_expression<P: TestLiteral>(
-    expr: &Expression,
-    operator: &str,
-    right_expected: P,
-) -> bool {
-    if let Expression::PrefixExpression(prefix) = expr {
-        prefix.operator == operator && test_literal_expression(&prefix.right, right_expected)
-    } else {
-        false
+    impl TestLiteral for bool {
+        fn test_literal(&self, expr: &Expression) -> bool {
+            if let Expression::Boolean(b) = expr {
+                b.value == *self && b.token_literal() == self.to_string().into()
+            } else {
+                false
+            }
+        }
     }
-}
 
-fn test_integer_literal(expr: &Expression, expected: i64) -> bool {
-    test_literal_expression(expr, expected)
-}
+    impl TestLiteral for Expression {
+        fn test_literal(&self, expr: &Expression) -> bool {
+            match (self, expr) {
+                (Expression::IntegerLiteral(expected), Expression::IntegerLiteral(actual)) => {
+                    *expected.value == *actual.value
+                }
+                (Expression::Boolean(expected), Expression::Boolean(actual)) => {
+                    expected.value == actual.value
+                }
+                (Expression::Identifier(expected), Expression::Identifier(actual)) => {
+                    expected.value == actual.value
+                }
+                _ => false,
+            }
+        }
+    }
 
-fn test_identifier(expr: &Expression, expected: &str) -> bool {
-    test_literal_expression(expr, expected)
-}
+    fn test_literal_expression<T: TestLiteral>(expr: &Expression, expected: T) -> bool {
+        expected.test_literal(expr)
+    }
 
-fn test_boolean_literal(expr: &Expression, expected: bool) -> bool {
-    test_literal_expression(expr, expected)
-}
-
-fn test_let_stmt(stmt: &Statement, name: &str) -> bool {
-    if let Statement::Let {
-        token,
-        name: identifier,
-        ..
-    } = stmt
+    fn test_infix_expression<L, R>(
+        expr: &Expression,
+        left_expected: L,
+        operator: &str,
+        right_expected: R,
+    ) -> bool
+    where
+        L: TestLiteral,
+        R: TestLiteral,
     {
-        if *token.literal != "let" {
-            println!("statement token literal not `let`, got={}", token.literal);
-            return false;
+        if let Expression::InfixExpression(infix) = expr {
+            test_literal_expression(&infix.left, left_expected)
+                && infix.operator == operator
+                && test_literal_expression(&infix.right, right_expected)
+        } else {
+            false
         }
-
-        if *identifier.value != name {
-            println!("let_stmt.name.value not {}, got={}", name, identifier.value);
-            return false;
-        }
-
-        if *identifier.token_literal() != name {
-            println!(
-                "let_stmt.name.token_literal not `{}`, got={}",
-                name,
-                identifier.token_literal()
-            );
-            return false;
-        }
-
-        true
-    } else {
-        println!("Statement is not a LetStatement");
-        false
     }
-}
 
-#[test]
-fn test_let_parsing() {
-    let input = "let x = 5;
+    fn test_prefix_expression<P: TestLiteral>(
+        expr: &Expression,
+        operator: &str,
+        right_expected: P,
+    ) -> bool {
+        if let Expression::PrefixExpression(prefix) = expr {
+            prefix.operator == operator && test_literal_expression(&prefix.right, right_expected)
+        } else {
+            false
+        }
+    }
+
+    fn test_integer_literal(expr: &Expression, expected: i64) -> bool {
+        test_literal_expression(expr, expected)
+    }
+
+    fn test_identifier(expr: &Expression, expected: &str) -> bool {
+        test_literal_expression(expr, expected)
+    }
+
+    fn test_boolean_literal(expr: &Expression, expected: bool) -> bool {
+        test_literal_expression(expr, expected)
+    }
+
+    fn test_let_stmt(stmt: &Statement, name: &str) -> bool {
+        if let Statement::Let {
+            token,
+            name: identifier,
+            ..
+        } = stmt
+        {
+            if *token.literal != "let" {
+                println!("statement token literal not `let`, got={}", token.literal);
+                return false;
+            }
+
+            if *identifier.value != name {
+                println!("let_stmt.name.value not {}, got={}", name, identifier.value);
+                return false;
+            }
+
+            if *identifier.token_literal() != name {
+                println!(
+                    "let_stmt.name.token_literal not `{}`, got={}",
+                    name,
+                    identifier.token_literal()
+                );
+                return false;
+            }
+
+            true
+        } else {
+            println!("Statement is not a LetStatement");
+            false
+        }
+    }
+
+    #[test]
+    fn test_let_parsing() {
+        let input = "let x = 5;
 let y = 10;
 let foobar = 838383;
 ";
-    let program = prepare_program_for_test(input);
-    assert_eq!(program.statements.len(), 3);
+        let program = prepare_program_for_test(input);
+        assert_eq!(program.statements.len(), 3);
 
-    let expected_identifiers = ["x", "y", "foobar"];
+        let expected_identifiers = ["x", "y", "foobar"];
 
-    for (i, tt) in expected_identifiers.iter().enumerate() {
-        let stmt = &program.statements[i];
-        assert!(
-            test_let_stmt(stmt, tt),
-            "Let statemtent parsing failed: {}",
-            i
-        );
+        for (i, tt) in expected_identifiers.iter().enumerate() {
+            let stmt = &program.statements[i];
+            assert!(
+                test_let_stmt(stmt, tt),
+                "Let statemtent parsing failed: {}",
+                i
+            );
+        }
     }
-}
 
-#[test]
-fn test_return_statement() {
-    let input = "
+    #[test]
+    fn test_return_statement() {
+        let input = "
 return 5;
 return 10;
 return 993322;
 ";
-    let program = prepare_program_for_test(input);
-    assert_eq!(program.statements.len(), 3);
-    for stmt in &program.statements {
-        match stmt {
-            Statement::Return { token, .. } => {
-                assert_eq!(*token.literal, "return")
+        let program = prepare_program_for_test(input);
+        assert_eq!(program.statements.len(), 3);
+        for stmt in &program.statements {
+            match stmt {
+                Statement::Return { token, .. } => {
+                    assert_eq!(*token.literal, "return")
+                }
+                _ => panic!("Did not get `return` statement"),
             }
-            _ => panic!("Did not get `return` statement"),
         }
     }
-}
 
-#[test]
-fn test_identifiers() {
-    let input = String::from("foobar;");
-    let program = prepare_program_for_test(&input);
-    assert_eq!(program.statements.len(), 1);
-    let expr = unwrap_expression(&program.statements[0]);
-    assert!(test_literal_expression(expr, "foobar"));
-}
-
-#[test]
-fn test_integer() {
-    let input = String::from("5;");
-    let program = prepare_program_for_test(&input);
-    assert_eq!(program.statements.len(), 1);
-    let expr = unwrap_expression(&program.statements[0]);
-    test_literal_expression(expr, 5i64);
-}
-
-#[test]
-fn test_prefix_expressions() {
-    struct PrefixExpressionTest<'a> {
-        input: &'a str,
-        operator: &'a str,
-        integer_value: Expression,
-    }
-    let prefix_tests = vec![
-        PrefixExpressionTest {
-            input: "!5;",
-            operator: "!",
-            integer_value: Expression::from_int(5),
-        },
-        PrefixExpressionTest {
-            input: "-15;",
-            operator: "-",
-            integer_value: Expression::from_int(15),
-        },
-    ];
-
-    for tt in prefix_tests {
-        let program = prepare_program_for_test(tt.input);
+    #[test]
+    fn test_identifiers() {
+        let input = String::from("foobar;");
+        let program = prepare_program_for_test(&input);
         assert_eq!(program.statements.len(), 1);
         let expr = unwrap_expression(&program.statements[0]);
-        assert!(
-            test_prefix_expression(expr, tt.operator, tt.integer_value),
-            "Expected prefix expression, got: {:?}",
-            expr
-        );
+        assert!(test_literal_expression(expr, "foobar"));
     }
-}
 
-#[test]
-fn test_infix_expressions() {
-    struct InfixExpressionTest<'a> {
-        input: &'a str,
-        operator: &'a str,
-        left: Expression,
-        right: Expression,
-    }
-    let infix_tests = vec![
-        InfixExpressionTest {
-            input: "5+5;",
-            operator: "+",
-            left: Expression::from_int(5),
-            right: Expression::from_int(5),
-        },
-        InfixExpressionTest {
-            input: "5-5;",
-            operator: "-",
-            left: Expression::from_int(5),
-            right: Expression::from_int(5),
-        },
-        InfixExpressionTest {
-            input: "5*5;",
-            operator: "*",
-            left: Expression::from_int(5),
-            right: Expression::from_int(5),
-        },
-        InfixExpressionTest {
-            input: "5/5;",
-            operator: "/",
-            left: Expression::from_int(5),
-            right: Expression::from_int(5),
-        },
-        InfixExpressionTest {
-            input: "5>5;",
-            operator: ">",
-            left: Expression::from_int(5),
-            right: Expression::from_int(5),
-        },
-        InfixExpressionTest {
-            input: "5<5;",
-            operator: "<",
-            left: Expression::from_int(5),
-            right: Expression::from_int(5),
-        },
-        InfixExpressionTest {
-            input: "5==5;",
-            operator: "==",
-            left: Expression::from_int(5),
-            right: Expression::from_int(5),
-        },
-        InfixExpressionTest {
-            input: "5!=5;",
-            operator: "!=",
-            left: Expression::from_int(5),
-            right: Expression::from_int(5),
-        },
-        InfixExpressionTest {
-            input: "true == true",
-            operator: "==",
-            left: Expression::from_bool(true),
-            right: Expression::from_bool(true),
-        },
-        InfixExpressionTest {
-            input: "true != false;",
-            operator: "!=",
-            left: Expression::from_bool(true),
-            right: Expression::from_bool(false),
-        },
-        InfixExpressionTest {
-            input: "false == false;",
-            operator: "==",
-            left: Expression::from_bool(false),
-            right: Expression::from_bool(false),
-        },
-    ];
-
-    for tt in infix_tests {
-        let program = prepare_program_for_test(tt.input);
+    #[test]
+    fn test_integer() {
+        let input = String::from("5;");
+        let program = prepare_program_for_test(&input);
         assert_eq!(program.statements.len(), 1);
         let expr = unwrap_expression(&program.statements[0]);
-        assert!(
-            test_infix_expression(expr, tt.left, tt.operator, tt.right),
-            "Failed infix test for input: {}",
-            tt.input
-        );
-    }
-}
-
-#[test]
-fn test_operator_precedence_parsing() {
-    struct OperatorPrecedenceTest<'a> {
-        input: &'a str,
-        expected: &'a str,
+        test_integer_literal(expr, 5i64);
     }
 
-    let tests = vec![
-        OperatorPrecedenceTest {
-            input: "-a * b",
-            expected: "((-a) * b)",
-        },
-        OperatorPrecedenceTest {
-            input: "!-a",
-            expected: "(!(-a))",
-        },
-        OperatorPrecedenceTest {
-            input: "a + b + c",
-            expected: "((a + b) + c)",
-        },
-        OperatorPrecedenceTest {
-            input: "a + b - c",
-            expected: "((a + b) - c)",
-        },
-        OperatorPrecedenceTest {
-            input: "a * b * c",
-            expected: "((a * b) * c)",
-        },
-        OperatorPrecedenceTest {
-            input: "a * b / c",
-            expected: "((a * b) / c)",
-        },
-        OperatorPrecedenceTest {
-            input: "a + b / c",
-            expected: "(a + (b / c))",
-        },
-        OperatorPrecedenceTest {
-            input: "a + b * c + d / e - f",
-            expected: "(((a + (b * c)) + (d / e)) - f)",
-        },
-        OperatorPrecedenceTest {
-            input: "3 + 4; -5 * 5",
-            expected: "(3 + 4)((-5) * 5)",
-        },
-        OperatorPrecedenceTest {
-            input: "5 > 4 == 3 < 4",
-            expected: "((5 > 4) == (3 < 4))",
-        },
-        OperatorPrecedenceTest {
-            input: "5 < 4 != 3 > 4",
-            expected: "((5 < 4) != (3 > 4))",
-        },
-        OperatorPrecedenceTest {
-            input: "3 + 4 * 5 == 3 * 1 + 4 * 5",
-            expected: "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))",
-        },
-        OperatorPrecedenceTest {
-            input: "true",
-            expected: "true",
-        },
-        OperatorPrecedenceTest {
-            input: "false",
-            expected: "false",
-        },
-        OperatorPrecedenceTest {
-            input: "3 > 5 == false",
-            expected: "((3 > 5) == false)",
-        },
-        OperatorPrecedenceTest {
-            input: "3 < 5 == true",
-            expected: "((3 < 5) == true)",
-        },
-        OperatorPrecedenceTest {
-            input: "1 + (2 + 3) + 4",
-            expected: "((1 + (2 + 3)) + 4)",
-        },
-        OperatorPrecedenceTest {
-            input: "(5 + 5) * 2",
-            expected: "((5 + 5) * 2)",
-        },
-        OperatorPrecedenceTest {
-            input: "2 / (5 + 5)",
-            expected: "(2 / (5 + 5))",
-        },
-        OperatorPrecedenceTest {
-            input: "-(5 + 5)",
-            expected: "(-(5 + 5))",
-        },
-        OperatorPrecedenceTest {
-            input: "!(true == true)",
-            expected: "(!(true == true))",
-        },
-    ];
-
-    for tt in tests {
-        let program = prepare_program_for_test(tt.input);
-        let actual = program.to_string();
-        assert_eq!(actual, tt.expected, "for input: {}", tt.input);
-    }
-}
-
-#[test]
-fn test_if_expression() {
-    let input = "if (x < y) { x };";
-    let program = prepare_program_for_test(input);
-    assert!(program.statements.len() == 1);
-    let expr = unwrap_expression(&program.statements[0]);
-    if let Expression::IfExpression(IfExpression {
-        condition,
-        consequence,
-        alternative,
-        ..
-    }) = expr
-    {
-        test_infix_expression(condition, "x", "<", "y");
-        assert!(consequence.statements.len() == 1);
-        let consequence_expr = unwrap_expression(&consequence.statements[0]);
-        test_identifier(consequence_expr, "x");
-        assert!(alternative.is_none());
-    } else {
-        panic!("Expected if expression")
-    }
-}
-
-#[test]
-fn test_if_else_expression() {
-    let input = "if (x < y) { x } else { y };";
-    let program = prepare_program_for_test(input);
-    assert!(program.statements.len() == 1);
-    let expr = unwrap_expression(&program.statements[0]);
-    if let Expression::IfExpression(IfExpression {
-        condition,
-        consequence,
-        alternative,
-        ..
-    }) = expr
-    {
-        test_infix_expression(condition, "x", "<", "y");
-        assert!(consequence.statements.len() == 1);
-        let consequence_expr = unwrap_expression(&consequence.statements[0]);
-        test_identifier(consequence_expr, "x");
-        if let Some(else_expr) = alternative {
-            assert!(else_expr.statements.len() == 1);
-            let alternative_expr = unwrap_expression(&else_expr.statements[0]);
-            test_identifier(alternative_expr, "y");
-        } else {
-            panic!("Error with else expression")
+    #[test]
+    fn test_prefix_expressions() {
+        struct PrefixExpressionTest<'a> {
+            input: &'a str,
+            operator: &'a str,
+            integer_value: Expression,
         }
-    } else {
-        panic!("Expected if expression")
-    }
-}
+        let prefix_tests = vec![
+            PrefixExpressionTest {
+                input: "!5;",
+                operator: "!",
+                integer_value: Expression::from_int(5),
+            },
+            PrefixExpressionTest {
+                input: "-15;",
+                operator: "-",
+                integer_value: Expression::from_int(15),
+            },
+        ];
 
-#[test]
-fn test_function_literal() {
-    let input = "fn(x, y) { x + y; };";
-    let program = prepare_program_for_test(input);
-    assert!(program.statements.len() == 1);
-    let expr = unwrap_expression(&program.statements[0]);
-    if let Expression::FunctionLiteral(FunctionLiteral {
-        parameters, body, ..
-    }) = expr
-    {
-        assert_eq!(parameters.len(), 2);
-        test_literal_expression(&parameters[0].as_expression(), "x");
-        test_literal_expression(&parameters[1].as_expression(), "y");
-        assert_eq!(body.statements.len(), 1);
-        let expr = unwrap_expression(&body.statements[0]);
-        test_infix_expression(expr, "x", "+", "y");
-    } else {
-        panic!("Expected a function literal");
+        for tt in prefix_tests {
+            let program = prepare_program_for_test(tt.input);
+            assert_eq!(program.statements.len(), 1);
+            let expr = unwrap_expression(&program.statements[0]);
+            assert!(
+                test_prefix_expression(expr, tt.operator, tt.integer_value),
+                "Expected prefix expression, got: {:?}",
+                expr
+            );
+        }
     }
-}
 
-#[test]
-fn test_function_parameter_parsing() {
-    struct fn_parameter_test<'a> {
-        input: String,
-        expected: Vec<&'a str>,
+    #[test]
+    fn test_infix_expressions() {
+        struct InfixExpressionTest<'a> {
+            input: &'a str,
+            operator: &'a str,
+            left: Expression,
+            right: Expression,
+        }
+        let infix_tests = vec![
+            InfixExpressionTest {
+                input: "5+5;",
+                operator: "+",
+                left: Expression::from_int(5),
+                right: Expression::from_int(5),
+            },
+            InfixExpressionTest {
+                input: "5-5;",
+                operator: "-",
+                left: Expression::from_int(5),
+                right: Expression::from_int(5),
+            },
+            InfixExpressionTest {
+                input: "5*5;",
+                operator: "*",
+                left: Expression::from_int(5),
+                right: Expression::from_int(5),
+            },
+            InfixExpressionTest {
+                input: "5/5;",
+                operator: "/",
+                left: Expression::from_int(5),
+                right: Expression::from_int(5),
+            },
+            InfixExpressionTest {
+                input: "5>5;",
+                operator: ">",
+                left: Expression::from_int(5),
+                right: Expression::from_int(5),
+            },
+            InfixExpressionTest {
+                input: "5<5;",
+                operator: "<",
+                left: Expression::from_int(5),
+                right: Expression::from_int(5),
+            },
+            InfixExpressionTest {
+                input: "5==5;",
+                operator: "==",
+                left: Expression::from_int(5),
+                right: Expression::from_int(5),
+            },
+            InfixExpressionTest {
+                input: "5!=5;",
+                operator: "!=",
+                left: Expression::from_int(5),
+                right: Expression::from_int(5),
+            },
+            InfixExpressionTest {
+                input: "true == true",
+                operator: "==",
+                left: Expression::from_bool(true),
+                right: Expression::from_bool(true),
+            },
+            InfixExpressionTest {
+                input: "true != false;",
+                operator: "!=",
+                left: Expression::from_bool(true),
+                right: Expression::from_bool(false),
+            },
+            InfixExpressionTest {
+                input: "false == false;",
+                operator: "==",
+                left: Expression::from_bool(false),
+                right: Expression::from_bool(false),
+            },
+        ];
+
+        for tt in infix_tests {
+            let program = prepare_program_for_test(tt.input);
+            assert_eq!(program.statements.len(), 1);
+            let expr = unwrap_expression(&program.statements[0]);
+            assert!(
+                test_infix_expression(expr, tt.left, tt.operator, tt.right),
+                "Failed infix test for input: {}",
+                tt.input
+            );
+        }
     }
-    let tests = [
-        fn_parameter_test {
-            input: "fn(){};".to_string(),
-            expected: [].to_vec(),
-        },
-        fn_parameter_test {
-            input: "fn(x){};".to_string(),
-            expected: vec!["x"].to_vec(),
-        },
-        fn_parameter_test {
-            input: "fn(x, y, z){};".to_string(),
-            expected: vec!["x", "y", "z"].to_vec(),
-        },
-    ];
 
-    for tt in tests {
-        let program = prepare_program_for_test(&tt.input);
+    #[test]
+    fn test_operator_precedence_parsing() {
+        struct OperatorPrecedenceTest<'a> {
+            input: &'a str,
+            expected: &'a str,
+        }
+
+        let tests = vec![
+            OperatorPrecedenceTest {
+                input: "-a * b",
+                expected: "((-a) * b)",
+            },
+            OperatorPrecedenceTest {
+                input: "!-a",
+                expected: "(!(-a))",
+            },
+            OperatorPrecedenceTest {
+                input: "a + b + c",
+                expected: "((a + b) + c)",
+            },
+            OperatorPrecedenceTest {
+                input: "a + b - c",
+                expected: "((a + b) - c)",
+            },
+            OperatorPrecedenceTest {
+                input: "a * b * c",
+                expected: "((a * b) * c)",
+            },
+            OperatorPrecedenceTest {
+                input: "a * b / c",
+                expected: "((a * b) / c)",
+            },
+            OperatorPrecedenceTest {
+                input: "a + b / c",
+                expected: "(a + (b / c))",
+            },
+            OperatorPrecedenceTest {
+                input: "a + b * c + d / e - f",
+                expected: "(((a + (b * c)) + (d / e)) - f)",
+            },
+            OperatorPrecedenceTest {
+                input: "3 + 4; -5 * 5",
+                expected: "(3 + 4)((-5) * 5)",
+            },
+            OperatorPrecedenceTest {
+                input: "5 > 4 == 3 < 4",
+                expected: "((5 > 4) == (3 < 4))",
+            },
+            OperatorPrecedenceTest {
+                input: "5 < 4 != 3 > 4",
+                expected: "((5 < 4) != (3 > 4))",
+            },
+            OperatorPrecedenceTest {
+                input: "3 + 4 * 5 == 3 * 1 + 4 * 5",
+                expected: "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))",
+            },
+            OperatorPrecedenceTest {
+                input: "true",
+                expected: "true",
+            },
+            OperatorPrecedenceTest {
+                input: "false",
+                expected: "false",
+            },
+            OperatorPrecedenceTest {
+                input: "3 > 5 == false",
+                expected: "((3 > 5) == false)",
+            },
+            OperatorPrecedenceTest {
+                input: "3 < 5 == true",
+                expected: "((3 < 5) == true)",
+            },
+            OperatorPrecedenceTest {
+                input: "1 + (2 + 3) + 4",
+                expected: "((1 + (2 + 3)) + 4)",
+            },
+            OperatorPrecedenceTest {
+                input: "(5 + 5) * 2",
+                expected: "((5 + 5) * 2)",
+            },
+            OperatorPrecedenceTest {
+                input: "2 / (5 + 5)",
+                expected: "(2 / (5 + 5))",
+            },
+            OperatorPrecedenceTest {
+                input: "-(5 + 5)",
+                expected: "(-(5 + 5))",
+            },
+            OperatorPrecedenceTest {
+                input: "!(true == true)",
+                expected: "(!(true == true))",
+            },
+        ];
+
+        for tt in tests {
+            let program = prepare_program_for_test(tt.input);
+            let actual = program.to_string();
+            assert_eq!(actual, tt.expected, "for input: {}", tt.input);
+        }
+    }
+
+    #[test]
+    fn test_if_expression() {
+        let input = "if (x < y) { x };";
+        let program = prepare_program_for_test(input);
+        assert!(program.statements.len() == 1);
         let expr = unwrap_expression(&program.statements[0]);
-        if let Expression::FunctionLiteral(FunctionLiteral { parameters, .. }) = expr {
-            assert_eq!(parameters.len(), tt.expected.len());
-            for (i, param) in parameters.iter().enumerate() {
-                assert_eq!(param.as_string(), tt.expected[i]);
+        if let Expression::IfExpression(IfExpression {
+            condition,
+            consequence,
+            alternative,
+            ..
+        }) = expr
+        {
+            test_infix_expression(condition, "x", "<", "y");
+            assert!(consequence.statements.len() == 1);
+            let consequence_expr = unwrap_expression(&consequence.statements[0]);
+            test_identifier(consequence_expr, "x");
+            assert!(alternative.is_none());
+        } else {
+            panic!("Expected if expression")
+        }
+    }
+
+    #[test]
+    fn test_if_else_expression() {
+        let input = "if (x < y) { x } else { y };";
+        let program = prepare_program_for_test(input);
+        assert!(program.statements.len() == 1);
+        let expr = unwrap_expression(&program.statements[0]);
+        if let Expression::IfExpression(IfExpression {
+            condition,
+            consequence,
+            alternative,
+            ..
+        }) = expr
+        {
+            test_infix_expression(condition, "x", "<", "y");
+            assert!(consequence.statements.len() == 1);
+            let consequence_expr = unwrap_expression(&consequence.statements[0]);
+            test_identifier(consequence_expr, "x");
+            if let Some(else_expr) = alternative {
+                assert!(else_expr.statements.len() == 1);
+                let alternative_expr = unwrap_expression(&else_expr.statements[0]);
+                test_identifier(alternative_expr, "y");
+            } else {
+                panic!("Error with else expression")
             }
         } else {
-            panic!("Expected Expression statement");
+            panic!("Expected if expression")
+        }
+    }
+
+    #[test]
+    fn test_function_literal() {
+        let input = "fn(x, y) { x + y; };";
+        let program = prepare_program_for_test(input);
+        assert!(program.statements.len() == 1);
+        let expr = unwrap_expression(&program.statements[0]);
+        if let Expression::FunctionLiteral(FunctionLiteral {
+            parameters, body, ..
+        }) = expr
+        {
+            assert_eq!(parameters.len(), 2);
+            test_literal_expression(&parameters[0].as_expression(), "x");
+            test_literal_expression(&parameters[1].as_expression(), "y");
+            assert_eq!(body.statements.len(), 1);
+            let expr = unwrap_expression(&body.statements[0]);
+            test_infix_expression(expr, "x", "+", "y");
+        } else {
+            panic!("Expected a function literal");
+        }
+    }
+
+    #[test]
+    fn test_function_parameter_parsing() {
+        struct FnParameterTest<'a> {
+            input: String,
+            expected: Vec<&'a str>,
+        }
+        let tests = [
+            FnParameterTest {
+                input: "fn(){};".to_string(),
+                expected: [].to_vec(),
+            },
+            FnParameterTest {
+                input: "fn(x){};".to_string(),
+                expected: vec!["x"].to_vec(),
+            },
+            FnParameterTest {
+                input: "fn(x, y, z){};".to_string(),
+                expected: vec!["x", "y", "z"].to_vec(),
+            },
+        ];
+
+        for tt in tests {
+            let program = prepare_program_for_test(&tt.input);
+            let expr = unwrap_expression(&program.statements[0]);
+            if let Expression::FunctionLiteral(FunctionLiteral { parameters, .. }) = expr {
+                assert_eq!(parameters.len(), tt.expected.len());
+                for (i, param) in parameters.iter().enumerate() {
+                    assert_eq!(param.as_string(), tt.expected[i]);
+                }
+            } else {
+                panic!("Expected Expression statement");
+            }
         }
     }
 }
