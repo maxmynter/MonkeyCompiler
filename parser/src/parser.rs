@@ -52,7 +52,7 @@ pub struct Parser<'a> {
     lexer: Lexer<'a>,
     curr: Token,
     peek: Token,
-    errors: Vec<String>,
+    pub errors: Vec<String>,
     prefix_parse_fns: HashMap<TokenType, PrefixParseFn<'a>>,
     infix_parse_fns: HashMap<TokenType, InfixParseFn<'a>>,
 }
@@ -302,6 +302,16 @@ impl<'a> Parser<'a> {
             *expected_token, self.peek.kind
         );
         self.errors.push(message);
+    }
+
+    pub fn print_errors(self) {
+        if self.errors.len() == 0 {
+            println!("No errors")
+        } else {
+            for err in self.errors {
+                println!("Error: {}", err);
+            }
+        }
     }
 
     fn parse_return_statement(&mut self) -> Option<Statement> {

@@ -32,7 +32,6 @@ fn repl() -> io::Result<()> {
             }
             Err(e) => {
                 eprintln!("Error: {}", e);
-                break;
             }
         }
     }
@@ -41,12 +40,11 @@ fn repl() -> io::Result<()> {
 }
 
 fn eval(input: &str) {
-    let mut lex = lexer::Lexer::new(input);
-    loop {
-        let tok = lex.next_token();
-        println!("{}", tok.literal);
-        if tok.kind == lexer::TokenType::EOF {
-            break;
-        }
+    let lex = lexer::Lexer::new(input);
+    let mut parser = parser::Parser::new(lex);
+    let program = parser.parse_program();
+    if parser.errors.len() > 0 {
+        parser.print_errors();
     }
+    println!("{}\n", program.to_string());
 }
