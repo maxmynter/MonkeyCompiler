@@ -258,7 +258,7 @@ impl Node for Program {
 impl fmt::Display for Program {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for stmt in &self.statements {
-            write!(f, "{}", stmt)?;
+            write!(f, "{}", stmt.as_string())?;
         }
         Ok(())
     }
@@ -304,61 +304,13 @@ impl Node for Statement {
 
 impl fmt::Display for Statement {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Statement::Let { name, value, .. } => {
-                write!(f, "let {} = ", name.value)?;
-                if let Some(val) = value {
-                    write!(f, "{}", val)?;
-                }
-                write!(f, ";")
-            }
-            Statement::Return { value, .. } => {
-                write!(f, "return ")?;
-                if let Some(val) = value {
-                    write!(f, "{}", val)?;
-                }
-                write!(f, ";")
-            }
-            Statement::Expression { value, .. } => {
-                write!(f, "{}", value)
-            }
-        }
+        write!(f, "{}", self.as_string())
     }
 }
 
 impl fmt::Display for Expression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Expression::Identifier(ident) => write!(f, "{}", ident.value),
-            Expression::Boolean(boolean) => write!(f, "{}", boolean.value),
-            Expression::IntegerLiteral(int_lit) => write!(f, "{}", int_lit.value),
-            Expression::PrefixExpression(prefix) => {
-                write!(f, "({}{})", prefix.operator, prefix.right)
-            }
-            Expression::InfixExpression(infix) => {
-                write!(f, "({} {} {})", infix.left, infix.operator, infix.right)
-            }
-            Expression::IfExpression(ifex) => {
-                if let Some(alternative) = &ifex.alternative {
-                    write!(
-                        f,
-                        "(if ({}) {{{}}} else {{{}}})",
-                        ifex.condition, ifex.consequence, alternative
-                    )
-                } else {
-                    write!(f, "(if ({}) {{{}}})", ifex.condition, ifex.consequence)
-                }
-            }
-            Expression::FunctionLiteral(fn_lit) => {
-                let params = fn_lit
-                    .parameters
-                    .iter()
-                    .map(|f| f.as_string())
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                write!(f, "fn ({}) {{{}}}", params, fn_lit.body)
-            }
-        }
+        write!(f, "{}", self.as_string())
     }
 }
 
