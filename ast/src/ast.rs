@@ -3,6 +3,35 @@ use lexer::{Token, TokenType};
 use std::rc::Rc;
 
 #[derive(Clone, Debug)]
+pub struct CallExpression {
+    pub token: Token,
+    pub function: Box<Expression>,
+    pub arguments: Vec<Expression>,
+}
+
+impl Node for CallExpression {
+    fn token_literal(&self) -> Rc<String> {
+        self.token.literal.clone()
+    }
+
+    fn as_string(&self) -> String {
+        let mut out = String::new();
+        out.push_str(&self.function.to_string());
+        out.push_str("(");
+        out.push_str(
+            &self
+                .arguments
+                .iter()
+                .map(|f| f.as_string())
+                .collect::<Vec<_>>()
+                .join(", "),
+        );
+        out.push_str(")");
+        out
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct Boolean {
     pub token: Token,
     pub value: bool,
@@ -132,6 +161,7 @@ pub enum Expression {
     InfixExpression(InfixExpression),
     IfExpression(IfExpression),
     FunctionLiteral(FunctionLiteral),
+    CallExpression(CallExpression),
 }
 
 impl Expression {
@@ -318,6 +348,7 @@ impl Node for Expression {
     fn token_literal(&self) -> Rc<String> {
         match self {
             Expression::Identifier(Identifier { token, .. })
+            | Expression::CallExpression(CallExpression { token, .. })
             | Expression::Boolean(Boolean { token, .. })
             | Expression::IntegerLiteral(IntegerLiteral { token, .. })
             | Expression::InfixExpression(InfixExpression { token, .. })
@@ -336,6 +367,7 @@ impl Node for Expression {
             Expression::FunctionLiteral(fn_lit) => fn_lit.as_string(),
             Expression::Boolean(boolean) => boolean.as_string(),
             Expression::IfExpression(ifex) => ifex.as_string(),
+            Expression::CallExpression(call) => call.as_string(),
         }
     }
 }

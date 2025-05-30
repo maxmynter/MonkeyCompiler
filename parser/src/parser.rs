@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use ast::{
-    BlockStatement, Boolean, Expression, FunctionLiteral, Identifier, IfExpression,
+    BlockStatement, Boolean, CallExpression, Expression, FunctionLiteral, Identifier, IfExpression,
     InfixExpression, IntegerLiteral, PrefixExpression, Program, Statement,
 };
 use lexer::{Lexer, Token, TokenType};
@@ -24,7 +24,7 @@ pub enum PRECEDENCE {
 }
 
 impl PRECEDENCE {
-    fn numeric(self) -> u8 {
+    pub fn numeric(self) -> u8 {
         self as u8
     }
 }
@@ -40,6 +40,7 @@ lazy_static! {
             (TokenType::MINUS, PRECEDENCE::SUM),
             (TokenType::SLASH, PRECEDENCE::PRODUCT),
             (TokenType::ASTERISK, PRECEDENCE::PRODUCT),
+            (TokenType::LPAREN, PRECEDENCE::CALL),
         ]
         .iter()
         .cloned()
@@ -88,6 +89,7 @@ impl<'a> Parser<'a> {
         parser.register_infix(TokenType::UNEQ, Parser::parse_infix_expression);
         parser.register_infix(TokenType::LT, Parser::parse_infix_expression);
         parser.register_infix(TokenType::GT, Parser::parse_infix_expression);
+        parser.register_infix(TokenType::LPAREN, Parser::parse_call_expression);
 
         parser
     }
@@ -201,6 +203,32 @@ impl<'a> Parser<'a> {
         };
 
         identifiers
+    }
+
+    fn parse_call_expression(&mut self, function: Expression) -> Expression {
+        Expression::CallExpression(CallExpression {
+            token: self.curr.clone(),
+            function: Box::new(function),
+            arguments: self.parse_call_arguments(),
+        })
+    }
+
+    fn parse_call_arguments(&mut self) -> Vec<Expression> {
+        let mut args = vec![];
+        if self.peek_token_is(TokenType::RPAREN) {
+            self.next_token();
+            return args;
+        }
+
+        self.next_token();
+        args.push(self.parse_expression(PRECEDENCE::LOWEST).unwrap());
+        while self.peek_token_is(TokenType::COMMA) {
+            self.next_token();
+            self.next_token();
+            args.push(self.parse_expression(PRECEDENCE::LOWEST).unwrap());
+        }
+        self.expect_peek_token(TokenType::RPAREN);
+        args
     }
 
     fn parse_infix_expression(&mut self, left: Expression) -> Expression {
@@ -375,7 +403,7 @@ impl<'a> Parser<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ast::Node;
+    use ast::{CallExpression, Node};
 
     fn unwrap_expression(stmt: &Statement) -> &Expression {
         if let Statement::Expression { value, .. } = stmt {
@@ -803,6 +831,18 @@ return 993322;
                 input: "!(true == true)",
                 expected: "(!(true == true))",
             },
+            OperatorPrecedenceTest {
+                input: "a + add(b * c) + d",
+                expected: "((a + add((b * c))) + d)",
+            },
+            OperatorPrecedenceTest {
+                input: "add(a, b, 1, 2 * 3, 4 + 5, add(6, 7 * 8))",
+                expected: "add(a, b, 1, (2 * 3), (4 + 5), add(6, (7 * 8)))",
+            },
+            OperatorPrecedenceTest {
+                input: "add(a + b + c * d / f + g)",
+                expected: "add((((a + b) + ((c * d) / f)) + g))",
+            },
         ];
 
         for tt in tests {
@@ -917,6 +957,28 @@ return 993322;
             } else {
                 panic!("Expected Expression statement");
             }
+        }
+    }
+
+    #[test]
+    fn test_call_expression() {
+        let input = "add(1, 2 * 3, 4 + 5)";
+        let program = prepare_program_for_test(input);
+        assert_eq!(program.statements.len(), 1);
+        let stmt = unwrap_expression(&program.statements[0]);
+        if let Expression::CallExpression(CallExpression {
+            function,
+            arguments,
+            ..
+        }) = stmt
+        {
+            test_identifier(function, "add");
+            assert_eq!(arguments.len(), 3);
+            test_literal_expression(&arguments[0], 1);
+            test_infix_expression(&arguments[1], 2, "*", 3);
+            test_infix_expression(&arguments[2], 4, "+", 5);
+        } else {
+            panic!("Not a call expression")
         }
     }
 }
