@@ -267,9 +267,9 @@ impl fmt::Display for Program {
 impl Node for Statement {
     fn token_literal(&self) -> Rc<String> {
         match self {
-            Statement::Let { token, .. } => token.literal.clone(),
-            Statement::Return { token, .. } => token.literal.clone(),
-            Statement::Expression { token, .. } => token.literal.clone(),
+            Statement::Let { token, .. }
+            | Statement::Return { token, .. }
+            | Statement::Expression { token, .. } => token.literal.clone(),
         }
     }
 
@@ -317,8 +317,8 @@ impl fmt::Display for Expression {
 impl Node for Expression {
     fn token_literal(&self) -> Rc<String> {
         match self {
-            Expression::Identifier(ident) => ident.token_literal(),
-            Expression::Boolean(Boolean { token, .. })
+            Expression::Identifier(Identifier { token, .. })
+            | Expression::Boolean(Boolean { token, .. })
             | Expression::IntegerLiteral(IntegerLiteral { token, .. })
             | Expression::InfixExpression(InfixExpression { token, .. })
             | Expression::PrefixExpression(PrefixExpression { token, .. })
