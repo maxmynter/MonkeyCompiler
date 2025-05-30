@@ -938,11 +938,11 @@ return 993322;
             },
             FnParameterTest {
                 input: "fn(x){};".to_string(),
-                expected: vec!["x"].to_vec(),
+                expected: ["x"].to_vec(),
             },
             FnParameterTest {
                 input: "fn(x, y, z){};".to_string(),
-                expected: vec!["x", "y", "z"].to_vec(),
+                expected: ["x", "y", "z"].to_vec(),
             },
         ];
 

@@ -17,7 +17,7 @@ impl Node for CallExpression {
     fn as_string(&self) -> String {
         let mut out = String::new();
         out.push_str(&self.function.to_string());
-        out.push_str("(");
+        out.push('(');
         out.push_str(
             &self
                 .arguments
@@ -26,7 +26,7 @@ impl Node for CallExpression {
                 .collect::<Vec<_>>()
                 .join(", "),
         );
-        out.push_str(")");
+        out.push(')');
         out
     }
 }
@@ -138,7 +138,7 @@ impl Node for FunctionLiteral {
 
     fn as_string(&self) -> String {
         let mut out = String::new();
-        out.push_str("(");
+        out.push('(');
         out.push_str(
             &self
                 .parameters
@@ -147,7 +147,7 @@ impl Node for FunctionLiteral {
                 .collect::<Vec<_>>()
                 .join(", "),
         );
-        out.push_str(")");
+        out.push(')');
         out
     }
 }
