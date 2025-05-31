@@ -305,7 +305,7 @@ impl<'a> Parser<'a> {
     }
 
     pub fn print_errors(self) {
-        if self.errors.len() == 0 {
+        if self.errors.is_empty() {
             println!("No errors")
         } else {
             for err in self.errors {

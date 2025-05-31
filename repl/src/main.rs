@@ -43,8 +43,8 @@ fn eval(input: &str) {
     let lex = lexer::Lexer::new(input);
     let mut parser = parser::Parser::new(lex);
     let program = parser.parse_program();
-    if parser.errors.len() > 0 {
+    if !parser.errors.is_empty() {
         parser.print_errors();
     }
-    println!("{}\n", program.to_string());
+    println!("{}\n", program);
 }
