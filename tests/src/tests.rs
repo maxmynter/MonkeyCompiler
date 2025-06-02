@@ -1051,26 +1051,25 @@ fn test_call_expression() {
     }
 }
 
-fn test_integer_object(obj: ObjectType, expected: i64) -> bool {
-    if let ObjectType::Integer { value } = obj {
-        if value == expected {
-            true
-        } else {
-            eprintln!("Wrong integer value, expected={}, got={}", expected, value);
-            false
+macro_rules! test_object {
+    ($obj: expr, $expected: expr, $variant: ident) => {
+        match $obj {
+            ObjectType::$variant { value } if value == $expected => {}
+            ObjectType::$variant { value } => {
+                panic!("Wrong value, expected={}, got={}", $expected, value);
+            }
+            _ => panic!("Expected {} object", stringify!($variant)),
         }
-    } else {
-        eprint!("Is not an integer");
-        false
-    }
+    };
+}
+
+fn test_evaluator(input: &str) -> ObjectType {
+    let program = prepare_program_for_test(input);
+    evaluator::eval(program)
 }
 
 #[test]
 fn test_eval_integer_expression() {
-    fn test_evaluator(input: &str) -> ObjectType {
-        let program = prepare_program_for_test(input);
-        evaluator::eval(program)
-    }
     struct IntEvalTest {
         input: String,
         expected: i64,
@@ -1089,6 +1088,30 @@ fn test_eval_integer_expression() {
 
     for tt in tests {
         let evaluated = test_evaluator(&tt.input);
-        test_integer_object(evaluated, tt.expected);
+        test_object!(evaluated, tt.expected, Integer);
+    }
+}
+
+#[test]
+fn test_boolean_expression() {
+    struct BoolEvalTest {
+        input: String,
+        expected: bool,
+    }
+
+    let tests = [
+        BoolEvalTest {
+            input: "true".to_string(),
+            expected: true,
+        },
+        BoolEvalTest {
+            input: "false".to_string(),
+            expected: false,
+        },
+    ];
+
+    for tt in tests {
+        let evaluated = test_evaluator(&tt.input);
+        test_object!(evaluated, tt.expected, Boolean);
     }
 }
