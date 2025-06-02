@@ -262,6 +262,7 @@ impl Node for IfExpression {
         out
     }
 }
+
 #[derive(Debug)]
 pub struct Program {
     pub statements: Vec<Statement>,
