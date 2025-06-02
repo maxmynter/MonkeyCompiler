@@ -1,18 +1,15 @@
 [package]
-name = "tests"
+name = "evaluator"
 version = "0.1.0"
 edition = "2024"
 
 [lib]
-name = "tests"
-path = "src/tests.rs"
-
+name = "evaluator"
+path = "src/evaluator.rs"
 
 [dependencies]
 lexer = { path = "../lexer" }
 object = { path = "../object" }
 parser = { path = "../parser"}
 ast = { path = "../ast"}
-evaluator = { path = "../evaluator"}
-
 

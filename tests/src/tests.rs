@@ -2,7 +2,9 @@ use ast::{
     CallExpression, Expression, FunctionLiteral, IfExpression, IntegerLiteral, Node, Program,
     Statement,
 };
-use lexer::{Lexer, Token, TokenType};
+use lexer::Lexer;
+use lexer::{Token, TokenType};
+use object::ObjectType;
 use parser::Parser;
 use std::rc::Rc;
 
@@ -632,5 +634,47 @@ fn test_call_expression() {
         test_infix_expression(&arguments[2], 4, "+", 5);
     } else {
         panic!("Not a call expression")
+    }
+}
+
+fn test_integer_object(obj: ObjectType, expected: i64) -> bool {
+    if let ObjectType::Integer { value } = obj {
+        if value == expected {
+            true
+        } else {
+            eprintln!("Wrong integer value, expected={}, got={}", expected, value);
+            false
+        }
+    } else {
+        eprint!("Is not an integer");
+        false
+    }
+}
+
+#[test]
+fn test_eval_integer_expression() {
+    fn test_evaluator(input: &str) -> ObjectType {
+        let program = prepare_program_for_test(input);
+        evaluator::eval(program)
+    }
+    struct IntEvalTest {
+        input: String,
+        expected: i64,
+    }
+
+    let tests = [
+        IntEvalTest {
+            input: "5".to_string(),
+            expected: 5,
+        },
+        IntEvalTest {
+            input: "10".to_string(),
+            expected: 10,
+        },
+    ];
+
+    for tt in tests {
+        let evaluated = test_evaluator(&tt.input);
+        test_integer_object(evaluated, tt.expected);
     }
 }

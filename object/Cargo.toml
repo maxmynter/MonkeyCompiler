@@ -8,3 +8,4 @@ name = "object"
 path = "src/object.rs"
 
 [dependencies]
+ast = { path = "../ast" }

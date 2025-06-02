@@ -1,4 +1,4 @@
-use ast::Expression;
+use ast::{Expression, Program, Statement};
 
 pub enum ObjectType {
     Integer { value: i64 },
@@ -16,14 +16,34 @@ impl ObjectType {
     }
 }
 
-impl Inspect for Null {
-    fn inspect(&self) -> String {
-        "null".to_string()
+pub trait CoerceObject {
+    fn coerce(&self) -> ObjectType;
+}
+
+impl CoerceObject for Statement {
+    fn coerce(&self) -> ObjectType {
+        match self {
+            Statement::Expression { value, .. } => value.coerce(),
+            _ => todo!(),
+        }
     }
 }
 
-impl TypedObject for Null {
-    fn object_type(&self) -> ObjectType {
-        ObjectType::NullObj
+impl CoerceObject for Program {
+    fn coerce(&self) -> ObjectType {
+        let mut result: ObjectType = ObjectType::Null;
+        for stmt in &self.statements {
+            result = stmt.coerce()
+        }
+        result
+    }
+}
+
+impl CoerceObject for Expression {
+    fn coerce(&self) -> ObjectType {
+        match self {
+            Expression::IntegerLiteral(int) => ObjectType::Integer { value: *int.value },
+            _ => todo!(),
+        }
     }
 }
