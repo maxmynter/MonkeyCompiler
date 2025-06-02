@@ -1,6 +1,6 @@
 use ast::{
-    CallExpression, Expression, FunctionLiteral, IfExpression, IntegerLiteral, Node, Program,
-    Statement,
+    CallExpression, Expression, FunctionLiteral, Identifier, IfExpression, IntegerLiteral, Node,
+    Program, Statement,
 };
 use lexer::Lexer;
 use lexer::{Token, TokenType};
@@ -8,6 +8,420 @@ use object::ObjectType;
 use parser::Parser;
 use std::rc::Rc;
 
+#[test]
+fn test_ast() {
+    let prog = Program {
+        statements: vec![Statement::Let {
+            token: Token {
+                kind: TokenType::LET,
+                literal: "let".to_string().into(),
+            },
+            name: Identifier {
+                token: Token {
+                    kind: TokenType::IDENT,
+                    literal: "myVar".to_string().into(),
+                },
+                value: "myVar".to_string().into(),
+            },
+            value: Some(Expression::Identifier(Identifier {
+                token: Token {
+                    kind: TokenType::IDENT,
+                    literal: "anotherVar".to_string().into(),
+                },
+                value: "anotherVar".to_string().into(),
+            })),
+        }],
+    };
+    assert_eq!(prog.as_string(), "let myVar = anotherVar;");
+}
+
+#[test]
+fn test_next_token() {
+    let input = String::from("=+(){},;");
+    let expected = [
+        Token {
+            kind: TokenType::ASSIGN,
+            literal: "=".to_string().into(),
+        },
+        Token {
+            kind: TokenType::PLUS,
+            literal: "+".to_string().into(),
+        },
+        Token {
+            kind: TokenType::LPAREN,
+            literal: "(".to_string().into(),
+        },
+        Token {
+            kind: TokenType::RPAREN,
+            literal: ")".to_string().into(),
+        },
+        Token {
+            kind: TokenType::LBRACE,
+            literal: "{".to_string().into(),
+        },
+        Token {
+            kind: TokenType::RBRACE,
+            literal: "}".to_string().into(),
+        },
+        Token {
+            kind: TokenType::COMMA,
+            literal: ",".to_string().into(),
+        },
+        Token {
+            kind: TokenType::SEMICOLON,
+            literal: ";".to_string().into(),
+        },
+    ];
+    let mut lexer = Lexer::new(&input);
+    for i in 0..expected.len() {
+        assert_eq!(lexer.next_token(), expected[i])
+    }
+}
+
+#[test]
+fn test_parse_code() {
+    let input = String::from(
+        "let five = 5;
+        let ten = 10;
+        let add = fn(x, y) {
+            x + y;
+        };
+        let result = add(five, ten);
+
+        !-/*5;
+        5 < 10 > 5;
+
+        if (5 < 10) {
+        return true;
+        } else {
+        return false;
+        }
+
+        10 == 10;
+        10 != 9;
+        ",
+    );
+    let expected = vec![
+        // let five = 5;
+        Token {
+            kind: TokenType::LET,
+            literal: "let".to_string().into(),
+        },
+        Token {
+            kind: TokenType::IDENT,
+            literal: "five".to_string().into(),
+        },
+        Token {
+            kind: TokenType::ASSIGN,
+            literal: "=".to_string().into(),
+        },
+        Token {
+            kind: TokenType::INT,
+            literal: "5".to_string().into(),
+        },
+        Token {
+            kind: TokenType::SEMICOLON,
+            literal: ";".to_string().into(),
+        },
+        // let ten = 10;
+        Token {
+            kind: TokenType::LET,
+            literal: "let".to_string().into(),
+        },
+        Token {
+            kind: TokenType::IDENT,
+            literal: "ten".to_string().into(),
+        },
+        Token {
+            kind: TokenType::ASSIGN,
+            literal: "=".to_string().into(),
+        },
+        Token {
+            kind: TokenType::INT,
+            literal: "10".to_string().into(),
+        },
+        Token {
+            kind: TokenType::SEMICOLON,
+            literal: ";".to_string().into(),
+        },
+        // let add = fn(x, y) {
+        Token {
+            kind: TokenType::LET,
+            literal: "let".to_string().into(),
+        },
+        Token {
+            kind: TokenType::IDENT,
+            literal: "add".to_string().into(),
+        },
+        Token {
+            kind: TokenType::ASSIGN,
+            literal: "=".to_string().into(),
+        },
+        Token {
+            kind: TokenType::FUNCTION,
+            literal: "fn".to_string().into(),
+        },
+        Token {
+            kind: TokenType::LPAREN,
+            literal: "(".to_string().into(),
+        },
+        Token {
+            kind: TokenType::IDENT,
+            literal: "x".to_string().into(),
+        },
+        Token {
+            kind: TokenType::COMMA,
+            literal: ",".to_string().into(),
+        },
+        Token {
+            kind: TokenType::IDENT,
+            literal: "y".to_string().into(),
+        },
+        Token {
+            kind: TokenType::RPAREN,
+            literal: ")".to_string().into(),
+        },
+        Token {
+            kind: TokenType::LBRACE,
+            literal: "{".to_string().into(),
+        },
+        // x + y;
+        Token {
+            kind: TokenType::IDENT,
+            literal: "x".to_string().into(),
+        },
+        Token {
+            kind: TokenType::PLUS,
+            literal: "+".to_string().into(),
+        },
+        Token {
+            kind: TokenType::IDENT,
+            literal: "y".to_string().into(),
+        },
+        Token {
+            kind: TokenType::SEMICOLON,
+            literal: ";".to_string().into(),
+        },
+        // };
+        Token {
+            kind: TokenType::RBRACE,
+            literal: "}".to_string().into(),
+        },
+        Token {
+            kind: TokenType::SEMICOLON,
+            literal: ";".to_string().into(),
+        },
+        // let result = add(five, ten);
+        Token {
+            kind: TokenType::LET,
+            literal: "let".to_string().into(),
+        },
+        Token {
+            kind: TokenType::IDENT,
+            literal: "result".to_string().into(),
+        },
+        Token {
+            kind: TokenType::ASSIGN,
+            literal: "=".to_string().into(),
+        },
+        Token {
+            kind: TokenType::IDENT,
+            literal: "add".to_string().into(),
+        },
+        Token {
+            kind: TokenType::LPAREN,
+            literal: "(".to_string().into(),
+        },
+        Token {
+            kind: TokenType::IDENT,
+            literal: "five".to_string().into(),
+        },
+        Token {
+            kind: TokenType::COMMA,
+            literal: ",".to_string().into(),
+        },
+        Token {
+            kind: TokenType::IDENT,
+            literal: "ten".to_string().into(),
+        },
+        Token {
+            kind: TokenType::RPAREN,
+            literal: ")".to_string().into(),
+        },
+        Token {
+            kind: TokenType::SEMICOLON,
+            literal: ";".to_string().into(),
+        },
+        // !-/*5;
+        Token {
+            kind: TokenType::BANG,
+            literal: "!".to_string().into(),
+        },
+        Token {
+            kind: TokenType::MINUS,
+            literal: "-".to_string().into(),
+        },
+        Token {
+            kind: TokenType::SLASH,
+            literal: "/".to_string().into(),
+        },
+        Token {
+            kind: TokenType::ASTERISK,
+            literal: "*".to_string().into(),
+        },
+        Token {
+            kind: TokenType::INT,
+            literal: "5".to_string().into(),
+        },
+        Token {
+            kind: TokenType::SEMICOLON,
+            literal: ";".to_string().into(),
+        },
+        // 5 < 10 > 5;
+        Token {
+            kind: TokenType::INT,
+            literal: "5".to_string().into(),
+        },
+        Token {
+            kind: TokenType::LT,
+            literal: "<".to_string().into(),
+        },
+        Token {
+            kind: TokenType::INT,
+            literal: "10".to_string().into(),
+        },
+        Token {
+            kind: TokenType::GT,
+            literal: ">".to_string().into(),
+        },
+        Token {
+            kind: TokenType::INT,
+            literal: "5".to_string().into(),
+        },
+        Token {
+            kind: TokenType::SEMICOLON,
+            literal: ";".to_string().into(),
+        },
+        // if (5 < 10) {
+        Token {
+            kind: TokenType::IF,
+            literal: "if".to_string().into(),
+        },
+        Token {
+            kind: TokenType::LPAREN,
+            literal: "(".to_string().into(),
+        },
+        Token {
+            kind: TokenType::INT,
+            literal: "5".to_string().into(),
+        },
+        Token {
+            kind: TokenType::LT,
+            literal: "<".to_string().into(),
+        },
+        Token {
+            kind: TokenType::INT,
+            literal: "10".to_string().into(),
+        },
+        Token {
+            kind: TokenType::RPAREN,
+            literal: ")".to_string().into(),
+        },
+        Token {
+            kind: TokenType::LBRACE,
+            literal: "{".to_string().into(),
+        },
+        // return true;
+        Token {
+            kind: TokenType::RETURN,
+            literal: "return".to_string().into(),
+        },
+        Token {
+            kind: TokenType::TRUE,
+            literal: "true".to_string().into(),
+        },
+        Token {
+            kind: TokenType::SEMICOLON,
+            literal: ";".to_string().into(),
+        },
+        // } else {
+        Token {
+            kind: TokenType::RBRACE,
+            literal: "}".to_string().into(),
+        },
+        Token {
+            kind: TokenType::ELSE,
+            literal: "else".to_string().into(),
+        },
+        Token {
+            kind: TokenType::LBRACE,
+            literal: "{".to_string().into(),
+        },
+        // return false;
+        Token {
+            kind: TokenType::RETURN,
+            literal: "return".to_string().into(),
+        },
+        Token {
+            kind: TokenType::FALSE,
+            literal: "false".to_string().into(),
+        },
+        Token {
+            kind: TokenType::SEMICOLON,
+            literal: ";".to_string().into(),
+        },
+        // }
+        Token {
+            kind: TokenType::RBRACE,
+            literal: "}".to_string().into(),
+        },
+        // 10 == 10;
+        Token {
+            kind: TokenType::INT,
+            literal: "10".to_string().into(),
+        },
+        Token {
+            kind: TokenType::EQ,
+            literal: "==".to_string().into(),
+        },
+        Token {
+            kind: TokenType::INT,
+            literal: "10".to_string().into(),
+        },
+        Token {
+            kind: TokenType::SEMICOLON,
+            literal: ";".to_string().into(),
+        },
+        // 10 != 9;
+        Token {
+            kind: TokenType::INT,
+            literal: "10".to_string().into(),
+        },
+        Token {
+            kind: TokenType::UNEQ,
+            literal: "!=".to_string().into(),
+        },
+        Token {
+            kind: TokenType::INT,
+            literal: "9".to_string().into(),
+        },
+        Token {
+            kind: TokenType::SEMICOLON,
+            literal: ";".to_string().into(),
+        },
+        // EOF
+        Token {
+            kind: TokenType::EOF,
+            literal: "".to_string().into(),
+        },
+    ];
+    let mut lexer = Lexer::new(&input);
+    for i in 0..expected.len() {
+        let tok = lexer.next_token();
+        println!("{:?} -|- {:?}", tok, expected[i]);
+        assert_eq!(tok, expected[i]);
+    }
+}
 fn unwrap_expression(stmt: &Statement) -> &Expression {
     if let Statement::Expression { value, .. } = stmt {
         value

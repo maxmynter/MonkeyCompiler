@@ -381,29 +381,3 @@ impl Node for Identifier {
         self.value.to_string()
     }
 }
-#[test]
-fn test_ast() {
-    let prog = Program {
-        statements: vec![Statement::Let {
-            token: Token {
-                kind: TokenType::LET,
-                literal: "let".to_string().into(),
-            },
-            name: Identifier {
-                token: Token {
-                    kind: TokenType::IDENT,
-                    literal: "myVar".to_string().into(),
-                },
-                value: "myVar".to_string().into(),
-            },
-            value: Some(Expression::Identifier(Identifier {
-                token: Token {
-                    kind: TokenType::IDENT,
-                    literal: "anotherVar".to_string().into(),
-                },
-                value: "anotherVar".to_string().into(),
-            })),
-        }],
-    };
-    assert_eq!(prog.as_string(), "let myVar = anotherVar;");
-}
