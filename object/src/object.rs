@@ -43,6 +43,9 @@ impl CoerceObject for Expression {
     fn coerce(&self) -> ObjectType {
         match self {
             Expression::IntegerLiteral(int) => ObjectType::Integer { value: *int.value },
+            Expression::Boolean(boolean) => ObjectType::Boolean {
+                value: boolean.value,
+            },
             _ => todo!(),
         }
     }
