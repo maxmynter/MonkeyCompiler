@@ -52,6 +52,7 @@ dependencies = [
 name = "repl"
 version = "0.1.0"
 dependencies = [
+ "evaluator",
  "lexer",
  "parser",
 ]

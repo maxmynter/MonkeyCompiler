@@ -46,5 +46,6 @@ fn eval(input: &str) {
     if !parser.errors.is_empty() {
         parser.print_errors();
     }
-    println!("{}\n", program);
+    let evaluated = evaluator::eval(program);
+    println!("{}\n", evaluated.inspect());
 }
