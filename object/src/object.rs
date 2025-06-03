@@ -6,6 +6,9 @@ pub enum ObjectType {
     Null,
 }
 
+const TRUE: ObjectType = ObjectType::Boolean { value: true };
+const FALSE: ObjectType = ObjectType::Boolean { value: false };
+
 impl ObjectType {
     pub fn inspect(&self) -> String {
         match self {
@@ -43,9 +46,13 @@ impl CoerceObject for Expression {
     fn coerce(&self) -> ObjectType {
         match self {
             Expression::IntegerLiteral(int) => ObjectType::Integer { value: *int.value },
-            Expression::Boolean(boolean) => ObjectType::Boolean {
-                value: boolean.value,
-            },
+            Expression::Boolean(boolean) => {
+                if boolean.value {
+                    TRUE
+                } else {
+                    FALSE
+                }
+            }
             _ => todo!(),
         }
     }
