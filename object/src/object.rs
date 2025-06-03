@@ -127,6 +127,28 @@ fn eval_integer_infix_expression(
 fn eval_infix_expression(operator: &str, left: ObjectType, right: ObjectType) -> ObjectType {
     if let (&ObjectType::Integer { .. }, &ObjectType::Integer { .. }) = (&left, &right) {
         eval_integer_infix_expression(operator, left, right)
+    } else if let (
+        &ObjectType::Boolean { value: left_value },
+        &ObjectType::Boolean { value: right_value },
+    ) = (&left, &right)
+    {
+        match operator {
+            "==" => {
+                if left_value == right_value {
+                    TRUE
+                } else {
+                    FALSE
+                }
+            }
+            "!=" => {
+                if left_value != right_value {
+                    TRUE
+                } else {
+                    FALSE
+                }
+            }
+            _ => NULL,
+        }
     } else {
         NULL
     }
