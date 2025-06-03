@@ -997,20 +997,20 @@ fn test_function_literal() {
 #[test]
 fn test_function_parameter_parsing() {
     struct FnParameterTest<'a> {
-        input: String,
+        input: &'static str,
         expected: Vec<&'a str>,
     }
     let tests = [
         FnParameterTest {
-            input: "fn(){};".to_string(),
+            input: "fn(){};",
             expected: [].to_vec(),
         },
         FnParameterTest {
-            input: "fn(x){};".to_string(),
+            input: "fn(x){};",
             expected: ["x"].to_vec(),
         },
         FnParameterTest {
-            input: "fn(x, y, z){};".to_string(),
+            input: "fn(x, y, z){};",
             expected: ["x", "y", "z"].to_vec(),
         },
     ];
@@ -1054,10 +1054,7 @@ fn test_call_expression() {
 macro_rules! test_object {
     ($obj: expr, $expected: expr, $variant: ident) => {
         match $obj {
-            ObjectType::$variant { value } if value == $expected => {}
-            ObjectType::$variant { value } => {
-                panic!("Wrong value, expected={}, got={}", $expected, value);
-            }
+            ObjectType::$variant { value } => assert_eq!(value, $expected),
             _ => panic!("Expected {} object", stringify!($variant)),
         }
     };
@@ -1071,17 +1068,17 @@ fn test_evaluator(input: &str) -> ObjectType {
 #[test]
 fn test_eval_integer_expression() {
     struct IntEvalTest {
-        input: String,
+        input: &'static str,
         expected: i64,
     }
 
     let tests = [
         IntEvalTest {
-            input: "5".to_string(),
+            input: "5",
             expected: 5,
         },
         IntEvalTest {
-            input: "10".to_string(),
+            input: "10",
             expected: 10,
         },
     ];
@@ -1095,17 +1092,17 @@ fn test_eval_integer_expression() {
 #[test]
 fn test_boolean_expression() {
     struct BoolEvalTest {
-        input: String,
+        input: &'static str,
         expected: bool,
     }
 
     let tests = [
         BoolEvalTest {
-            input: "true".to_string(),
+            input: "true",
             expected: true,
         },
         BoolEvalTest {
-            input: "false".to_string(),
+            input: "false",
             expected: false,
         },
     ];
@@ -1113,5 +1110,46 @@ fn test_boolean_expression() {
     for tt in tests {
         let evaluated = test_evaluator(&tt.input);
         test_object!(evaluated, tt.expected, Boolean);
+    }
+}
+
+#[test]
+fn test_bang_operator() {
+    struct BangTest {
+        input: &'static str,
+        expected: bool,
+    }
+
+    let tests = [
+        BangTest {
+            input: "!true",
+            expected: false,
+        },
+        BangTest {
+            input: "!false",
+            expected: true,
+        },
+        BangTest {
+            input: "!5",
+            expected: false,
+        },
+        BangTest {
+            input: "!!true",
+            expected: true,
+        },
+        BangTest {
+            input: "!!false",
+            expected: false,
+        },
+        BangTest {
+            input: "!!5",
+            expected: true,
+        },
+    ];
+
+    for tt in tests {
+        dbg!(tt.input);
+        let evaluated = test_evaluator(tt.input);
+        test_object!(evaluated, tt.expected, Boolean)
     }
 }
