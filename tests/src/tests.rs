@@ -1081,6 +1081,14 @@ fn test_eval_integer_expression() {
             input: "10",
             expected: 10,
         },
+        IntEvalTest {
+            input: "-5",
+            expected: -5,
+        },
+        IntEvalTest {
+            input: "-10",
+            expected: -10,
+        },
     ];
 
     for tt in tests {

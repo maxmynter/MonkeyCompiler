@@ -52,9 +52,18 @@ fn eval_bang_operator_expression(right: ObjectType) -> ObjectType {
     }
 }
 
+fn eval_minus_prefix_operator_expression(right: ObjectType) -> ObjectType {
+    if let ObjectType::Integer { value } = right {
+        ObjectType::Integer { value: -value }
+    } else {
+        NULL
+    }
+}
+
 fn eval_prefix_expression(operator: &str, right: ObjectType) -> ObjectType {
     match operator {
         "!" => eval_bang_operator_expression(right),
+        "-" => eval_minus_prefix_operator_expression(right),
         _ => NULL,
     }
 }
