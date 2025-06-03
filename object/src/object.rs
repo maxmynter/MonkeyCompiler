@@ -89,6 +89,34 @@ fn eval_integer_infix_expression(
             "/" => ObjectType::Integer {
                 value: left_value / right_value,
             },
+            "<" => {
+                if left_value < right_value {
+                    TRUE
+                } else {
+                    FALSE
+                }
+            }
+            ">" => {
+                if left_value > right_value {
+                    TRUE
+                } else {
+                    FALSE
+                }
+            }
+            "==" => {
+                if left_value == right_value {
+                    TRUE
+                } else {
+                    FALSE
+                }
+            }
+            "!=" => {
+                if left_value != right_value {
+                    TRUE
+                } else {
+                    FALSE
+                }
+            }
             _ => NULL,
         }
     } else {

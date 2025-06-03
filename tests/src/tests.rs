@@ -1156,6 +1156,38 @@ fn test_boolean_expression() {
             input: "false",
             expected: false,
         },
+        BoolEvalTest {
+            input: "1 < 2",
+            expected: true,
+        },
+        BoolEvalTest {
+            input: "1 > 2",
+            expected: false,
+        },
+        BoolEvalTest {
+            input: "1 < 1",
+            expected: false,
+        },
+        BoolEvalTest {
+            input: "1 > 1",
+            expected: false,
+        },
+        BoolEvalTest {
+            input: "1 == 1",
+            expected: true,
+        },
+        BoolEvalTest {
+            input: "1 != 1",
+            expected: false,
+        },
+        BoolEvalTest {
+            input: "1 == 2",
+            expected: false,
+        },
+        BoolEvalTest {
+            input: "1 != 2",
+            expected: true,
+        },
     ];
 
     for tt in tests {
