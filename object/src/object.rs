@@ -1,4 +1,4 @@
-use ast::{Boolean, Expression, PrefixExpression, Program, Statement};
+use ast::{Boolean, Expression, InfixExpression, PrefixExpression, Program, Statement};
 
 pub enum ObjectType {
     Integer { value: i64 },
@@ -67,6 +67,43 @@ fn eval_prefix_expression(operator: &str, right: ObjectType) -> ObjectType {
         _ => NULL,
     }
 }
+
+fn eval_integer_infix_expression(
+    operator: &str,
+    left: ObjectType,
+    right: ObjectType,
+) -> ObjectType {
+    if let (ObjectType::Integer { value: left_value }, ObjectType::Integer { value: right_value }) =
+        (left, right)
+    {
+        match operator {
+            "+" => ObjectType::Integer {
+                value: left_value + right_value,
+            },
+            "-" => ObjectType::Integer {
+                value: left_value - right_value,
+            },
+            "*" => ObjectType::Integer {
+                value: left_value * right_value,
+            },
+            "/" => ObjectType::Integer {
+                value: left_value / right_value,
+            },
+            _ => NULL,
+        }
+    } else {
+        panic!("Need two Integer arguments")
+    }
+}
+
+fn eval_infix_expression(operator: &str, left: ObjectType, right: ObjectType) -> ObjectType {
+    if let (&ObjectType::Integer { .. }, &ObjectType::Integer { .. }) = (&left, &right) {
+        eval_integer_infix_expression(operator, left, right)
+    } else {
+        NULL
+    }
+}
+
 impl CoerceObject for Expression {
     fn coerce(&self) -> ObjectType {
         match self {
@@ -83,6 +120,16 @@ impl CoerceObject for Expression {
             }) => {
                 let evaluated_right = right.coerce();
                 eval_prefix_expression(operator, evaluated_right)
+            }
+            Expression::InfixExpression(InfixExpression {
+                operator,
+                left,
+                right,
+                ..
+            }) => {
+                let evaluated_left = left.coerce();
+                let evaluated_right = right.coerce();
+                eval_infix_expression(operator, evaluated_left, evaluated_right)
             }
             _ => todo!(),
         }
