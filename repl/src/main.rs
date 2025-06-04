@@ -15,6 +15,8 @@ fn repl() -> io::Result<()> {
     let mut input = String::new();
 
     let mut stdout = io::stdout();
+
+    let mut env = Environment::new();
     loop {
         print!("{}", PROMPT);
         stdout.flush()?;
@@ -30,7 +32,7 @@ fn repl() -> io::Result<()> {
                     println!("\nexiting...");
                     break;
                 }
-                eval(input);
+                eval(input, &mut env);
             }
             Err(e) => {
                 eprintln!("Error: {}", e);
@@ -41,14 +43,13 @@ fn repl() -> io::Result<()> {
     Ok(())
 }
 
-fn eval(input: &str) {
+fn eval(input: &str, env: &mut Environment) {
     let lex = lexer::Lexer::new(input);
     let mut parser = parser::Parser::new(lex);
     let program = parser.parse_program();
     if !parser.errors.is_empty() {
         parser.print_errors();
     }
-    let mut env = Environment::new();
-    let evaluated = evaluator::eval(program, &mut env);
+    let evaluated = evaluator::eval(program, env);
     println!("{}\n", evaluated.inspect());
 }
