@@ -213,12 +213,10 @@ impl CoerceObject for Expression {
                 let cond = condition.coerce();
                 if is_truthy(cond) {
                     consequence.coerce()
+                } else if let Some(alt) = alternative {
+                    alt.coerce()
                 } else {
-                    if let Some(alt) = alternative {
-                        alt.coerce()
-                    } else {
-                        NULL
-                    }
+                    NULL
                 }
             }
             _ => todo!(),
