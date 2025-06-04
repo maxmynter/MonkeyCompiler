@@ -1,12 +1,12 @@
 use ast::{
-    BlockStatement, Boolean, Expression, IfExpression, InfixExpression, PrefixExpression, Program,
-    Statement,
+    BlockStatement, Expression, IfExpression, InfixExpression, PrefixExpression, Program, Statement,
 };
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum ObjectType {
     Integer { value: i64 },
     Boolean { value: bool },
+    Return { value: Box<ObjectType> },
     Null,
 }
 
@@ -20,6 +20,7 @@ impl ObjectType {
             ObjectType::Null => "null".to_string(),
             ObjectType::Boolean { value } => value.to_string(),
             ObjectType::Integer { value } => value.to_string(),
+            ObjectType::Return { .. } => "return_value".to_string(),
         }
     }
 }
@@ -32,7 +33,16 @@ impl CoerceObject for Statement {
     fn coerce(&self) -> ObjectType {
         match self {
             Statement::Expression { value, .. } => value.coerce(),
-            _ => todo!(),
+            Statement::Return { value, .. } => {
+                if let Some(expr) = value {
+                    ObjectType::Return {
+                        value: Box::new(expr.coerce()),
+                    }
+                } else {
+                    NULL
+                }
+            }
+            _ => todo!("Not yet implemented"),
         }
     }
 }
@@ -41,7 +51,10 @@ impl CoerceObject for Program {
     fn coerce(&self) -> ObjectType {
         let mut result: ObjectType = ObjectType::Null;
         for stmt in &self.statements {
-            result = stmt.coerce()
+            result = stmt.coerce();
+            if let ObjectType::Return { value } = result {
+                return *value;
+            }
         }
         result
     }
@@ -162,7 +175,10 @@ impl CoerceObject for BlockStatement {
     fn coerce(&self) -> ObjectType {
         let mut result: ObjectType = ObjectType::Null;
         for stmt in &self.statements {
-            result = stmt.coerce()
+            result = stmt.coerce();
+            if let ObjectType::Return { .. } = result {
+                return result;
+            }
         }
         result
     }

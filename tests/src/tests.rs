@@ -1325,3 +1325,39 @@ fn test_evaluate_if_else_expressions() {
         }
     }
 }
+
+#[test]
+fn test_return_statement_evaluation() {
+    struct ReturnTest {
+        input: &'static str,
+        expected: i64,
+    }
+
+    let tests = [
+        ReturnTest {
+            input: "return 10",
+            expected: 10,
+        },
+        ReturnTest {
+            input: "return 10; 9;",
+            expected: 10,
+        },
+        ReturnTest {
+            input: "return 2 * 5; 9;",
+            expected: 10,
+        },
+        ReturnTest {
+            input: "9; return 2 * 5; 9;",
+            expected: 10,
+        },
+        ReturnTest {
+            input: "if (10 > 1) { if (10 > 1) { return 10 ;} return 1; } ",
+            expected: 10,
+        },
+    ];
+
+    for tt in tests {
+        let evaluated = test_evaluator(tt.input);
+        test_object!(evaluated, tt.expected, Integer);
+    }
+}
