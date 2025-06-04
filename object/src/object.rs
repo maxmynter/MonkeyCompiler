@@ -1,14 +1,18 @@
-use ast::{Boolean, Expression, InfixExpression, PrefixExpression, Program, Statement};
+use ast::{
+    BlockStatement, Boolean, Expression, IfExpression, InfixExpression, PrefixExpression, Program,
+    Statement,
+};
 
+#[derive(Debug, PartialEq)]
 pub enum ObjectType {
     Integer { value: i64 },
     Boolean { value: bool },
     Null,
 }
 
-const TRUE: ObjectType = ObjectType::Boolean { value: true };
-const FALSE: ObjectType = ObjectType::Boolean { value: false };
-const NULL: ObjectType = ObjectType::Null;
+pub const TRUE: ObjectType = ObjectType::Boolean { value: true };
+pub const FALSE: ObjectType = ObjectType::Boolean { value: false };
+pub const NULL: ObjectType = ObjectType::Null;
 
 impl ObjectType {
     pub fn inspect(&self) -> String {
@@ -154,6 +158,25 @@ fn eval_infix_expression(operator: &str, left: ObjectType, right: ObjectType) ->
     }
 }
 
+impl CoerceObject for BlockStatement {
+    fn coerce(&self) -> ObjectType {
+        let mut result: ObjectType = ObjectType::Null;
+        for stmt in &self.statements {
+            result = stmt.coerce()
+        }
+        result
+    }
+}
+
+fn is_truthy(expr: ObjectType) -> bool {
+    match expr {
+        ObjectType::Null => false,
+        TRUE => true,
+        FALSE => false,
+        _ => true,
+    }
+}
+
 impl CoerceObject for Expression {
     fn coerce(&self) -> ObjectType {
         match self {
@@ -180,6 +203,23 @@ impl CoerceObject for Expression {
                 let evaluated_left = left.coerce();
                 let evaluated_right = right.coerce();
                 eval_infix_expression(operator, evaluated_left, evaluated_right)
+            }
+            Expression::IfExpression(IfExpression {
+                condition,
+                consequence,
+                alternative,
+                ..
+            }) => {
+                let cond = condition.coerce();
+                if is_truthy(cond) {
+                    consequence.coerce()
+                } else {
+                    if let Some(alt) = alternative {
+                        alt.coerce()
+                    } else {
+                        NULL
+                    }
+                }
             }
             _ => todo!(),
         }

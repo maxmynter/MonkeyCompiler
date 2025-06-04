@@ -4,7 +4,7 @@ use ast::{
 };
 use lexer::Lexer;
 use lexer::{Token, TokenType};
-use object::ObjectType;
+use object::{NULL, ObjectType};
 use parser::Parser;
 use std::rc::Rc;
 
@@ -945,7 +945,7 @@ fn test_if_expression() {
 }
 
 #[test]
-fn test_if_else_expression() {
+fn test_parse_if_else_expression() {
     let input = "if (x < y) { x } else { y };";
     let program = prepare_program_for_test(input);
     assert!(program.statements.len() == 1);
@@ -1270,5 +1270,58 @@ fn test_bang_operator() {
         dbg!(tt.input);
         let evaluated = test_evaluator(tt.input);
         test_object!(evaluated, tt.expected, Boolean)
+    }
+}
+
+#[test]
+fn test_evaluate_if_else_expressions() {
+    struct IfElseTest {
+        input: &'static str,
+        expected: ObjectType,
+    }
+    let tests = [
+        IfElseTest {
+            input: "if (true) { 10 }",
+            expected: ObjectType::Integer { value: 10 },
+        },
+        IfElseTest {
+            input: "if (false) { 10 }",
+            expected: ObjectType::Null,
+        },
+        IfElseTest {
+            input: "if (1) { 10 }",
+            expected: ObjectType::Integer { value: 10 },
+        },
+        IfElseTest {
+            input: "if (1 < 2) { 10 }",
+            expected: ObjectType::Integer { value: 10 },
+        },
+        IfElseTest {
+            input: "if (1 > 2) { 10 }",
+            expected: ObjectType::Null,
+        },
+        IfElseTest {
+            input: "if (1 < 2) { 10 } else { 20 }",
+            expected: ObjectType::Integer { value: 10 },
+        },
+        IfElseTest {
+            input: "if (1 > 2) { 10 } else { 20 }",
+            expected: ObjectType::Integer { value: 20 },
+        },
+    ];
+
+    for tt in tests {
+        let evaluated = test_evaluator(tt.input);
+        match evaluated {
+            ObjectType::Integer { .. } => {
+                if let ObjectType::Integer { value } = tt.expected {
+                    test_object!(evaluated, value, Integer)
+                } else {
+                    unreachable!()
+                }
+            }
+            ObjectType::Null => assert_eq!(evaluated, object::NULL),
+            _ => unreachable!(),
+        }
     }
 }
