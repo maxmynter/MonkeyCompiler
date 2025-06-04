@@ -1361,3 +1361,51 @@ fn test_return_statement_evaluation() {
         test_object!(evaluated, tt.expected, Integer);
     }
 }
+
+#[test]
+fn test_error_handling() {
+    struct ErrorHandlingTest {
+        input: &'static str,
+        expected: &'static str,
+    }
+
+    let tests = [
+        ErrorHandlingTest {
+            input: "5 + true",
+            expected: "type mismatch: INTEGER + BOOLEAN",
+        },
+        ErrorHandlingTest {
+            input: "5 + true; 5",
+            expected: "type mismatch: INTEGER + BOOLEAN",
+        },
+        ErrorHandlingTest {
+            input: "-true",
+            expected: "unkown operator: -BOOLEAN",
+        },
+        ErrorHandlingTest {
+            input: "true + true",
+            expected: "unkown operator: BOOLEAN + BOOLEAN",
+        },
+        ErrorHandlingTest {
+            input: "5; true + false; 5;",
+            expected: "unkown operator: BOOLEAN + BOOLEAN",
+        },
+        ErrorHandlingTest {
+            input: "if (10 > 1) { true + false }",
+            expected: "unkown operator: BOOLEAN + BOOLEAN",
+        },
+        ErrorHandlingTest {
+            input: "if (10 > 1) { if (10 > 1) { return true + false; } return 1; }",
+            expected: "unkown operator: BOOLEAN + BOOLEAN",
+        },
+    ];
+
+    for tt in tests {
+        let evaluated = test_evaluator(tt.input);
+        if let ObjectType::Error { message } = dbg!(evaluated) {
+            assert_eq!(message, tt.expected);
+        } else {
+            panic!("Did not throw expected error: {}", tt.expected)
+        }
+    }
+}

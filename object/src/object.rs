@@ -7,6 +7,7 @@ pub enum ObjectType {
     Integer { value: i64 },
     Boolean { value: bool },
     Return { value: Box<ObjectType> },
+    Error { message: String },
     Null,
 }
 
@@ -21,6 +22,16 @@ impl ObjectType {
             ObjectType::Boolean { value } => value.to_string(),
             ObjectType::Integer { value } => value.to_string(),
             ObjectType::Return { .. } => "return_value".to_string(),
+            ObjectType::Error { message } => format!("Error: {}", message),
+        }
+    }
+    pub fn object_type(&self) -> String {
+        match self {
+            ObjectType::Null => "null".to_string(),
+            ObjectType::Integer { .. } => "INTEGER".to_string(),
+            ObjectType::Boolean { .. } => "BOOLEAN".to_string(),
+            ObjectType::Return { .. } => "RETURN_VALUE".to_string(),
+            ObjectType::Error { .. } => "ERROR".to_string(),
         }
     }
 }
@@ -29,14 +40,27 @@ pub trait CoerceObject {
     fn coerce(&self) -> ObjectType;
 }
 
+fn is_err(obj: &ObjectType) -> bool {
+    if let ObjectType::Error { .. } = obj {
+        true
+    } else {
+        false
+    }
+}
+
 impl CoerceObject for Statement {
     fn coerce(&self) -> ObjectType {
         match self {
             Statement::Expression { value, .. } => value.coerce(),
             Statement::Return { value, .. } => {
                 if let Some(expr) = value {
-                    ObjectType::Return {
-                        value: Box::new(expr.coerce()),
+                    let coerced = expr.coerce();
+                    if is_err(&coerced) {
+                        coerced
+                    } else {
+                        ObjectType::Return {
+                            value: Box::new(coerced),
+                        }
                     }
                 } else {
                     NULL
@@ -54,6 +78,9 @@ impl CoerceObject for Program {
             result = stmt.coerce();
             if let ObjectType::Return { value } = result {
                 return *value;
+            }
+            if let ObjectType::Error { .. } = result {
+                return result;
             }
         }
         result
@@ -73,7 +100,9 @@ fn eval_minus_prefix_operator_expression(right: ObjectType) -> ObjectType {
     if let ObjectType::Integer { value } = right {
         ObjectType::Integer { value: -value }
     } else {
-        NULL
+        ObjectType::Error {
+            message: format!("unkown operator: -{}", right.object_type()),
+        }
     }
 }
 
@@ -81,7 +110,9 @@ fn eval_prefix_expression(operator: &str, right: ObjectType) -> ObjectType {
     match operator {
         "!" => eval_bang_operator_expression(right),
         "-" => eval_minus_prefix_operator_expression(right),
-        _ => NULL,
+        _ => ObjectType::Error {
+            message: format!("unkown operator: {}{}", operator, right.object_type()),
+        },
     }
 }
 
@@ -90,8 +121,10 @@ fn eval_integer_infix_expression(
     left: ObjectType,
     right: ObjectType,
 ) -> ObjectType {
-    if let (ObjectType::Integer { value: left_value }, ObjectType::Integer { value: right_value }) =
-        (left, right)
+    if let (
+        &ObjectType::Integer { value: left_value },
+        &ObjectType::Integer { value: right_value },
+    ) = (&left, &right)
     {
         match operator {
             "+" => ObjectType::Integer {
@@ -134,7 +167,14 @@ fn eval_integer_infix_expression(
                     FALSE
                 }
             }
-            _ => NULL,
+            _ => ObjectType::Error {
+                message: format!(
+                    "unkown operator: {} {} {}",
+                    left.object_type(),
+                    operator,
+                    right.object_type()
+                ),
+            },
         }
     } else {
         panic!("Need two Integer arguments")
@@ -164,10 +204,24 @@ fn eval_infix_expression(operator: &str, left: ObjectType, right: ObjectType) ->
                     FALSE
                 }
             }
-            _ => NULL,
+            _ => ObjectType::Error {
+                message: format!(
+                    "unkown operator: {} {} {}",
+                    left.object_type(),
+                    operator,
+                    right.object_type()
+                ),
+            },
         }
     } else {
-        NULL
+        ObjectType::Error {
+            message: format!(
+                "type mismatch: {} {} {}",
+                left.object_type(),
+                operator,
+                right.object_type()
+            ),
+        }
     }
 }
 
@@ -176,7 +230,7 @@ impl CoerceObject for BlockStatement {
         let mut result: ObjectType = ObjectType::Null;
         for stmt in &self.statements {
             result = stmt.coerce();
-            if let ObjectType::Return { .. } = result {
+            if matches!(result, ObjectType::Return { .. } | ObjectType::Error { .. }) {
                 return result;
             }
         }
@@ -208,7 +262,11 @@ impl CoerceObject for Expression {
                 right, operator, ..
             }) => {
                 let evaluated_right = right.coerce();
-                eval_prefix_expression(operator, evaluated_right)
+                if is_err(&evaluated_right) {
+                    evaluated_right
+                } else {
+                    eval_prefix_expression(operator, evaluated_right)
+                }
             }
             Expression::InfixExpression(InfixExpression {
                 operator,
@@ -217,7 +275,13 @@ impl CoerceObject for Expression {
                 ..
             }) => {
                 let evaluated_left = left.coerce();
+                if is_err(&evaluated_left) {
+                    return evaluated_left;
+                }
                 let evaluated_right = right.coerce();
+                if is_err(&evaluated_right) {
+                    return evaluated_right;
+                }
                 eval_infix_expression(operator, evaluated_left, evaluated_right)
             }
             Expression::IfExpression(IfExpression {
@@ -227,6 +291,9 @@ impl CoerceObject for Expression {
                 ..
             }) => {
                 let cond = condition.coerce();
+                if is_err(&cond) {
+                    return cond;
+                }
                 if is_truthy(cond) {
                     consequence.coerce()
                 } else if let Some(alt) = alternative {
