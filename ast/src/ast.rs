@@ -195,11 +195,11 @@ pub enum Statement {
     Let {
         token: Token,
         name: Identifier,
-        value: Option<Expression>,
+        value: Expression,
     },
     Return {
         token: Token,
-        value: Option<Expression>,
+        value: Expression,
     },
     Expression {
         token: Token,
@@ -312,17 +312,13 @@ impl Node for Statement {
                 out.push(' ');
                 out.push_str(&name.value);
                 out.push_str(" = ");
-                if let Some(expr) = value {
-                    out.push_str(&expr.as_string());
-                }
+                out.push_str(&value.as_string());
                 out.push(';');
             }
             Statement::Return { token, value } => {
                 out.push_str(&token.literal);
                 out.push(' ');
-                if let Some(ret_val) = value {
-                    out.push_str(&ret_val.as_string());
-                }
+                out.push_str(&value.as_string());
                 out.push(';');
             }
             Statement::Expression { value, .. } => {

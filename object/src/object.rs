@@ -1,47 +1,69 @@
+use std::collections::HashMap;
+
 use ast::{
-    BlockStatement, Expression, IfExpression, InfixExpression, PrefixExpression, Program, Statement,
+    BlockStatement, Expression, Identifier, IfExpression, InfixExpression, PrefixExpression,
+    Program, Statement,
 };
 
+pub struct Environment {
+    store: HashMap<String, Object>,
+}
+impl Environment {
+    pub fn new() -> Self {
+        Environment {
+            store: HashMap::new(),
+        }
+    }
+
+    pub fn get(&self, name: &String) -> Option<&Object> {
+        self.store.get(name)
+    }
+
+    pub fn set(&mut self, name: &String, value: Object) {
+        self.store.insert(name.to_string(), value);
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
-pub enum ObjectType {
+pub enum Object {
     Integer { value: i64 },
     Boolean { value: bool },
-    Return { value: Box<ObjectType> },
+    Return { value: Box<Object> },
     Error { message: String },
     Null,
 }
 
-pub const TRUE: ObjectType = ObjectType::Boolean { value: true };
-pub const FALSE: ObjectType = ObjectType::Boolean { value: false };
-pub const NULL: ObjectType = ObjectType::Null;
+pub const TRUE: Object = Object::Boolean { value: true };
+pub const FALSE: Object = Object::Boolean { value: false };
+pub const NULL: Object = Object::Null;
 
-impl ObjectType {
+impl Object {
     pub fn inspect(&self) -> String {
         match self {
-            ObjectType::Null => "null".to_string(),
-            ObjectType::Boolean { value } => value.to_string(),
-            ObjectType::Integer { value } => value.to_string(),
-            ObjectType::Return { .. } => "return_value".to_string(),
-            ObjectType::Error { message } => format!("Error: {}", message),
+            Object::Null => "null".to_string(),
+            Object::Boolean { value } => value.to_string(),
+            Object::Integer { value } => value.to_string(),
+            Object::Return { .. } => "return_value".to_string(),
+            Object::Error { message } => format!("Error: {}", message),
         }
     }
     pub fn object_type(&self) -> String {
         match self {
-            ObjectType::Null => "null".to_string(),
-            ObjectType::Integer { .. } => "INTEGER".to_string(),
-            ObjectType::Boolean { .. } => "BOOLEAN".to_string(),
-            ObjectType::Return { .. } => "RETURN_VALUE".to_string(),
-            ObjectType::Error { .. } => "ERROR".to_string(),
+            Object::Null => "null".to_string(),
+            Object::Integer { .. } => "INTEGER".to_string(),
+            Object::Boolean { .. } => "BOOLEAN".to_string(),
+            Object::Return { .. } => "RETURN_VALUE".to_string(),
+            Object::Error { .. } => "ERROR".to_string(),
         }
     }
 }
 
 pub trait CoerceObject {
-    fn coerce(&self) -> ObjectType;
+    fn coerce(&self, environment: &mut Environment) -> Object;
 }
 
-fn is_err(obj: &ObjectType) -> bool {
-    if let ObjectType::Error { .. } = obj {
+fn is_err(obj: &Object) -> bool {
+    if let Object::Error { .. } = obj {
         true
     } else {
         false
@@ -49,37 +71,40 @@ fn is_err(obj: &ObjectType) -> bool {
 }
 
 impl CoerceObject for Statement {
-    fn coerce(&self) -> ObjectType {
+    fn coerce(&self, env: &mut Environment) -> Object {
         match self {
-            Statement::Expression { value, .. } => value.coerce(),
+            Statement::Expression { value, .. } => value.coerce(env),
             Statement::Return { value, .. } => {
-                if let Some(expr) = value {
-                    let coerced = expr.coerce();
-                    if is_err(&coerced) {
-                        coerced
-                    } else {
-                        ObjectType::Return {
-                            value: Box::new(coerced),
-                        }
-                    }
+                let coerced = value.coerce(env);
+                if is_err(&coerced) {
+                    coerced
                 } else {
-                    NULL
+                    Object::Return {
+                        value: Box::new(coerced),
+                    }
                 }
             }
-            _ => todo!("Not yet implemented"),
+            Statement::Let { token, name, value } => {
+                let binding = value.coerce(env);
+                if is_err(&binding) {
+                    return binding;
+                }
+                env.set(&name.value, binding.clone());
+                binding
+            }
         }
     }
 }
 
 impl CoerceObject for Program {
-    fn coerce(&self) -> ObjectType {
-        let mut result: ObjectType = ObjectType::Null;
+    fn coerce(&self, env: &mut Environment) -> Object {
+        let mut result: Object = Object::Null;
         for stmt in &self.statements {
-            result = stmt.coerce();
-            if let ObjectType::Return { value } = result {
+            result = stmt.coerce(env);
+            if let Object::Return { value } = result {
                 return *value;
             }
-            if let ObjectType::Error { .. } = result {
+            if let Object::Error { .. } = result {
                 return result;
             }
         }
@@ -87,56 +112,50 @@ impl CoerceObject for Program {
     }
 }
 
-fn eval_bang_operator_expression(right: ObjectType) -> ObjectType {
+fn eval_bang_operator_expression(right: Object) -> Object {
     match right {
-        ObjectType::Boolean { value } if value => FALSE,
-        ObjectType::Boolean { value } if !value => TRUE,
-        ObjectType::Null => TRUE,
+        Object::Boolean { value } if value => FALSE,
+        Object::Boolean { value } if !value => TRUE,
+        Object::Null => TRUE,
         _ => FALSE,
     }
 }
 
-fn eval_minus_prefix_operator_expression(right: ObjectType) -> ObjectType {
-    if let ObjectType::Integer { value } = right {
-        ObjectType::Integer { value: -value }
+fn eval_minus_prefix_operator_expression(right: Object) -> Object {
+    if let Object::Integer { value } = right {
+        Object::Integer { value: -value }
     } else {
-        ObjectType::Error {
+        Object::Error {
             message: format!("unkown operator: -{}", right.object_type()),
         }
     }
 }
 
-fn eval_prefix_expression(operator: &str, right: ObjectType) -> ObjectType {
+fn eval_prefix_expression(operator: &str, right: Object) -> Object {
     match operator {
         "!" => eval_bang_operator_expression(right),
         "-" => eval_minus_prefix_operator_expression(right),
-        _ => ObjectType::Error {
+        _ => Object::Error {
             message: format!("unkown operator: {}{}", operator, right.object_type()),
         },
     }
 }
 
-fn eval_integer_infix_expression(
-    operator: &str,
-    left: ObjectType,
-    right: ObjectType,
-) -> ObjectType {
-    if let (
-        &ObjectType::Integer { value: left_value },
-        &ObjectType::Integer { value: right_value },
-    ) = (&left, &right)
+fn eval_integer_infix_expression(operator: &str, left: Object, right: Object) -> Object {
+    if let (&Object::Integer { value: left_value }, &Object::Integer { value: right_value }) =
+        (&left, &right)
     {
         match operator {
-            "+" => ObjectType::Integer {
+            "+" => Object::Integer {
                 value: left_value + right_value,
             },
-            "-" => ObjectType::Integer {
+            "-" => Object::Integer {
                 value: left_value - right_value,
             },
-            "*" => ObjectType::Integer {
+            "*" => Object::Integer {
                 value: left_value * right_value,
             },
-            "/" => ObjectType::Integer {
+            "/" => Object::Integer {
                 value: left_value / right_value,
             },
             "<" => {
@@ -167,7 +186,7 @@ fn eval_integer_infix_expression(
                     FALSE
                 }
             }
-            _ => ObjectType::Error {
+            _ => Object::Error {
                 message: format!(
                     "unkown operator: {} {} {}",
                     left.object_type(),
@@ -181,12 +200,12 @@ fn eval_integer_infix_expression(
     }
 }
 
-fn eval_infix_expression(operator: &str, left: ObjectType, right: ObjectType) -> ObjectType {
-    if let (&ObjectType::Integer { .. }, &ObjectType::Integer { .. }) = (&left, &right) {
+fn eval_infix_expression(operator: &str, left: Object, right: Object) -> Object {
+    if let (&Object::Integer { .. }, &Object::Integer { .. }) = (&left, &right) {
         eval_integer_infix_expression(operator, left, right)
     } else if let (
-        &ObjectType::Boolean { value: left_value },
-        &ObjectType::Boolean { value: right_value },
+        &Object::Boolean { value: left_value },
+        &Object::Boolean { value: right_value },
     ) = (&left, &right)
     {
         match operator {
@@ -204,7 +223,7 @@ fn eval_infix_expression(operator: &str, left: ObjectType, right: ObjectType) ->
                     FALSE
                 }
             }
-            _ => ObjectType::Error {
+            _ => Object::Error {
                 message: format!(
                     "unkown operator: {} {} {}",
                     left.object_type(),
@@ -214,7 +233,7 @@ fn eval_infix_expression(operator: &str, left: ObjectType, right: ObjectType) ->
             },
         }
     } else {
-        ObjectType::Error {
+        Object::Error {
             message: format!(
                 "type mismatch: {} {} {}",
                 left.object_type(),
@@ -226,11 +245,11 @@ fn eval_infix_expression(operator: &str, left: ObjectType, right: ObjectType) ->
 }
 
 impl CoerceObject for BlockStatement {
-    fn coerce(&self) -> ObjectType {
-        let mut result: ObjectType = ObjectType::Null;
+    fn coerce(&self, env: &mut Environment) -> Object {
+        let mut result: Object = Object::Null;
         for stmt in &self.statements {
-            result = stmt.coerce();
-            if matches!(result, ObjectType::Return { .. } | ObjectType::Error { .. }) {
+            result = stmt.coerce(env);
+            if matches!(result, Object::Return { .. } | Object::Error { .. }) {
                 return result;
             }
         }
@@ -238,9 +257,9 @@ impl CoerceObject for BlockStatement {
     }
 }
 
-fn is_truthy(expr: ObjectType) -> bool {
+fn is_truthy(expr: Object) -> bool {
     match expr {
-        ObjectType::Null => false,
+        Object::Null => false,
         TRUE => true,
         FALSE => false,
         _ => true,
@@ -248,9 +267,9 @@ fn is_truthy(expr: ObjectType) -> bool {
 }
 
 impl CoerceObject for Expression {
-    fn coerce(&self) -> ObjectType {
+    fn coerce(&self, env: &mut Environment) -> Object {
         match self {
-            Expression::IntegerLiteral(int) => ObjectType::Integer { value: *int.value },
+            Expression::IntegerLiteral(int) => Object::Integer { value: *int.value },
             Expression::Boolean(boolean) => {
                 if boolean.value {
                     TRUE
@@ -261,7 +280,7 @@ impl CoerceObject for Expression {
             Expression::PrefixExpression(PrefixExpression {
                 right, operator, ..
             }) => {
-                let evaluated_right = right.coerce();
+                let evaluated_right = right.coerce(env);
                 if is_err(&evaluated_right) {
                     evaluated_right
                 } else {
@@ -274,11 +293,11 @@ impl CoerceObject for Expression {
                 right,
                 ..
             }) => {
-                let evaluated_left = left.coerce();
+                let evaluated_left = left.coerce(env);
                 if is_err(&evaluated_left) {
                     return evaluated_left;
                 }
-                let evaluated_right = right.coerce();
+                let evaluated_right = right.coerce(env);
                 if is_err(&evaluated_right) {
                     return evaluated_right;
                 }
@@ -290,19 +309,30 @@ impl CoerceObject for Expression {
                 alternative,
                 ..
             }) => {
-                let cond = condition.coerce();
+                let cond = condition.coerce(env);
                 if is_err(&cond) {
                     return cond;
                 }
                 if is_truthy(cond) {
-                    consequence.coerce()
+                    consequence.coerce(env)
                 } else if let Some(alt) = alternative {
-                    alt.coerce()
+                    alt.coerce(env)
                 } else {
                     NULL
                 }
             }
-            _ => todo!(),
+            Expression::Identifier(Identifier { value, .. }) => {
+                if let Some(inner_value) = env.get(&value) {
+                    inner_value.clone()
+                } else {
+                    Object::Error {
+                        message: format!("identifier not found: {}", value),
+                    }
+                }
+            }
+            _ => {
+                todo!()
+            }
         }
     }
 }

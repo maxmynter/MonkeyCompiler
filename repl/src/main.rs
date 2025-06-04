@@ -1,5 +1,7 @@
 use std::io::{self, Write};
 
+use object::Environment;
+
 const PROMPT: &str = ">>";
 
 fn main() -> io::Result<()> {
@@ -46,6 +48,7 @@ fn eval(input: &str) {
     if !parser.errors.is_empty() {
         parser.print_errors();
     }
-    let evaluated = evaluator::eval(program);
+    let mut env = Environment::new();
+    let evaluated = evaluator::eval(program, &mut env);
     println!("{}\n", evaluated.inspect());
 }

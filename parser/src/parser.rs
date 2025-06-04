@@ -142,7 +142,7 @@ impl<'a> Parser<'a> {
         let current_token = self.curr.clone();
         self.expect_peek_token(TokenType::LPAREN);
         self.next_token();
-        let condition = self.parse_expression(PRECEDENCE::LOWEST).unwrap();
+        let condition = self.parse_expression(PRECEDENCE::LOWEST);
         self.expect_peek_token(TokenType::RPAREN);
         self.expect_peek_token(TokenType::LBRACE);
 
@@ -221,11 +221,11 @@ impl<'a> Parser<'a> {
         }
 
         self.next_token();
-        args.push(self.parse_expression(PRECEDENCE::LOWEST).unwrap());
+        args.push(self.parse_expression(PRECEDENCE::LOWEST));
         while self.peek_token_is(&TokenType::COMMA) {
             self.next_token();
             self.next_token();
-            args.push(self.parse_expression(PRECEDENCE::LOWEST).unwrap());
+            args.push(self.parse_expression(PRECEDENCE::LOWEST));
         }
         self.expect_peek_token(TokenType::RPAREN);
         args
@@ -236,9 +236,7 @@ impl<'a> Parser<'a> {
         let operator = self.curr.literal.to_string();
         let right_precedence = self.curr_precedence();
         self.next_token();
-        let right = self
-            .parse_expression(right_precedence)
-            .unwrap_or_else(|| panic!("Could not parse expression around {}", operator));
+        let right = self.parse_expression(right_precedence);
         Expression::InfixExpression(InfixExpression {
             token,
             operator,
@@ -251,7 +249,7 @@ impl<'a> Parser<'a> {
         let token = self.curr.clone();
         let operator = self.curr.literal.to_string();
         self.next_token();
-        let right = self.parse_expression(PRECEDENCE::PREFIX).unwrap();
+        let right = self.parse_expression(PRECEDENCE::PREFIX);
         Expression::PrefixExpression(PrefixExpression {
             token,
             operator,
@@ -350,7 +348,7 @@ impl<'a> Parser<'a> {
         Some(Statement::Let { token, name, value })
     }
 
-    fn parse_expression(&mut self, precedence: PRECEDENCE) -> Option<Expression> {
+    fn parse_expression(&mut self, precedence: PRECEDENCE) -> Expression {
         let mut prefix;
         if let Some(prefix_parse_fn) = self.prefix_parse_fns.get(&self.curr.kind) {
             prefix = prefix_parse_fn(self);
@@ -363,10 +361,10 @@ impl<'a> Parser<'a> {
                 self.next_token();
                 prefix = infix_parse_fn(self, prefix);
             } else {
-                return Some(prefix);
+                return prefix;
             };
         }
-        Some(prefix)
+        prefix
     }
 
     fn parse_statement(&mut self) -> Option<Statement> {
@@ -379,7 +377,7 @@ impl<'a> Parser<'a> {
 
     fn parse_grouped_expression(&mut self) -> Expression {
         self.next_token();
-        let expr = self.parse_expression(PRECEDENCE::LOWEST).unwrap();
+        let expr = self.parse_expression(PRECEDENCE::LOWEST);
         if !self.expect_peek_token(TokenType::RPAREN) {
             panic!("Unclosed Parenthesis")
         }
@@ -389,7 +387,7 @@ impl<'a> Parser<'a> {
     fn parse_expression_statement(&mut self) -> Option<Statement> {
         let expr = Statement::Expression {
             token: self.curr.clone(),
-            value: self.parse_expression(PRECEDENCE::LOWEST)?,
+            value: self.parse_expression(PRECEDENCE::LOWEST),
         };
 
         if self.peek_token_is(&TokenType::SEMICOLON) {

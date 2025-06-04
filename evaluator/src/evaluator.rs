@@ -1,5 +1,5 @@
-use object::{CoerceObject, ObjectType};
+use object::{CoerceObject, Environment, Object};
 
-pub fn eval(program: impl CoerceObject) -> ObjectType {
-    program.coerce()
+pub fn eval(program: impl CoerceObject, environment: &mut Environment) -> Object {
+    program.coerce(environment)
 }

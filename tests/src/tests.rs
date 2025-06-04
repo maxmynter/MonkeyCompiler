@@ -4,7 +4,7 @@ use ast::{
 };
 use lexer::Lexer;
 use lexer::{Token, TokenType};
-use object::{NULL, ObjectType};
+use object::{Environment, NULL, Object};
 use parser::Parser;
 use std::rc::Rc;
 
@@ -23,13 +23,13 @@ fn test_ast() {
                 },
                 value: "myVar".to_string().into(),
             },
-            value: Some(Expression::Identifier(Identifier {
+            value: Expression::Identifier(Identifier {
                 token: Token {
                     kind: TokenType::IDENT,
                     literal: "anotherVar".to_string().into(),
                 },
                 value: "anotherVar".to_string().into(),
-            })),
+            }),
         }],
     };
     assert_eq!(prog.as_string(), "let myVar = anotherVar;");
@@ -553,7 +553,7 @@ fn test_let_stmt(stmt: &Statement, expected: &ExpectedLet) -> bool {
     if let Statement::Let {
         token,
         name: identifier,
-        value: Some(expr),
+        value: expr,
     } = stmt
     {
         if *token.literal != "let" {
@@ -658,11 +658,7 @@ return 993322;
         match stmt {
             Statement::Return { token, value } => {
                 assert_eq!(*token.literal, "return");
-                if let Some(expr) = value {
-                    test_literal_expression(expr, expected_values[i]);
-                } else {
-                    panic!("Expected Return value");
-                }
+                test_literal_expression(value, expected_values[i]);
             }
             _ => panic!("Did not get `return` statement"),
         }
@@ -1054,15 +1050,16 @@ fn test_call_expression() {
 macro_rules! test_object {
     ($obj: expr, $expected: expr, $variant: ident) => {
         match $obj {
-            ObjectType::$variant { value } => assert_eq!(value, $expected),
+            Object::$variant { value } => assert_eq!(value, $expected),
             _ => panic!("Expected {} object", stringify!($variant)),
         }
     };
 }
 
-fn test_evaluator(input: &str) -> ObjectType {
+fn test_evaluator(input: &str) -> Object {
     let program = prepare_program_for_test(input);
-    evaluator::eval(program)
+    let mut env = Environment::new();
+    evaluator::eval(program, &mut env)
 }
 
 #[test]
@@ -1267,7 +1264,6 @@ fn test_bang_operator() {
     ];
 
     for tt in tests {
-        dbg!(tt.input);
         let evaluated = test_evaluator(tt.input);
         test_object!(evaluated, tt.expected, Boolean)
     }
@@ -1277,50 +1273,50 @@ fn test_bang_operator() {
 fn test_evaluate_if_else_expressions() {
     struct IfElseTest {
         input: &'static str,
-        expected: ObjectType,
+        expected: Object,
     }
     let tests = [
         IfElseTest {
             input: "if (true) { 10 }",
-            expected: ObjectType::Integer { value: 10 },
+            expected: Object::Integer { value: 10 },
         },
         IfElseTest {
             input: "if (false) { 10 }",
-            expected: ObjectType::Null,
+            expected: Object::Null,
         },
         IfElseTest {
             input: "if (1) { 10 }",
-            expected: ObjectType::Integer { value: 10 },
+            expected: Object::Integer { value: 10 },
         },
         IfElseTest {
             input: "if (1 < 2) { 10 }",
-            expected: ObjectType::Integer { value: 10 },
+            expected: Object::Integer { value: 10 },
         },
         IfElseTest {
             input: "if (1 > 2) { 10 }",
-            expected: ObjectType::Null,
+            expected: Object::Null,
         },
         IfElseTest {
             input: "if (1 < 2) { 10 } else { 20 }",
-            expected: ObjectType::Integer { value: 10 },
+            expected: Object::Integer { value: 10 },
         },
         IfElseTest {
             input: "if (1 > 2) { 10 } else { 20 }",
-            expected: ObjectType::Integer { value: 20 },
+            expected: Object::Integer { value: 20 },
         },
     ];
 
     for tt in tests {
         let evaluated = test_evaluator(tt.input);
         match evaluated {
-            ObjectType::Integer { .. } => {
-                if let ObjectType::Integer { value } = tt.expected {
+            Object::Integer { .. } => {
+                if let Object::Integer { value } = tt.expected {
                     test_object!(evaluated, value, Integer)
                 } else {
                     unreachable!()
                 }
             }
-            ObjectType::Null => assert_eq!(evaluated, object::NULL),
+            Object::Null => assert_eq!(evaluated, object::NULL),
             _ => unreachable!(),
         }
     }
@@ -1398,14 +1394,49 @@ fn test_error_handling() {
             input: "if (10 > 1) { if (10 > 1) { return true + false; } return 1; }",
             expected: "unkown operator: BOOLEAN + BOOLEAN",
         },
+        ErrorHandlingTest {
+            input: "foobar;",
+            expected: "identifier not found: foobar",
+        },
     ];
 
     for tt in tests {
         let evaluated = test_evaluator(tt.input);
-        if let ObjectType::Error { message } = dbg!(evaluated) {
+        if let Object::Error { message } = evaluated {
             assert_eq!(message, tt.expected);
         } else {
             panic!("Did not throw expected error: {}", tt.expected)
         }
+    }
+}
+
+#[test]
+fn test_let_statement_evaluation() {
+    struct LetTest {
+        input: &'static str,
+        expected: i64,
+    }
+
+    let tests = [
+        LetTest {
+            input: "let a = 5; a;",
+            expected: 5,
+        },
+        LetTest {
+            input: "let a = 5 * 5; a;",
+            expected: 25,
+        },
+        LetTest {
+            input: "let a = 5; let b = a; b;",
+            expected: 5,
+        },
+        LetTest {
+            input: "let a = 5; let b = a; let c = b + a + 5; c;",
+            expected: 15,
+        },
+    ];
+
+    for tt in tests {
+        test_object!(test_evaluator(&tt.input), tt.expected, Integer);
     }
 }
