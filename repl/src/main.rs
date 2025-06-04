@@ -1,4 +1,8 @@
-use std::io::{self, Write};
+use std::{
+    cell::RefCell,
+    io::{self, Write},
+    rc::Rc,
+};
 
 use object::Environment;
 
@@ -16,7 +20,7 @@ fn repl() -> io::Result<()> {
 
     let mut stdout = io::stdout();
 
-    let mut env = Environment::new();
+    let env = Environment::new();
     loop {
         print!("{}", PROMPT);
         stdout.flush()?;
@@ -32,7 +36,7 @@ fn repl() -> io::Result<()> {
                     println!("\nexiting...");
                     break;
                 }
-                eval(input, &mut env);
+                eval(input, env.clone());
             }
             Err(e) => {
                 eprintln!("Error: {}", e);
@@ -43,13 +47,13 @@ fn repl() -> io::Result<()> {
     Ok(())
 }
 
-fn eval(input: &str, env: &mut Environment) {
+fn eval(input: &str, env: Rc<RefCell<Environment>>) {
     let lex = lexer::Lexer::new(input);
     let mut parser = parser::Parser::new(lex);
     let program = parser.parse_program();
     if !parser.errors.is_empty() {
         parser.print_errors();
     }
-    let evaluated = evaluator::eval(program, env);
+    let evaluated = evaluator::eval(program, env.clone());
     println!("{}\n", evaluated.inspect());
 }

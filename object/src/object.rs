@@ -1,18 +1,21 @@
+use std::cell::RefCell;
 use std::collections::HashMap;
+use std::rc::Rc;
 
 use ast::{
-    BlockStatement, Expression, Identifier, IfExpression, InfixExpression, PrefixExpression,
-    Program, Statement,
+    BlockStatement, CallExpression, Expression, FunctionLiteral, Identifier, IfExpression,
+    InfixExpression, PrefixExpression, Program, Statement,
 };
 
+#[derive(PartialEq, Debug, Clone)]
 pub struct Environment {
     store: HashMap<String, Object>,
 }
 impl Environment {
-    pub fn new() -> Self {
-        Environment {
+    pub fn new() -> Rc<RefCell<Self>> {
+        Rc::new(RefCell::new(Environment {
             store: HashMap::new(),
-        }
+        }))
     }
 
     pub fn get(&self, name: &String) -> Option<&Object> {
@@ -26,10 +29,23 @@ impl Environment {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Object {
-    Integer { value: i64 },
-    Boolean { value: bool },
-    Return { value: Box<Object> },
-    Error { message: String },
+    Integer {
+        value: i64,
+    },
+    Boolean {
+        value: bool,
+    },
+    Return {
+        value: Box<Object>,
+    },
+    Error {
+        message: String,
+    },
+    Function {
+        parameters: Rc<Vec<Identifier>>,
+        body: Rc<BlockStatement>,
+        env: Rc<RefCell<Environment>>,
+    },
     Null,
 }
 
@@ -45,6 +61,23 @@ impl Object {
             Object::Integer { value } => value.to_string(),
             Object::Return { .. } => "return_value".to_string(),
             Object::Error { message } => format!("Error: {}", message),
+            Object::Function {
+                parameters, body, ..
+            } => {
+                let mut out = String::new();
+                out.push_str("fn(");
+                out.push_str(
+                    &parameters
+                        .iter()
+                        .map(|p| p.as_string())
+                        .collect::<Vec<_>>()
+                        .join(", "),
+                );
+                out.push_str(") {\n");
+                out.push_str(&body.to_string());
+                out.push_str("\n}");
+                out
+            }
         }
     }
     pub fn object_type(&self) -> String {
@@ -54,61 +87,44 @@ impl Object {
             Object::Boolean { .. } => "BOOLEAN".to_string(),
             Object::Return { .. } => "RETURN_VALUE".to_string(),
             Object::Error { .. } => "ERROR".to_string(),
+            Object::Function { .. } => "FUNCTION".to_string(),
         }
     }
 }
 
 pub trait CoerceObject {
-    fn coerce(&self, environment: &mut Environment) -> Object;
-}
-
-fn is_err(obj: &Object) -> bool {
-    if let Object::Error { .. } = obj {
-        true
-    } else {
-        false
-    }
+    fn coerce(&self, environment: Rc<RefCell<Environment>>) -> Result<Object, Object>;
 }
 
 impl CoerceObject for Statement {
-    fn coerce(&self, env: &mut Environment) -> Object {
+    fn coerce(&self, env: Rc<RefCell<Environment>>) -> Result<Object, Object> {
         match self {
             Statement::Expression { value, .. } => value.coerce(env),
             Statement::Return { value, .. } => {
-                let coerced = value.coerce(env);
-                if is_err(&coerced) {
-                    coerced
-                } else {
-                    Object::Return {
-                        value: Box::new(coerced),
-                    }
-                }
+                let coerced = value.coerce(env)?;
+                Ok(Object::Return {
+                    value: Box::new(coerced),
+                })
             }
-            Statement::Let { token, name, value } => {
-                let binding = value.coerce(env);
-                if is_err(&binding) {
-                    return binding;
-                }
-                env.set(&name.value, binding.clone());
-                binding
+            Statement::Let { name, value, .. } => {
+                let binding = value.coerce(env.clone())?;
+                env.borrow_mut().set(&name.value, binding.clone());
+                Ok(binding)
             }
         }
     }
 }
 
 impl CoerceObject for Program {
-    fn coerce(&self, env: &mut Environment) -> Object {
+    fn coerce(&self, env: Rc<RefCell<Environment>>) -> Result<Object, Object> {
         let mut result: Object = Object::Null;
         for stmt in &self.statements {
-            result = stmt.coerce(env);
+            result = stmt.coerce(env.clone())?;
             if let Object::Return { value } = result {
-                return *value;
-            }
-            if let Object::Error { .. } = result {
-                return result;
+                return Ok(*value);
             }
         }
-        result
+        Ok(result)
     }
 }
 
@@ -121,31 +137,38 @@ fn eval_bang_operator_expression(right: Object) -> Object {
     }
 }
 
-fn eval_minus_prefix_operator_expression(right: Object) -> Object {
+fn eval_minus_prefix_operator_expression(right: Object) -> Result<Object, Object> {
     if let Object::Integer { value } = right {
-        Object::Integer { value: -value }
+        Ok(Object::Integer { value: -value })
     } else {
-        Object::Error {
+        Err(Object::Error {
             message: format!("unkown operator: -{}", right.object_type()),
-        }
+        })
     }
 }
 
-fn eval_prefix_expression(operator: &str, right: Object) -> Object {
-    match operator {
+fn eval_prefix_expression(operator: &str, right: Object) -> Result<Object, Object> {
+    let result = match operator {
         "!" => eval_bang_operator_expression(right),
-        "-" => eval_minus_prefix_operator_expression(right),
-        _ => Object::Error {
-            message: format!("unkown operator: {}{}", operator, right.object_type()),
-        },
-    }
+        "-" => eval_minus_prefix_operator_expression(right)?,
+        _ => {
+            return Err(Object::Error {
+                message: format!("unkown operator: {}{}", operator, right.object_type()),
+            });
+        }
+    };
+    Ok(result)
 }
 
-fn eval_integer_infix_expression(operator: &str, left: Object, right: Object) -> Object {
+fn eval_integer_infix_expression(
+    operator: &str,
+    left: Object,
+    right: Object,
+) -> Result<Object, Object> {
     if let (&Object::Integer { value: left_value }, &Object::Integer { value: right_value }) =
         (&left, &right)
     {
-        match operator {
+        let result = match operator {
             "+" => Object::Integer {
                 value: left_value + right_value,
             },
@@ -186,23 +209,26 @@ fn eval_integer_infix_expression(operator: &str, left: Object, right: Object) ->
                     FALSE
                 }
             }
-            _ => Object::Error {
-                message: format!(
-                    "unkown operator: {} {} {}",
-                    left.object_type(),
-                    operator,
-                    right.object_type()
-                ),
-            },
-        }
+            _ => {
+                return Err(Object::Error {
+                    message: format!(
+                        "unkown operator: {} {} {}",
+                        left.object_type(),
+                        operator,
+                        right.object_type()
+                    ),
+                });
+            }
+        };
+        Ok(result)
     } else {
         panic!("Need two Integer arguments")
     }
 }
 
-fn eval_infix_expression(operator: &str, left: Object, right: Object) -> Object {
-    if let (&Object::Integer { .. }, &Object::Integer { .. }) = (&left, &right) {
-        eval_integer_infix_expression(operator, left, right)
+fn eval_infix_expression(operator: &str, left: Object, right: Object) -> Result<Object, Object> {
+    let result = if let (&Object::Integer { .. }, &Object::Integer { .. }) = (&left, &right) {
+        eval_integer_infix_expression(operator, left, right)?
     } else if let (
         &Object::Boolean { value: left_value },
         &Object::Boolean { value: right_value },
@@ -223,37 +249,40 @@ fn eval_infix_expression(operator: &str, left: Object, right: Object) -> Object 
                     FALSE
                 }
             }
-            _ => Object::Error {
-                message: format!(
-                    "unkown operator: {} {} {}",
-                    left.object_type(),
-                    operator,
-                    right.object_type()
-                ),
-            },
+            _ => {
+                return Err(Object::Error {
+                    message: format!(
+                        "unkown operator: {} {} {}",
+                        left.object_type(),
+                        operator,
+                        right.object_type()
+                    ),
+                });
+            }
         }
     } else {
-        Object::Error {
+        return Err(Object::Error {
             message: format!(
                 "type mismatch: {} {} {}",
                 left.object_type(),
                 operator,
                 right.object_type()
             ),
-        }
-    }
+        });
+    };
+    Ok(result)
 }
 
 impl CoerceObject for BlockStatement {
-    fn coerce(&self, env: &mut Environment) -> Object {
+    fn coerce(&self, env: Rc<RefCell<Environment>>) -> Result<Object, Object> {
         let mut result: Object = Object::Null;
         for stmt in &self.statements {
-            result = stmt.coerce(env);
-            if matches!(result, Object::Return { .. } | Object::Error { .. }) {
-                return result;
+            result = stmt.coerce(env.clone())?;
+            if let Object::Return { .. } = result {
+                return Ok(result);
             }
         }
-        result
+        Ok(result)
     }
 }
 
@@ -267,8 +296,8 @@ fn is_truthy(expr: Object) -> bool {
 }
 
 impl CoerceObject for Expression {
-    fn coerce(&self, env: &mut Environment) -> Object {
-        match self {
+    fn coerce(&self, env: Rc<RefCell<Environment>>) -> Result<Object, Object> {
+        let result = match self {
             Expression::IntegerLiteral(int) => Object::Integer { value: *int.value },
             Expression::Boolean(boolean) => {
                 if boolean.value {
@@ -280,12 +309,8 @@ impl CoerceObject for Expression {
             Expression::PrefixExpression(PrefixExpression {
                 right, operator, ..
             }) => {
-                let evaluated_right = right.coerce(env);
-                if is_err(&evaluated_right) {
-                    evaluated_right
-                } else {
-                    eval_prefix_expression(operator, evaluated_right)
-                }
+                let evaluated_right = right.coerce(env.clone())?;
+                eval_prefix_expression(operator, evaluated_right)?
             }
             Expression::InfixExpression(InfixExpression {
                 operator,
@@ -293,15 +318,9 @@ impl CoerceObject for Expression {
                 right,
                 ..
             }) => {
-                let evaluated_left = left.coerce(env);
-                if is_err(&evaluated_left) {
-                    return evaluated_left;
-                }
-                let evaluated_right = right.coerce(env);
-                if is_err(&evaluated_right) {
-                    return evaluated_right;
-                }
-                eval_infix_expression(operator, evaluated_left, evaluated_right)
+                let evaluated_left = left.coerce(env.clone())?;
+                let evaluated_right = right.coerce(env.clone())?;
+                eval_infix_expression(operator, evaluated_left, evaluated_right)?
             }
             Expression::IfExpression(IfExpression {
                 condition,
@@ -309,20 +328,17 @@ impl CoerceObject for Expression {
                 alternative,
                 ..
             }) => {
-                let cond = condition.coerce(env);
-                if is_err(&cond) {
-                    return cond;
-                }
+                let cond = condition.coerce(env.clone())?;
                 if is_truthy(cond) {
-                    consequence.coerce(env)
+                    consequence.coerce(env.clone())?
                 } else if let Some(alt) = alternative {
-                    alt.coerce(env)
+                    alt.coerce(env.clone())?
                 } else {
                     NULL
                 }
             }
             Expression::Identifier(Identifier { value, .. }) => {
-                if let Some(inner_value) = env.get(&value) {
+                if let Some(inner_value) = env.borrow_mut().get(&value) {
                     inner_value.clone()
                 } else {
                     Object::Error {
@@ -330,9 +346,44 @@ impl CoerceObject for Expression {
                     }
                 }
             }
+            Expression::FunctionLiteral(FunctionLiteral {
+                token,
+                parameters,
+                body,
+            }) => Object::Function {
+                parameters: parameters.clone(),
+                body: body.clone(),
+                env: env.clone(),
+            },
+            Expression::CallExpression(CallExpression {
+                function,
+                arguments,
+                ..
+            }) => {
+                let result = function.coerce(env.clone())?;
+                let args = evaluate_expressions(arguments, env.clone())?;
+                todo!();
+            }
             _ => {
                 todo!()
             }
+        };
+        Ok(result)
+    }
+}
+
+fn evaluate_expressions(
+    exps: &Vec<Expression>,
+    env: Rc<RefCell<Environment>>,
+) -> Result<Vec<Object>, Object> {
+    let mut results: Vec<Object> = vec![];
+    for ex in exps {
+        let evaluated = ex.coerce(env.clone())?;
+        if let Object::Error { .. } = evaluated {
+            return Err(evaluated);
+        } else {
+            results.push(evaluated);
         }
     }
+    Ok(results)
 }

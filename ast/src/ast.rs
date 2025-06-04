@@ -2,7 +2,7 @@ use core::fmt;
 use lexer::{Token, TokenType};
 use std::rc::Rc;
 
-#[derive(Clone, Debug)]
+#[derive(PartialEq, Clone, Debug)]
 pub struct CallExpression {
     pub token: Token,
     pub function: Box<Expression>,
@@ -31,7 +31,7 @@ impl Node for CallExpression {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(PartialEq, Clone, Debug)]
 pub struct Boolean {
     pub token: Token,
     pub value: bool,
@@ -47,7 +47,7 @@ impl Node for Boolean {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Identifier {
     pub token: Token,
     pub value: Rc<String>,
@@ -60,9 +60,12 @@ impl Identifier {
             value: self.value.clone(),
         })
     }
+    pub fn as_string(&self) -> String {
+        self.value.to_string()
+    }
 }
 
-#[derive(Clone, Debug)]
+#[derive(PartialEq, Clone, Debug)]
 pub struct IntegerLiteral {
     pub token: Token,
     pub value: Rc<i64>,
@@ -77,7 +80,7 @@ impl Node for IntegerLiteral {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(PartialEq, Clone, Debug)]
 pub struct PrefixExpression {
     pub token: Token,
     pub operator: String,
@@ -99,7 +102,7 @@ impl Node for PrefixExpression {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct InfixExpression {
     pub token: Token,
     pub operator: String,
@@ -124,11 +127,11 @@ impl Node for InfixExpression {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(PartialEq, Clone, Debug)]
 pub struct FunctionLiteral {
     pub token: Token,
-    pub parameters: Vec<Identifier>,
-    pub body: BlockStatement,
+    pub parameters: Rc<Vec<Identifier>>,
+    pub body: Rc<BlockStatement>,
 }
 
 impl Node for FunctionLiteral {
@@ -152,7 +155,7 @@ impl Node for FunctionLiteral {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(PartialEq, Clone, Debug)]
 pub enum Expression {
     Identifier(Identifier),
     IntegerLiteral(IntegerLiteral),
@@ -190,7 +193,7 @@ impl Expression {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(PartialEq, Clone, Debug)]
 pub enum Statement {
     Let {
         token: Token,
@@ -212,7 +215,7 @@ pub trait Node {
     fn as_string(&self) -> String;
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct BlockStatement {
     pub token: Token,
     pub statements: Vec<Statement>,
@@ -238,7 +241,7 @@ impl fmt::Display for BlockStatement {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct IfExpression {
     pub token: Token,
     pub condition: Box<Expression>,

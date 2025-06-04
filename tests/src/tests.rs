@@ -1058,8 +1058,8 @@ macro_rules! test_object {
 
 fn test_evaluator(input: &str) -> Object {
     let program = prepare_program_for_test(input);
-    let mut env = Environment::new();
-    evaluator::eval(program, &mut env)
+    let env = Environment::new();
+    evaluator::eval(program, env.clone())
 }
 
 #[test]
@@ -1433,6 +1433,57 @@ fn test_let_statement_evaluation() {
         LetTest {
             input: "let a = 5; let b = a; let c = b + a + 5; c;",
             expected: 15,
+        },
+    ];
+
+    for tt in tests {
+        test_object!(test_evaluator(&tt.input), tt.expected, Integer);
+    }
+}
+
+#[test]
+fn test_function_object() {
+    let input = "fn(x) { x + 2; };";
+    let evaluated = test_evaluator(input);
+    if let Object::Function {
+        parameters, body, ..
+    } = evaluated
+    {
+        assert_eq!(parameters.len(), 1);
+        assert_eq!(parameters[0].as_string(), "x");
+        assert_eq!(body.to_string(), "(x + 2)");
+    } else {
+        panic!("This should be a function, really")
+    }
+}
+
+#[test]
+fn test_function_application() {
+    struct TestFnApplication {
+        input: &'static str,
+        expected: i64,
+    }
+
+    let tests = [
+        TestFnApplication {
+            input: "let identity = fn(x) { x; }; identity(5);",
+            expected: 5,
+        },
+        TestFnApplication {
+            input: "let identity = fn(x) {return x; }; identity(5);",
+            expected: 5,
+        },
+        TestFnApplication {
+            input: "let double = fn(x) { 2 * x; }; double(5);",
+            expected: 10,
+        },
+        TestFnApplication {
+            input: "let add = fn(x, y) {x + y; }; add(5, 5);",
+            expected: 10,
+        },
+        TestFnApplication {
+            input: "let add = fn(x, y) { x + y; }; add(5 + 5, add(5, 5));",
+            expected: 20,
         },
     ];
 

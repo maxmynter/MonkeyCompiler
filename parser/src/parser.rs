@@ -172,8 +172,8 @@ impl<'a> Parser<'a> {
         let body = self.parse_block_statement();
         Expression::FunctionLiteral(FunctionLiteral {
             token,
-            parameters,
-            body,
+            parameters: Rc::new(parameters),
+            body: Rc::new(body),
         })
     }
 
