@@ -1,3 +1,6 @@
+#![allow(dead_code)]
+#![allow(unused_macros)]
+#![allow(unused_imports)]
 use ast::{
     CallExpression, Expression, FunctionLiteral, Identifier, IfExpression, IntegerLiteral, Node,
     Program, Statement, StringLiteral,

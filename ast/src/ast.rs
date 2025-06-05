@@ -191,7 +191,7 @@ impl Expression {
                 kind: TokenType::INT,
                 literal: int.to_string().into(),
             },
-            value: int.into(),
+            value: int,
         })
     }
 

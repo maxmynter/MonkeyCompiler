@@ -378,7 +378,7 @@ impl CoerceObject for Expression {
                 }
             }
             Expression::Identifier(Identifier { value, .. }) => {
-                if let Some(inner_value) = env.borrow_mut().get(&value) {
+                if let Some(inner_value) = env.borrow_mut().get(value) {
                     inner_value.clone()
                 } else {
                     return Err(EvalError::Error {

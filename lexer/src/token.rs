@@ -91,11 +91,6 @@ impl Keywords {
     }
 }
 
-enum ReadAtomResult<'a> {
-    TwoChar(TokenType, &'a str),
-    OneChar(TokenType, &'a str),
-}
-
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Token {
     pub kind: TokenType,
