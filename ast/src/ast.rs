@@ -84,7 +84,7 @@ impl Identifier {
 #[derive(PartialEq, Clone, Debug)]
 pub struct IntegerLiteral {
     pub token: Token,
-    pub value: Rc<i64>,
+    pub value: i64,
 }
 
 impl Node for IntegerLiteral {

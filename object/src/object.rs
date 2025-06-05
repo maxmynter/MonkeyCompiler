@@ -333,7 +333,7 @@ fn is_truthy(expr: Object) -> bool {
 impl CoerceObject for Expression {
     fn coerce(&self, env: Rc<RefCell<Environment>>) -> Result<Object, EvalError> {
         let result = match self {
-            Expression::IntegerLiteral(int) => Object::Integer { value: *int.value },
+            Expression::IntegerLiteral(int) => Object::Integer { value: int.value },
             Expression::Boolean(boolean) => {
                 if boolean.value {
                     TRUE

@@ -465,7 +465,7 @@ trait TestLiteral {
 impl TestLiteral for i64 {
     fn test_literal(&self, expr: &Expression) -> bool {
         if let Expression::IntegerLiteral(il) = expr {
-            *il.value == *self && il.token_literal() == self.to_string().into()
+            il.value == *self && il.token_literal() == self.to_string().into()
         } else {
             false
         }
@@ -496,7 +496,7 @@ impl TestLiteral for Expression {
     fn test_literal(&self, expr: &Expression) -> bool {
         match (self, expr) {
             (Expression::IntegerLiteral(expected), Expression::IntegerLiteral(actual)) => {
-                *expected.value == *actual.value
+                expected.value == actual.value
             }
             (Expression::Boolean(expected), Expression::Boolean(actual)) => {
                 expected.value == actual.value

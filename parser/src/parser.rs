@@ -105,7 +105,7 @@ impl<'a> Parser<'a> {
     fn parse_integer_literal(&mut self) -> Expression {
         Expression::IntegerLiteral(IntegerLiteral {
             token: self.curr.clone(),
-            value: Rc::new(self.curr.literal.parse::<i64>().unwrap()),
+            value: self.curr.literal.parse::<i64>().unwrap(),
         })
     }
 
