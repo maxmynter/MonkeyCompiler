@@ -4,7 +4,7 @@ use std::rc::Rc;
 
 use ast::{
     BlockStatement, Boolean, CallExpression, Expression, FunctionLiteral, Identifier, IfExpression,
-    InfixExpression, IntegerLiteral, PrefixExpression, Program, Statement,
+    InfixExpression, IntegerLiteral, PrefixExpression, Program, Statement, StringLiteral,
 };
 use lexer::{Lexer, Token, TokenType};
 
@@ -80,6 +80,7 @@ impl<'a> Parser<'a> {
         parser.register_prefix(TokenType::LPAREN, Parser::parse_grouped_expression);
         parser.register_prefix(TokenType::IF, Parser::parse_if_expression);
         parser.register_prefix(TokenType::FUNCTION, Parser::parse_function_literal);
+        parser.register_prefix(TokenType::STRING, Parser::parse_string);
 
         parser.register_infix(TokenType::PLUS, Parser::parse_infix_expression);
         parser.register_infix(TokenType::MINUS, Parser::parse_infix_expression);
@@ -105,6 +106,13 @@ impl<'a> Parser<'a> {
         Expression::IntegerLiteral(IntegerLiteral {
             token: self.curr.clone(),
             value: Rc::new(self.curr.literal.parse::<i64>().unwrap()),
+        })
+    }
+
+    fn parse_string(&mut self) -> Expression {
+        Expression::String(StringLiteral {
+            token: self.curr.clone(),
+            value: self.curr.literal.to_string(),
         })
     }
 

@@ -32,6 +32,22 @@ impl Node for CallExpression {
 }
 
 #[derive(PartialEq, Clone, Debug)]
+pub struct StringLiteral {
+    pub token: Token,
+    pub value: String,
+}
+
+impl Node for StringLiteral {
+    fn as_string(&self) -> String {
+        self.value.clone()
+    }
+
+    fn token_literal(&self) -> Rc<String> {
+        self.token.literal.clone()
+    }
+}
+
+#[derive(PartialEq, Clone, Debug)]
 pub struct Boolean {
     pub token: Token,
     pub value: bool,
@@ -165,6 +181,7 @@ pub enum Expression {
     IfExpression(IfExpression),
     FunctionLiteral(FunctionLiteral),
     CallExpression(CallExpression),
+    String(StringLiteral),
 }
 
 impl Expression {
@@ -348,6 +365,7 @@ impl Node for Expression {
     fn token_literal(&self) -> Rc<String> {
         match self {
             Expression::Identifier(Identifier { token, .. })
+            | Expression::String(StringLiteral { token, .. })
             | Expression::CallExpression(CallExpression { token, .. })
             | Expression::Boolean(Boolean { token, .. })
             | Expression::IntegerLiteral(IntegerLiteral { token, .. })
@@ -360,6 +378,7 @@ impl Node for Expression {
 
     fn as_string(&self) -> String {
         match self {
+            Expression::String(StringLiteral { value, .. }) => value.to_string(),
             Expression::Identifier(Identifier { value, .. }) => value.to_string(),
             Expression::IntegerLiteral(IntegerLiteral { value, .. }) => value.to_string(),
             Expression::PrefixExpression(prefix) => prefix.as_string(),

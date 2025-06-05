@@ -1,6 +1,6 @@
 use ast::{
     CallExpression, Expression, FunctionLiteral, Identifier, IfExpression, IntegerLiteral, Node,
-    Program, Statement,
+    Program, Statement, StringLiteral,
 };
 use lexer::Lexer;
 use lexer::{Token, TokenType};
@@ -1505,5 +1505,21 @@ fn test_function_application() {
 
     for tt in tests {
         test_object!(test_evaluator(&tt.input).unwrap(), tt.expected, Integer);
+    }
+}
+
+#[test]
+fn test_string_literal_expression() {
+    let input = "\"hello world\"";
+    let program = prepare_program_for_test(input);
+    assert_eq!(program.statements.len(), 1);
+    if let Statement::Expression {
+        value: Expression::String(StringLiteral { value, .. }),
+        ..
+    } = &program.statements[0]
+    {
+        assert_eq!(value, "hello world");
+    } else {
+        panic!("Is not a string");
     }
 }
