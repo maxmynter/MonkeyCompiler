@@ -99,6 +99,8 @@ fn test_parse_code() {
 
         10 == 10;
         10 != 9;
+        \"foobar\"
+        \"foo bar\"
         ",
     );
     let expected = vec![
@@ -408,6 +410,16 @@ fn test_parse_code() {
         Token {
             kind: TokenType::SEMICOLON,
             literal: ";".to_string().into(),
+        },
+        // foobar
+        Token {
+            kind: TokenType::STRING,
+            literal: "foobar".to_string().into(),
+        },
+        // foo bar
+        Token {
+            kind: TokenType::STRING,
+            literal: "foo bar".to_string().into(),
         },
         // EOF
         Token {

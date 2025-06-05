@@ -110,6 +110,19 @@ impl<'a> Lexer<'a> {
         }
     }
 
+    fn read_string(&mut self) -> Token {
+        self.eat_symbol(); // opening quote
+        let literal = self
+            .eat_molecule(|ch| ch != '"' && ch != '\0')
+            .to_string()
+            .into();
+        self.eat_symbol(); // closing quote
+        return Token {
+            kind: TokenType::STRING,
+            literal,
+        };
+    }
+
     pub fn next_token(&mut self) -> Token {
         self.skip_whitespace();
         match self.ch {
@@ -119,6 +132,7 @@ impl<'a> Lexer<'a> {
             },
             ch if ATOMS.contains_key(&ch) => self.read_atom(),
             ch if Lexer::is_letter(ch) => self.read_identifier(),
+            ch if ch == '"' => self.read_string(),
             ch if Lexer::is_digit(ch) => self.read_number(),
             _ch => self.read_illegal(),
         }
