@@ -1523,3 +1523,14 @@ fn test_string_literal_expression() {
         panic!("Is not a string");
     }
 }
+
+#[test]
+fn test_string_literal_evaluation() {
+    let input = "\"hello world\"";
+    let evaluated = test_evaluator(&input);
+    if let Ok(Object::String { value }) = evaluated {
+        assert_eq!(value, "hello world")
+    } else {
+        panic!("Did not evaluate to string or errored")
+    }
+}

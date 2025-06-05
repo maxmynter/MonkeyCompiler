@@ -4,7 +4,7 @@ use std::rc::Rc;
 
 use ast::{
     BlockStatement, CallExpression, Expression, FunctionLiteral, Identifier, IfExpression,
-    InfixExpression, PrefixExpression, Program, Statement,
+    InfixExpression, PrefixExpression, Program, Statement, StringLiteral,
 };
 
 #[derive(PartialEq, Debug, Clone)]
@@ -58,6 +58,9 @@ pub enum Object {
         body: Rc<BlockStatement>,
         env: Rc<RefCell<Environment>>,
     },
+    String {
+        value: String,
+    },
     Null,
 }
 
@@ -95,6 +98,7 @@ impl ObjectTraits for Object {
             Object::Null => "null".to_string(),
             Object::Boolean { value } => value.to_string(),
             Object::Integer { value } => value.to_string(),
+            Object::String { value } => value.to_string(),
             Object::Return { .. } => "return_value".to_string(),
             Object::Function {
                 parameters, body, ..
@@ -123,6 +127,7 @@ impl ObjectTraits for Object {
             Object::Boolean { .. } => "BOOLEAN".to_string(),
             Object::Return { .. } => "RETURN_VALUE".to_string(),
             Object::Function { .. } => "FUNCTION".to_string(),
+            Object::String { .. } => "STRING".to_string(),
         }
     }
 }
@@ -397,9 +402,9 @@ impl CoerceObject for Expression {
                 let args = evaluate_expressions(arguments, env.clone())?;
                 apply_function(func, args)?
             }
-            _ => {
-                todo!()
-            }
+            Expression::String(StringLiteral { value, .. }) => Object::String {
+                value: value.to_string(),
+            },
         };
         Ok(result)
     }
