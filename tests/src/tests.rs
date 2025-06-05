@@ -4,7 +4,7 @@ use ast::{
 };
 use lexer::Lexer;
 use lexer::{Token, TokenType};
-use object::{Environment, NULL, Object};
+use object::{CoerceObject, Environment, EvalError, NULL, Object, ObjectTraits};
 use parser::Parser;
 use std::rc::Rc;
 
@@ -1048,18 +1048,18 @@ fn test_call_expression() {
 }
 
 macro_rules! test_object {
-    ($obj: expr, $expected: expr, $variant: ident) => {
-        match $obj {
+    ($result: expr, $expected: expr, $variant: ident) => {
+        match $result {
             Object::$variant { value } => assert_eq!(value, $expected),
             _ => panic!("Expected {} object", stringify!($variant)),
         }
     };
 }
 
-fn test_evaluator(input: &str) -> Object {
+fn test_evaluator(input: &str) -> Result<Object, EvalError> {
     let program = prepare_program_for_test(input);
     let env = Environment::new();
-    evaluator::eval(program, env.clone())
+    program.coerce(env.clone())
 }
 
 #[test]
@@ -1132,7 +1132,7 @@ fn test_eval_integer_expression() {
     ];
 
     for tt in tests {
-        let evaluated = test_evaluator(&tt.input);
+        let evaluated = test_evaluator(&tt.input).unwrap();
         test_object!(evaluated, tt.expected, Integer);
     }
 }
@@ -1224,7 +1224,7 @@ fn test_boolean_expression() {
     ];
 
     for tt in tests {
-        let evaluated = test_evaluator(&tt.input);
+        let evaluated = test_evaluator(&tt.input).unwrap();
         test_object!(evaluated, tt.expected, Boolean);
     }
 }
@@ -1264,7 +1264,7 @@ fn test_bang_operator() {
     ];
 
     for tt in tests {
-        let evaluated = test_evaluator(tt.input);
+        let evaluated = test_evaluator(tt.input).unwrap();
         test_object!(evaluated, tt.expected, Boolean)
     }
 }
@@ -1307,7 +1307,7 @@ fn test_evaluate_if_else_expressions() {
     ];
 
     for tt in tests {
-        let evaluated = test_evaluator(tt.input);
+        let evaluated = test_evaluator(tt.input).unwrap();
         match evaluated {
             Object::Integer { .. } => {
                 if let Object::Integer { value } = tt.expected {
@@ -1353,7 +1353,7 @@ fn test_return_statement_evaluation() {
     ];
 
     for tt in tests {
-        let evaluated = test_evaluator(tt.input);
+        let evaluated = test_evaluator(tt.input).unwrap();
         test_object!(evaluated, tt.expected, Integer);
     }
 }
@@ -1402,7 +1402,7 @@ fn test_error_handling() {
 
     for tt in tests {
         let evaluated = test_evaluator(tt.input);
-        if let Object::Error { message } = evaluated {
+        if let Err(EvalError::Error { message }) = evaluated {
             assert_eq!(message, tt.expected);
         } else {
             panic!("Did not throw expected error: {}", tt.expected)
@@ -1437,7 +1437,7 @@ fn test_let_statement_evaluation() {
     ];
 
     for tt in tests {
-        test_object!(test_evaluator(&tt.input), tt.expected, Integer);
+        test_object!(test_evaluator(&tt.input).unwrap(), tt.expected, Integer);
     }
 }
 
@@ -1445,15 +1445,15 @@ fn test_let_statement_evaluation() {
 fn test_function_object() {
     let input = "fn(x) { x + 2; };";
     let evaluated = test_evaluator(input);
-    if let Object::Function {
+    if let Ok(Object::Function {
         parameters, body, ..
-    } = evaluated
+    }) = evaluated
     {
         assert_eq!(parameters.len(), 1);
         assert_eq!(parameters[0].as_string(), "x");
         assert_eq!(body.to_string(), "(x + 2)");
     } else {
-        panic!("This should be a function, really")
+        panic!("This should be a function and not error, really")
     }
 }
 
@@ -1488,6 +1488,6 @@ fn test_function_application() {
     ];
 
     for tt in tests {
-        test_object!(test_evaluator(&tt.input), tt.expected, Integer);
+        test_object!(test_evaluator(&tt.input).unwrap(), tt.expected, Integer);
     }
 }

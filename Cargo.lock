@@ -10,16 +10,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "evaluator"
-version = "0.1.0"
-dependencies = [
- "ast",
- "lexer",
- "object",
- "parser",
-]
-
-[[package]]
 name = "lazy_static"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -52,7 +42,6 @@ dependencies = [
 name = "repl"
 version = "0.1.0"
 dependencies = [
- "evaluator",
  "lexer",
  "object",
  "parser",
@@ -63,7 +52,6 @@ name = "tests"
 version = "0.1.0"
 dependencies = [
  "ast",
- "evaluator",
  "lexer",
  "object",
  "parser",

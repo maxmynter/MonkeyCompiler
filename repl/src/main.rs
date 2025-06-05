@@ -4,7 +4,7 @@ use std::{
     rc::Rc,
 };
 
-use object::Environment;
+use object::{CoerceObject, Environment, ObjectTraits};
 
 const PROMPT: &str = ">>";
 
@@ -54,6 +54,9 @@ fn eval(input: &str, env: Rc<RefCell<Environment>>) {
     if !parser.errors.is_empty() {
         parser.print_errors();
     }
-    let evaluated = evaluator::eval(program, env.clone());
-    println!("{}\n", evaluated.inspect());
+    let evaluated = match program.coerce(env.clone()) {
+        Ok(result) => result.inspect(),
+        Err(result) => result.inspect(),
+    };
+    println!("{}\n", evaluated);
 }

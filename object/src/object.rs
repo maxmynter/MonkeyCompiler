@@ -10,16 +10,31 @@ use ast::{
 #[derive(PartialEq, Debug, Clone)]
 pub struct Environment {
     store: HashMap<String, Object>,
+    outer: Option<Rc<RefCell<Environment>>>,
 }
 impl Environment {
     pub fn new() -> Rc<RefCell<Self>> {
         Rc::new(RefCell::new(Environment {
             store: HashMap::new(),
+            outer: None,
         }))
     }
 
-    pub fn get(&self, name: &String) -> Option<&Object> {
-        self.store.get(name)
+    pub fn new_extended(outer: Rc<RefCell<Self>>) -> Rc<RefCell<Self>> {
+        Rc::new(RefCell::new(Environment {
+            store: HashMap::new(),
+            outer: Some(outer.clone()),
+        }))
+    }
+
+    pub fn get(&self, name: &String) -> Option<Object> {
+        if let Some(inner_value) = self.store.get(name) {
+            Some(inner_value.clone())
+        } else if let Some(outer) = &self.outer {
+            outer.borrow().get(name)
+        } else {
+            None
+        }
     }
 
     pub fn set(&mut self, name: &String, value: Object) {
@@ -38,9 +53,6 @@ pub enum Object {
     Return {
         value: Box<Object>,
     },
-    Error {
-        message: String,
-    },
     Function {
         parameters: Rc<Vec<Identifier>>,
         body: Rc<BlockStatement>,
@@ -49,18 +61,41 @@ pub enum Object {
     Null,
 }
 
+pub trait ObjectTraits {
+    fn inspect(&self) -> String;
+    fn object_type(&self) -> String;
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum EvalError {
+    Error { message: String },
+}
+
+impl ObjectTraits for EvalError {
+    fn inspect(&self) -> String {
+        match &self {
+            EvalError::Error { message } => format!("Error: {}", message),
+        }
+    }
+
+    fn object_type(&self) -> String {
+        match &self {
+            EvalError::Error { .. } => "ERROR".to_string(),
+        }
+    }
+}
+
 pub const TRUE: Object = Object::Boolean { value: true };
 pub const FALSE: Object = Object::Boolean { value: false };
 pub const NULL: Object = Object::Null;
 
-impl Object {
-    pub fn inspect(&self) -> String {
+impl ObjectTraits for Object {
+    fn inspect(&self) -> String {
         match self {
             Object::Null => "null".to_string(),
             Object::Boolean { value } => value.to_string(),
             Object::Integer { value } => value.to_string(),
             Object::Return { .. } => "return_value".to_string(),
-            Object::Error { message } => format!("Error: {}", message),
             Object::Function {
                 parameters, body, ..
             } => {
@@ -80,24 +115,24 @@ impl Object {
             }
         }
     }
-    pub fn object_type(&self) -> String {
+
+    fn object_type(&self) -> String {
         match self {
             Object::Null => "null".to_string(),
             Object::Integer { .. } => "INTEGER".to_string(),
             Object::Boolean { .. } => "BOOLEAN".to_string(),
             Object::Return { .. } => "RETURN_VALUE".to_string(),
-            Object::Error { .. } => "ERROR".to_string(),
             Object::Function { .. } => "FUNCTION".to_string(),
         }
     }
 }
 
 pub trait CoerceObject {
-    fn coerce(&self, environment: Rc<RefCell<Environment>>) -> Result<Object, Object>;
+    fn coerce(&self, environment: Rc<RefCell<Environment>>) -> Result<Object, EvalError>;
 }
 
 impl CoerceObject for Statement {
-    fn coerce(&self, env: Rc<RefCell<Environment>>) -> Result<Object, Object> {
+    fn coerce(&self, env: Rc<RefCell<Environment>>) -> Result<Object, EvalError> {
         match self {
             Statement::Expression { value, .. } => value.coerce(env),
             Statement::Return { value, .. } => {
@@ -116,7 +151,7 @@ impl CoerceObject for Statement {
 }
 
 impl CoerceObject for Program {
-    fn coerce(&self, env: Rc<RefCell<Environment>>) -> Result<Object, Object> {
+    fn coerce(&self, env: Rc<RefCell<Environment>>) -> Result<Object, EvalError> {
         let mut result: Object = Object::Null;
         for stmt in &self.statements {
             result = stmt.coerce(env.clone())?;
@@ -137,22 +172,22 @@ fn eval_bang_operator_expression(right: Object) -> Object {
     }
 }
 
-fn eval_minus_prefix_operator_expression(right: Object) -> Result<Object, Object> {
+fn eval_minus_prefix_operator_expression(right: Object) -> Result<Object, EvalError> {
     if let Object::Integer { value } = right {
         Ok(Object::Integer { value: -value })
     } else {
-        Err(Object::Error {
+        Err(EvalError::Error {
             message: format!("unkown operator: -{}", right.object_type()),
         })
     }
 }
 
-fn eval_prefix_expression(operator: &str, right: Object) -> Result<Object, Object> {
+fn eval_prefix_expression(operator: &str, right: Object) -> Result<Object, EvalError> {
     let result = match operator {
         "!" => eval_bang_operator_expression(right),
         "-" => eval_minus_prefix_operator_expression(right)?,
         _ => {
-            return Err(Object::Error {
+            return Err(EvalError::Error {
                 message: format!("unkown operator: {}{}", operator, right.object_type()),
             });
         }
@@ -164,7 +199,7 @@ fn eval_integer_infix_expression(
     operator: &str,
     left: Object,
     right: Object,
-) -> Result<Object, Object> {
+) -> Result<Object, EvalError> {
     if let (&Object::Integer { value: left_value }, &Object::Integer { value: right_value }) =
         (&left, &right)
     {
@@ -210,7 +245,7 @@ fn eval_integer_infix_expression(
                 }
             }
             _ => {
-                return Err(Object::Error {
+                return Err(EvalError::Error {
                     message: format!(
                         "unkown operator: {} {} {}",
                         left.object_type(),
@@ -226,7 +261,7 @@ fn eval_integer_infix_expression(
     }
 }
 
-fn eval_infix_expression(operator: &str, left: Object, right: Object) -> Result<Object, Object> {
+fn eval_infix_expression(operator: &str, left: Object, right: Object) -> Result<Object, EvalError> {
     let result = if let (&Object::Integer { .. }, &Object::Integer { .. }) = (&left, &right) {
         eval_integer_infix_expression(operator, left, right)?
     } else if let (
@@ -250,7 +285,7 @@ fn eval_infix_expression(operator: &str, left: Object, right: Object) -> Result<
                 }
             }
             _ => {
-                return Err(Object::Error {
+                return Err(EvalError::Error {
                     message: format!(
                         "unkown operator: {} {} {}",
                         left.object_type(),
@@ -261,7 +296,7 @@ fn eval_infix_expression(operator: &str, left: Object, right: Object) -> Result<
             }
         }
     } else {
-        return Err(Object::Error {
+        return Err(EvalError::Error {
             message: format!(
                 "type mismatch: {} {} {}",
                 left.object_type(),
@@ -274,7 +309,7 @@ fn eval_infix_expression(operator: &str, left: Object, right: Object) -> Result<
 }
 
 impl CoerceObject for BlockStatement {
-    fn coerce(&self, env: Rc<RefCell<Environment>>) -> Result<Object, Object> {
+    fn coerce(&self, env: Rc<RefCell<Environment>>) -> Result<Object, EvalError> {
         let mut result: Object = Object::Null;
         for stmt in &self.statements {
             result = stmt.coerce(env.clone())?;
@@ -296,7 +331,7 @@ fn is_truthy(expr: Object) -> bool {
 }
 
 impl CoerceObject for Expression {
-    fn coerce(&self, env: Rc<RefCell<Environment>>) -> Result<Object, Object> {
+    fn coerce(&self, env: Rc<RefCell<Environment>>) -> Result<Object, EvalError> {
         let result = match self {
             Expression::IntegerLiteral(int) => Object::Integer { value: *int.value },
             Expression::Boolean(boolean) => {
@@ -341,15 +376,13 @@ impl CoerceObject for Expression {
                 if let Some(inner_value) = env.borrow_mut().get(&value) {
                     inner_value.clone()
                 } else {
-                    Object::Error {
+                    return Err(EvalError::Error {
                         message: format!("identifier not found: {}", value),
-                    }
+                    });
                 }
             }
             Expression::FunctionLiteral(FunctionLiteral {
-                token,
-                parameters,
-                body,
+                parameters, body, ..
             }) => Object::Function {
                 parameters: parameters.clone(),
                 body: body.clone(),
@@ -360,9 +393,9 @@ impl CoerceObject for Expression {
                 arguments,
                 ..
             }) => {
-                let result = function.coerce(env.clone())?;
+                let func = function.coerce(env.clone())?;
                 let args = evaluate_expressions(arguments, env.clone())?;
-                todo!();
+                apply_function(func, args)?
             }
             _ => {
                 todo!()
@@ -372,18 +405,49 @@ impl CoerceObject for Expression {
     }
 }
 
+fn apply_function(func: Object, args: Vec<Object>) -> Result<Object, EvalError> {
+    if let Object::Function {
+        parameters,
+        body,
+        env,
+    } = func
+    {
+        let extended_env = extend_environment(env.clone(), args, parameters);
+        let returned = body.coerce(extended_env)?;
+        if let Object::Return { value } = returned {
+            Ok(*value)
+        } else {
+            Ok(returned)
+        }
+    } else {
+        Err(EvalError::Error {
+            message: format!("not a function: {}", func.inspect()),
+        })
+    }
+}
+
+fn extend_environment(
+    env: Rc<RefCell<Environment>>,
+    args: Vec<Object>,
+    params: Rc<Vec<Identifier>>,
+) -> Rc<RefCell<Environment>> {
+    let extended_env = Environment::new_extended(env.clone());
+    for (idx, param) in params.iter().enumerate() {
+        extended_env
+            .borrow_mut()
+            .set(&param.value, args[idx].clone());
+    }
+    extended_env
+}
+
 fn evaluate_expressions(
     exps: &Vec<Expression>,
     env: Rc<RefCell<Environment>>,
-) -> Result<Vec<Object>, Object> {
+) -> Result<Vec<Object>, EvalError> {
     let mut results: Vec<Object> = vec![];
     for ex in exps {
         let evaluated = ex.coerce(env.clone())?;
-        if let Object::Error { .. } = evaluated {
-            return Err(evaluated);
-        } else {
-            results.push(evaluated);
-        }
+        results.push(evaluated);
     }
     Ok(results)
 }
