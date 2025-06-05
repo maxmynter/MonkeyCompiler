@@ -1485,6 +1485,10 @@ fn test_function_application() {
             input: "let add = fn(x, y) { x + y; }; add(5 + 5, add(5, 5));",
             expected: 20,
         },
+        TestFnApplication {
+            input: "let newAdder = fn(x) { fn(y) { x + y }; }; let addTwo = newAdder(2); addTwo(2);",
+            expected: 4,
+        },
     ];
 
     for tt in tests {
