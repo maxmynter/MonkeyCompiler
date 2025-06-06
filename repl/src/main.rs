@@ -6,7 +6,7 @@ use std::{
 
 use object::{CoerceObject, Environment, ObjectTraits};
 
-const PROMPT: &str = ">>";
+const PROMPT: &str = ">> ";
 
 fn main() -> io::Result<()> {
     println!("Welcome to the Monkey programming language!");
