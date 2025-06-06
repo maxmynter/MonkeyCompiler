@@ -467,6 +467,7 @@ impl CoerceObject for Expression {
             Expression::String(StringLiteral { value, .. }) => Object::String {
                 value: value.to_string(),
             },
+            Expression::Array(_) => todo!(),
         };
         Ok(result)
     }

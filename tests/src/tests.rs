@@ -2,8 +2,8 @@
 #![allow(unused_macros)]
 #![allow(unused_imports)]
 use ast::{
-    CallExpression, Expression, FunctionLiteral, Identifier, IfExpression, IntegerLiteral, Node,
-    Program, Statement, StringLiteral,
+    ArrayLiteral, CallExpression, Expression, FunctionLiteral, Identifier, IfExpression,
+    IntegerLiteral, Node, Program, Statement, StringLiteral,
 };
 use lexer::Lexer;
 use lexer::{Token, TokenType};
@@ -1632,5 +1632,25 @@ fn test_builtin_functions() {
                 }
             }
         }
+    }
+}
+
+#[test]
+fn test_parse_array_literals() {
+    let input = "[1, 2 * 2, 3 + 3]";
+    let program = prepare_program_for_test(input);
+    assert_eq!(program.statements.len(), 1);
+
+    if let Statement::Expression {
+        value: Expression::Array(ArrayLiteral { elements, .. }),
+        ..
+    } = &program.statements[0]
+    {
+        assert_eq!(elements.len(), 3);
+        test_integer_literal(&elements[0], 1);
+        test_infix_expression(&elements[1], 2, "*", 2);
+        test_infix_expression(&elements[2], 3, "+", 3);
+    } else {
+        panic!("Did not get array");
     }
 }

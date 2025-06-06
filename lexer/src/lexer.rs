@@ -1,5 +1,4 @@
 pub mod token;
-use std::rc::Rc;
 pub use token::{Keywords, Token, TokenType};
 use token::{ATOMS, TWO_CHAR_ATOMS};
 

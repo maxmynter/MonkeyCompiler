@@ -2,6 +2,32 @@ use core::fmt;
 use lexer::{Token, TokenType};
 use std::rc::Rc;
 
+#[derive(PartialEq, Debug, Clone)]
+pub struct ArrayLiteral {
+    pub token: Token,
+    pub elements: Vec<Expression>,
+}
+
+impl Node for ArrayLiteral {
+    fn as_string(&self) -> String {
+        let mut out = String::from("[");
+        out.push_str(
+            &self
+                .elements
+                .iter()
+                .map(|el| el.as_string())
+                .collect::<Vec<_>>()
+                .join(", "),
+        );
+        out.push_str("]");
+        out
+    }
+
+    fn token_literal(&self) -> Rc<String> {
+        self.token.literal.clone()
+    }
+}
+
 #[derive(PartialEq, Clone, Debug)]
 pub struct CallExpression {
     pub token: Token,
@@ -182,6 +208,7 @@ pub enum Expression {
     FunctionLiteral(FunctionLiteral),
     CallExpression(CallExpression),
     String(StringLiteral),
+    Array(ArrayLiteral),
 }
 
 impl Expression {
@@ -372,6 +399,7 @@ impl Node for Expression {
             | Expression::InfixExpression(InfixExpression { token, .. })
             | Expression::PrefixExpression(PrefixExpression { token, .. })
             | Expression::IfExpression(IfExpression { token, .. })
+            | Expression::Array(ArrayLiteral { token, .. })
             | Expression::FunctionLiteral(FunctionLiteral { token, .. }) => token.literal.clone(),
         }
     }
@@ -387,6 +415,7 @@ impl Node for Expression {
             Expression::Boolean(boolean) => boolean.as_string(),
             Expression::IfExpression(ifex) => ifex.as_string(),
             Expression::CallExpression(call) => call.as_string(),
+            Expression::Array(arr) => arr.as_string(),
         }
     }
 }
