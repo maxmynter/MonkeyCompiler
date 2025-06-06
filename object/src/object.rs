@@ -266,49 +266,77 @@ fn eval_integer_infix_expression(
     }
 }
 
-fn eval_infix_expression(operator: &str, left: Object, right: Object) -> Result<Object, EvalError> {
-    let result = if let (&Object::Integer { .. }, &Object::Integer { .. }) = (&left, &right) {
-        eval_integer_infix_expression(operator, left, right)?
-    } else if let (
-        &Object::Boolean { value: left_value },
-        &Object::Boolean { value: right_value },
-    ) = (&left, &right)
-    {
-        match operator {
-            "==" => {
-                if left_value == right_value {
-                    TRUE
-                } else {
-                    FALSE
-                }
-            }
-            "!=" => {
-                if left_value != right_value {
-                    TRUE
-                } else {
-                    FALSE
-                }
-            }
-            _ => {
-                return Err(EvalError::Error {
-                    message: format!(
-                        "unkown operator: {} {} {}",
-                        left.object_type(),
-                        operator,
-                        right.object_type()
-                    ),
-                });
+fn eval_boolean_infix_expression(
+    operator: &str,
+    left: Object,
+    right: Object,
+) -> Result<Object, EvalError> {
+    match operator {
+        "==" => {
+            if left == right {
+                Ok(TRUE)
+            } else {
+                Ok(FALSE)
             }
         }
-    } else {
-        return Err(EvalError::Error {
-            message: format!(
-                "type mismatch: {} {} {}",
-                left.object_type(),
-                operator,
-                right.object_type()
-            ),
-        });
+        "!=" => {
+            if left != right {
+                Ok(TRUE)
+            } else {
+                Ok(FALSE)
+            }
+        }
+        _ => {
+            return Err(EvalError::Error {
+                message: format!(
+                    "unkown operator: {} {} {}",
+                    left.object_type(),
+                    operator,
+                    right.object_type()
+                ),
+            });
+        }
+    }
+}
+
+fn eval_string_infix_expression(
+    operator: &str,
+    left_str: &String,
+    right_str: &String,
+) -> Result<Object, EvalError> {
+    match operator {
+        "+" => Ok(Object::String {
+            value: format!("{}{}", left_str, right_str),
+        }),
+        _ => {
+            return Err(EvalError::Error {
+                message: format!("unknown operator: STRING {} STRING", operator),
+            });
+        }
+    }
+}
+
+fn eval_infix_expression(operator: &str, left: Object, right: Object) -> Result<Object, EvalError> {
+    let result = match (&left, &right) {
+        (&Object::Integer { .. }, &Object::Integer { .. }) => {
+            eval_integer_infix_expression(operator, left, right)?
+        }
+        (&Object::Boolean { .. }, &Object::Boolean { .. }) => {
+            eval_boolean_infix_expression(operator, left, right)?
+        }
+        (Object::String { value: left_value }, Object::String { value: right_value }) => {
+            eval_string_infix_expression(operator, &left_value, &right_value)?
+        }
+        _ => {
+            return Err(EvalError::Error {
+                message: format!(
+                    "type mismatch: {} {} {}",
+                    left.object_type(),
+                    operator,
+                    right.object_type()
+                ),
+            });
+        }
     };
     Ok(result)
 }

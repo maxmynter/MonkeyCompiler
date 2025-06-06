@@ -1413,6 +1413,10 @@ fn test_error_handling() {
             input: "foobar;",
             expected: "identifier not found: foobar",
         },
+        ErrorHandlingTest {
+            input: "\"Hello\" - \"World\"",
+            expected: "unknown operator: STRING - STRING",
+        },
     ];
 
     for tt in tests {
@@ -1535,5 +1539,16 @@ fn test_string_literal_evaluation() {
         assert_eq!(value, "hello world")
     } else {
         panic!("Did not evaluate to string or errored")
+    }
+}
+
+#[test]
+fn test_string_concatenation() {
+    let input = "\"Hello\" + \" \" + \"World\"";
+    let evaluated = test_evaluator(input);
+    if let Ok(Object::String { value }) = evaluated {
+        assert_eq!(value, "Hello World");
+    } else {
+        panic!("Is not a String object");
     }
 }
