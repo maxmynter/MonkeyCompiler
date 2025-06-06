@@ -322,16 +322,14 @@ fn eval_boolean_infix_expression(
                 Ok(FALSE)
             }
         }
-        _ => {
-            return Err(EvalError::Error {
-                message: format!(
-                    "unkown operator: {} {} {}",
-                    left.object_type(),
-                    operator,
-                    right.object_type()
-                ),
-            });
-        }
+        _ => Err(EvalError::Error {
+            message: format!(
+                "unkown operator: {} {} {}",
+                left.object_type(),
+                operator,
+                right.object_type()
+            ),
+        }),
     }
 }
 
@@ -344,11 +342,9 @@ fn eval_string_infix_expression(
         "+" => Ok(Object::String {
             value: format!("{}{}", left_str, right_str),
         }),
-        _ => {
-            return Err(EvalError::Error {
-                message: format!("unknown operator: STRING {} STRING", operator),
-            });
-        }
+        _ => Err(EvalError::Error {
+            message: format!("unknown operator: STRING {} STRING", operator),
+        }),
     }
 }
 
@@ -361,7 +357,7 @@ fn eval_infix_expression(operator: &str, left: Object, right: Object) -> Result<
             eval_boolean_infix_expression(operator, left, right)?
         }
         (Object::String { value: left_value }, Object::String { value: right_value }) => {
-            eval_string_infix_expression(operator, &left_value, &right_value)?
+            eval_string_infix_expression(operator, left_value, right_value)?
         }
         _ => {
             return Err(EvalError::Error {
