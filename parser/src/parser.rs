@@ -3,8 +3,9 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use ast::{
-    BlockStatement, Boolean, CallExpression, Expression, FunctionLiteral, Identifier, IfExpression,
-    InfixExpression, IntegerLiteral, PrefixExpression, Program, Statement, StringLiteral,
+    ArrayLiteral, BlockStatement, Boolean, CallExpression, Expression, FunctionLiteral, Identifier,
+    IfExpression, InfixExpression, IntegerLiteral, PrefixExpression, Program, Statement,
+    StringLiteral,
 };
 use lexer::{Lexer, Token, TokenType};
 
@@ -81,6 +82,7 @@ impl<'a> Parser<'a> {
         parser.register_prefix(TokenType::IF, Parser::parse_if_expression);
         parser.register_prefix(TokenType::FUNCTION, Parser::parse_function_literal);
         parser.register_prefix(TokenType::STRING, Parser::parse_string);
+        parser.register_prefix(TokenType::LBRACKET, Parser::parse_array);
 
         parser.register_infix(TokenType::PLUS, Parser::parse_infix_expression);
         parser.register_infix(TokenType::MINUS, Parser::parse_infix_expression);
@@ -114,6 +116,32 @@ impl<'a> Parser<'a> {
             token: self.curr.clone(),
             value: self.curr.literal.to_string(),
         })
+    }
+
+    fn parse_array(&mut self) -> Expression {
+        Expression::Array(ArrayLiteral {
+            token: self.curr.clone(),
+            elements: self.parse_expression_list(TokenType::RBRACKET),
+        })
+    }
+
+    fn parse_expression_list(&mut self, end: TokenType) -> Vec<Expression> {
+        let mut list: Vec<Expression> = vec![];
+
+        if self.peek_token_is(&end) {
+            self.next_token();
+            return list;
+        }
+
+        self.next_token();
+        list.push(self.parse_expression(PRECEDENCE::LOWEST));
+        while self.peek_token_is(&TokenType::COMMA) {
+            self.next_token();
+            self.next_token();
+            list.push(self.parse_expression(PRECEDENCE::LOWEST));
+        }
+        self.expect_peek_token(end);
+        list
     }
 
     fn peek_precedence(&self) -> PRECEDENCE {
@@ -217,26 +245,8 @@ impl<'a> Parser<'a> {
         Expression::CallExpression(CallExpression {
             token: self.curr.clone(),
             function: Box::new(function),
-            arguments: self.parse_call_arguments(),
+            arguments: self.parse_expression_list(TokenType::RPAREN),
         })
-    }
-
-    fn parse_call_arguments(&mut self) -> Vec<Expression> {
-        let mut args = vec![];
-        if self.peek_token_is(&TokenType::RPAREN) {
-            self.next_token();
-            return args;
-        }
-
-        self.next_token();
-        args.push(self.parse_expression(PRECEDENCE::LOWEST));
-        while self.peek_token_is(&TokenType::COMMA) {
-            self.next_token();
-            self.next_token();
-            args.push(self.parse_expression(PRECEDENCE::LOWEST));
-        }
-        self.expect_peek_token(TokenType::RPAREN);
-        args
     }
 
     fn parse_infix_expression(&mut self, left: Expression) -> Expression {
