@@ -104,6 +104,7 @@ fn test_parse_code() {
         10 != 9;
         \"foobar\"
         \"foo bar\"
+        [1, 2];
         ",
     );
     let expected = vec![
@@ -423,6 +424,31 @@ fn test_parse_code() {
         Token {
             kind: TokenType::STRING,
             literal: "foo bar".to_string().into(),
+        },
+        // [1, 2];
+        Token {
+            kind: TokenType::LBRACKET,
+            literal: "[".to_string().into(),
+        },
+        Token {
+            kind: TokenType::INT,
+            literal: "1".to_string().into(),
+        },
+        Token {
+            kind: TokenType::COMMA,
+            literal: ",".to_string().into(),
+        },
+        Token {
+            kind: TokenType::INT,
+            literal: "2".to_string().into(),
+        },
+        Token {
+            kind: TokenType::RBRACKET,
+            literal: "]".to_string().into(),
+        },
+        Token {
+            kind: TokenType::SEMICOLON,
+            literal: ";".to_string().into(),
         },
         // EOF
         Token {

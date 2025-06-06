@@ -19,6 +19,8 @@ pub enum TokenType {
     RPAREN,
     LBRACE,
     RBRACE,
+    LBRACKET,
+    RBRACKET,
     BANG,
     ASTERISK,
     SLASH,
@@ -52,6 +54,8 @@ lazy_static! {
             ('/', TokenType::SLASH),
             ('<', TokenType::LT),
             ('>', TokenType::GT),
+            ('[', TokenType::LBRACKET),
+            (']', TokenType::RBRACKET),
         ]
         .iter()
         .cloned()
