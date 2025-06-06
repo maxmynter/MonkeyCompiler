@@ -1552,3 +1552,59 @@ fn test_string_concatenation() {
         panic!("Is not a String object");
     }
 }
+
+#[test]
+fn test_builtin_functions() {
+    enum Either<'a> {
+        Success(i64),
+        Error(&'a str),
+    }
+    struct TestBuiltIns<'a> {
+        input: &'static str,
+        expected: Either<'a>,
+    }
+
+    let tests = [
+        TestBuiltIns {
+            input: "len(\"\")",
+            expected: Either::Success(0),
+        },
+        TestBuiltIns {
+            input: "len(\"four\")",
+            expected: Either::Success(4),
+        },
+        TestBuiltIns {
+            input: "len(\"hello world\")",
+            expected: Either::Success(11),
+        },
+        TestBuiltIns {
+            input: "len(1)",
+            expected: Either::Error("argument to `len` not supported, got INTEGER"),
+        },
+        TestBuiltIns {
+            input: "len(\"one\", \"two\")",
+            expected: Either::Error("wrong number of arguments. got=2, want=1"),
+        },
+    ];
+
+    for tt in tests {
+        let evaluated = test_evaluator(tt.input);
+        match tt.expected {
+            Either::Success(expect) => {
+                if let Ok(result_object) = evaluated {
+                    test_object!(result_object, expect, Integer)
+                } else {
+                    panic!("Builtin evaluation errored. Got {:?}", evaluated)
+                }
+            }
+            Either::Error(err) => {
+                if let Err(erroneous) = evaluated {
+                    let EvalError::Error { message } = erroneous;
+                    assert_eq!(err, message)
+                } else {
+                    panic!("Expected error")
+                }
+            }
+        }
+    }
+}

@@ -27,6 +27,7 @@ name = "object"
 version = "0.1.0"
 dependencies = [
  "ast",
+ "lazy_static",
 ]
 
 [[package]]

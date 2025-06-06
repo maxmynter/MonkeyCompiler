@@ -1,3 +1,4 @@
+use lazy_static::lazy_static;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -6,6 +7,8 @@ use ast::{
     BlockStatement, CallExpression, Expression, FunctionLiteral, Identifier, IfExpression,
     InfixExpression, PrefixExpression, Program, Statement, StringLiteral,
 };
+
+type BuiltinFn = fn(args: Vec<Object>) -> Result<Object, EvalError>;
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct Environment {
@@ -61,6 +64,9 @@ pub enum Object {
     String {
         value: String,
     },
+    Builtin {
+        func: BuiltinFn,
+    },
     Null,
 }
 
@@ -88,6 +94,34 @@ impl ObjectTraits for EvalError {
     }
 }
 
+lazy_static! {
+    pub static ref BUILTINS: HashMap<&'static str, BuiltinFn> = {
+        [("len", builtin_len as BuiltinFn)]
+            .iter()
+            .cloned()
+            .collect()
+    };
+}
+fn builtin_len(args: Vec<Object>) -> Result<Object, EvalError> {
+    if args.len() != 1 {
+        return Err(EvalError::Error {
+            message: format!("wrong number of arguments. got={}, want=1", args.len()),
+        });
+    }
+
+    match &args[0] {
+        Object::String { value } => Ok(Object::Integer {
+            value: value.len() as i64,
+        }),
+        _ => Err(EvalError::Error {
+            message: format!(
+                "argument to `len` not supported, got {}",
+                args[0].object_type()
+            ),
+        }),
+    }
+}
+
 pub const TRUE: Object = Object::Boolean { value: true };
 pub const FALSE: Object = Object::Boolean { value: false };
 pub const NULL: Object = Object::Null;
@@ -100,6 +134,7 @@ impl ObjectTraits for Object {
             Object::Integer { value } => value.to_string(),
             Object::String { value } => value.to_string(),
             Object::Return { .. } => "return_value".to_string(),
+            Object::Builtin { .. } => "builtin_function".to_string(),
             Object::Function {
                 parameters, body, ..
             } => {
@@ -126,6 +161,7 @@ impl ObjectTraits for Object {
             Object::Integer { .. } => "INTEGER".to_string(),
             Object::Boolean { .. } => "BOOLEAN".to_string(),
             Object::Return { .. } => "RETURN_VALUE".to_string(),
+            Object::Builtin { .. } => "BUILTIN_FUNCTION".to_string(),
             Object::Function { .. } => "FUNCTION".to_string(),
             Object::String { .. } => "STRING".to_string(),
         }
@@ -408,6 +444,8 @@ impl CoerceObject for Expression {
             Expression::Identifier(Identifier { value, .. }) => {
                 if let Some(inner_value) = env.borrow_mut().get(value) {
                     inner_value.clone()
+                } else if let Some(builtin) = BUILTINS.get(value.as_str()) {
+                    Object::Builtin { func: *builtin }
                 } else {
                     return Err(EvalError::Error {
                         message: format!("identifier not found: {}", value),
@@ -439,23 +477,26 @@ impl CoerceObject for Expression {
 }
 
 fn apply_function(func: Object, args: Vec<Object>) -> Result<Object, EvalError> {
-    if let Object::Function {
-        parameters,
-        body,
-        env,
-    } = func
-    {
-        let extended_env = extend_environment(env.clone(), args, parameters);
-        let returned = body.coerce(extended_env)?;
-        if let Object::Return { value } = returned {
-            Ok(*value)
-        } else {
-            Ok(returned)
+    match func {
+        Object::Function {
+            parameters,
+            body,
+            env,
+        } => {
+            let extended_env = extend_environment(env.clone(), args, parameters);
+            let returned = body.coerce(extended_env)?;
+            if let Object::Return { value } = returned {
+                Ok(*value)
+            } else {
+                Ok(returned)
+            }
         }
-    } else {
-        Err(EvalError::Error {
+        Object::Builtin {
+            func: builtin_function,
+        } => builtin_function(args),
+        _ => Err(EvalError::Error {
             message: format!("not a function: {}", func.inspect()),
-        })
+        }),
     }
 }
 
