@@ -1589,81 +1589,109 @@ fn test_string_concatenation() {
 
 #[test]
 fn test_builtin_functions() {
-    enum Either<'a> {
-        Success(i64),
-        Neither(Object),
+    enum Expected<'a> {
+        Len(i64),
+        Null(Object),
+        IntArray(Vec<i64>),
         Error(&'a str),
     }
     struct TestBuiltIns<'a> {
         input: &'static str,
-        expected: Either<'a>,
+        expected: Expected<'a>,
     }
 
     let tests = [
         TestBuiltIns {
             input: "len(\"\")",
-            expected: Either::Success(0),
+            expected: Expected::Len(0),
         },
         TestBuiltIns {
             input: "len(\"four\")",
-            expected: Either::Success(4),
+            expected: Expected::Len(4),
         },
         TestBuiltIns {
             input: "len(\"hello world\")",
-            expected: Either::Success(11),
+            expected: Expected::Len(11),
         },
         TestBuiltIns {
             input: "len(1)",
-            expected: Either::Error("argument to `len` not supported, got INTEGER"),
+            expected: Expected::Error("argument to `len` not supported, got INTEGER"),
         },
         TestBuiltIns {
             input: "len(\"one\", \"two\")",
-            expected: Either::Error("wrong number of arguments. got=2, want=1"),
+            expected: Expected::Error("wrong number of arguments. got=2, want=1"),
         },
         TestBuiltIns {
             input: "len([1, 2, 3])",
-            expected: Either::Success(3),
+            expected: Expected::Len(3),
         },
         TestBuiltIns {
             input: "let myArr = [1, 2, 3]; len(myArr)",
-            expected: Either::Success(3),
+            expected: Expected::Len(3),
         },
         TestBuiltIns {
             input: "first([1, 2, 3])",
-            expected: Either::Success(1),
+            expected: Expected::Len(1),
         },
         TestBuiltIns {
             input: "first([])",
-            expected: Either::Neither(NULL),
+            expected: Expected::Null(NULL),
         },
         TestBuiltIns {
             input: "last([1, 2, 3])",
-            expected: Either::Success(3),
+            expected: Expected::Len(3),
         },
         TestBuiltIns {
             input: "last([])",
-            expected: Either::Neither(NULL),
+            expected: Expected::Null(NULL),
+        },
+        TestBuiltIns {
+            input: "rest([1, 2, 3])",
+            expected: Expected::IntArray(vec![2, 3]),
+        },
+        TestBuiltIns {
+            input: "rest([])",
+            expected: Expected::Null(NULL),
         },
     ];
 
     for tt in tests {
         let evaluated = test_evaluator(tt.input);
         match tt.expected {
-            Either::Success(expect) => {
+            Expected::Len(expect) => {
                 if let Ok(result_object) = evaluated {
                     test_object!(result_object, expect, Integer)
                 } else {
                     panic!("Builtin evaluation errored. Got {:?}", evaluated)
                 }
             }
-            Either::Neither(neither) => {
+            Expected::Null(neither) => {
                 if let Ok(result) = evaluated {
                     assert_eq!(neither, result)
                 } else {
                     panic!("Builtin errored when expecting null value")
                 }
             }
-            Either::Error(err) => {
+            Expected::IntArray(arr) => {
+                if let Ok(Object::Array { elements }) = evaluated {
+                    assert_eq!(
+                        arr,
+                        elements
+                            .iter()
+                            .map(|i| {
+                                if let Object::Integer { value } = i {
+                                    value.clone()
+                                } else {
+                                    panic!("Expected integer elements")
+                                }
+                            })
+                            .collect::<Vec<i64>>()
+                    )
+                } else {
+                    panic!("Expected Array")
+                }
+            }
+            Expected::Error(err) => {
                 if let Err(erroneous) = evaluated {
                     if let EvalError::Error { message } = erroneous {
                         assert_eq!(err, message)

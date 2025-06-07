@@ -107,6 +107,7 @@ lazy_static! {
             ("len", builtin_len as BuiltinFn),
             ("first", builtin_first as BuiltinFn),
             ("last", builtin_last as BuiltinFn),
+            ("rest", builtin_rest as BuiltinFn),
         ]
         .iter()
         .cloned()
@@ -114,12 +115,34 @@ lazy_static! {
     };
 }
 
-fn builtin_first(args: Vec<Object>) -> Result<Object, EvalError> {
-    if args.len() != 1 {
-        return Err(EvalError::Error {
+fn expect_builtin_args_len<T>(args: &Vec<T>, length: usize) -> Result<(), EvalError> {
+    if args.len() != length {
+        Err(EvalError::Error {
             message: format!("wrong number of arguments. got={}, want=1", args.len()),
-        });
+        })
+    } else {
+        Ok(())
     }
+}
+
+fn builtin_rest(args: Vec<Object>) -> Result<Object, EvalError> {
+    expect_builtin_args_len(&args, 1)?;
+    if let Object::Array { elements } = &args[0] {
+        match elements.len() {
+            0 => Ok(NULL),
+            _ => Ok(Object::Array {
+                elements: elements[1..].to_vec(),
+            }),
+        }
+    } else {
+        Err(EvalError::Error {
+            message: "wrong argument type to `rest`, need array".to_string(),
+        })
+    }
+}
+
+fn builtin_first(args: Vec<Object>) -> Result<Object, EvalError> {
+    expect_builtin_args_len(&args, 1)?;
     match &args[0] {
         Object::Array { elements } => {
             if !elements.is_empty() {
@@ -135,11 +158,7 @@ fn builtin_first(args: Vec<Object>) -> Result<Object, EvalError> {
 }
 
 fn builtin_last(args: Vec<Object>) -> Result<Object, EvalError> {
-    if args.len() != 1 {
-        return Err(EvalError::Error {
-            message: format!("wrong number of arguments. got={}, want=1", args.len()),
-        });
-    }
+    expect_builtin_args_len(&args, 1)?;
     match &args[0] {
         Object::Array { elements } => {
             if !elements.is_empty() {
@@ -155,12 +174,7 @@ fn builtin_last(args: Vec<Object>) -> Result<Object, EvalError> {
 }
 
 fn builtin_len(args: Vec<Object>) -> Result<Object, EvalError> {
-    if args.len() != 1 {
-        return Err(EvalError::Error {
-            message: format!("wrong number of arguments. got={}, want=1", args.len()),
-        });
-    }
-
+    expect_builtin_args_len(&args, 1)?;
     match &args[0] {
         Object::String { value } => Ok(Object::Integer {
             value: value.len() as i64,
