@@ -1591,6 +1591,7 @@ fn test_string_concatenation() {
 fn test_builtin_functions() {
     enum Either<'a> {
         Success(i64),
+        Neither(Object),
         Error(&'a str),
     }
     struct TestBuiltIns<'a> {
@@ -1624,8 +1625,24 @@ fn test_builtin_functions() {
             expected: Either::Success(3),
         },
         TestBuiltIns {
-            input: "let myArr = [1, 2, 3];len(myArr)",
+            input: "let myArr = [1, 2, 3]; len(myArr)",
             expected: Either::Success(3),
+        },
+        TestBuiltIns {
+            input: "first([1, 2, 3])",
+            expected: Either::Success(1),
+        },
+        TestBuiltIns {
+            input: "first([])",
+            expected: Either::Neither(NULL),
+        },
+        TestBuiltIns {
+            input: "last([1, 2, 3])",
+            expected: Either::Success(3),
+        },
+        TestBuiltIns {
+            input: "last([])",
+            expected: Either::Neither(NULL),
         },
     ];
 
@@ -1637,6 +1654,13 @@ fn test_builtin_functions() {
                     test_object!(result_object, expect, Integer)
                 } else {
                     panic!("Builtin evaluation errored. Got {:?}", evaluated)
+                }
+            }
+            Either::Neither(neither) => {
+                if let Ok(result) = evaluated {
+                    assert_eq!(neither, result)
+                } else {
+                    panic!("Builtin errored when expecting null value")
                 }
             }
             Either::Error(err) => {

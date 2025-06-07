@@ -103,11 +103,55 @@ impl ObjectTraits for EvalError {
 
 lazy_static! {
     pub static ref BUILTINS: HashMap<&'static str, BuiltinFn> = {
-        [("len", builtin_len as BuiltinFn)]
-            .iter()
-            .cloned()
-            .collect()
+        [
+            ("len", builtin_len as BuiltinFn),
+            ("first", builtin_first as BuiltinFn),
+            ("last", builtin_last as BuiltinFn),
+        ]
+        .iter()
+        .cloned()
+        .collect()
     };
+}
+
+fn builtin_first(args: Vec<Object>) -> Result<Object, EvalError> {
+    if args.len() != 1 {
+        return Err(EvalError::Error {
+            message: format!("wrong number of arguments. got={}, want=1", args.len()),
+        });
+    }
+    match &args[0] {
+        Object::Array { elements } => {
+            if !elements.is_empty() {
+                Ok(elements[0].clone())
+            } else {
+                Ok(NULL)
+            }
+        }
+        _ => Err(EvalError::Error {
+            message: "`first` only works on arrays".to_string(),
+        }),
+    }
+}
+
+fn builtin_last(args: Vec<Object>) -> Result<Object, EvalError> {
+    if args.len() != 1 {
+        return Err(EvalError::Error {
+            message: format!("wrong number of arguments. got={}, want=1", args.len()),
+        });
+    }
+    match &args[0] {
+        Object::Array { elements } => {
+            if !elements.is_empty() {
+                Ok(elements[elements.len() - 1].clone())
+            } else {
+                Ok(NULL)
+            }
+        }
+        _ => Err(EvalError::Error {
+            message: "`last` only works on arrays".to_string(),
+        }),
+    }
 }
 
 fn builtin_len(args: Vec<Object>) -> Result<Object, EvalError> {
