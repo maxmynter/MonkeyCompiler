@@ -109,6 +109,7 @@ lazy_static! {
             .collect()
     };
 }
+
 fn builtin_len(args: Vec<Object>) -> Result<Object, EvalError> {
     if args.len() != 1 {
         return Err(EvalError::Error {
@@ -119,6 +120,9 @@ fn builtin_len(args: Vec<Object>) -> Result<Object, EvalError> {
     match &args[0] {
         Object::String { value } => Ok(Object::Integer {
             value: value.len() as i64,
+        }),
+        Object::Array { elements } => Ok(Object::Integer {
+            value: elements.len() as i64,
         }),
         _ => Err(EvalError::Error {
             message: format!(

@@ -1619,6 +1619,14 @@ fn test_builtin_functions() {
             input: "len(\"one\", \"two\")",
             expected: Either::Error("wrong number of arguments. got=2, want=1"),
         },
+        TestBuiltIns {
+            input: "len([1, 2, 3])",
+            expected: Either::Success(3),
+        },
+        TestBuiltIns {
+            input: "let myArr = [1, 2, 3];len(myArr)",
+            expected: Either::Success(3),
+        },
     ];
 
     for tt in tests {
