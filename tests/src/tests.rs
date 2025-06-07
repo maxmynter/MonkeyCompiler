@@ -1633,8 +1633,11 @@ fn test_builtin_functions() {
             }
             Either::Error(err) => {
                 if let Err(erroneous) = evaluated {
-                    let EvalError::Error { message } = erroneous;
-                    assert_eq!(err, message)
+                    if let EvalError::Error { message } = erroneous {
+                        assert_eq!(err, message)
+                    } else {
+                        panic!("Got a different error")
+                    };
                 } else {
                     panic!("Expected error")
                 }
@@ -1692,5 +1695,73 @@ fn test_array_literal() {
         test_object!(elements[2], 6, Integer);
     } else {
         panic!("Did not get array object")
+    }
+}
+
+#[test]
+fn test_array_index_expressions() {
+    struct ArrayIndexExpressionTest {
+        input: &'static str,
+        expected: Result<i64, EvalError>,
+    }
+
+    let tests = [
+        ArrayIndexExpressionTest {
+            input: "[1, 2, 3][0]",
+            expected: Ok(1),
+        },
+        ArrayIndexExpressionTest {
+            input: "[1, 2, 3][1]",
+            expected: Ok(2),
+        },
+        ArrayIndexExpressionTest {
+            input: "[1, 2, 3][2]",
+            expected: Ok(3),
+        },
+        ArrayIndexExpressionTest {
+            input: "let i = 0; [1, 2, 3][i]",
+            expected: Ok(1),
+        },
+        ArrayIndexExpressionTest {
+            input: "[1, 2, 3][1 + 1]",
+            expected: Ok(3),
+        },
+        ArrayIndexExpressionTest {
+            input: "[1, 2, 3][3]",
+            expected: Err(EvalError::IndexError {
+                message: "index, 3, out of bounds for array of length 3".to_string(),
+            }),
+        },
+        ArrayIndexExpressionTest {
+            input: "[1, 2, 3][-1]",
+            expected: Err(EvalError::IndexError {
+                message: "index must not be negative".to_string(),
+            }),
+        },
+        ArrayIndexExpressionTest {
+            input: "let myArray = [1, 2, 3]; myArray[2];",
+            expected: Ok(3),
+        },
+        ArrayIndexExpressionTest {
+            input: "let myArray = [1, 2, 3]; myArray[0] + myArray[1] + myArray[2];",
+            expected: Ok(6),
+        },
+        ArrayIndexExpressionTest {
+            input: "let myArray = [1, 2, 3]; let i = myArray[0]; myArray[i];",
+            expected: Ok(2),
+        },
+    ];
+
+    for tt in tests {
+        dbg!(tt.input);
+        let evaluated = test_evaluator(tt.input);
+        match tt.expected {
+            Ok(expected) => {
+                test_object!(evaluated.unwrap(), expected, Integer);
+            }
+            Err(err) => {
+                assert_eq!(err, evaluated.unwrap_err());
+            }
+        }
     }
 }

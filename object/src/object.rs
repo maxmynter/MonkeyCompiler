@@ -5,7 +5,8 @@ use std::rc::Rc;
 
 use ast::{
     ArrayLiteral, BlockStatement, CallExpression, Expression, FunctionLiteral, Identifier,
-    IfExpression, InfixExpression, PrefixExpression, Program, Statement, StringLiteral,
+    IfExpression, IndexExpression, InfixExpression, PrefixExpression, Program, Statement,
+    StringLiteral,
 };
 
 type BuiltinFn = fn(args: Vec<Object>) -> Result<Object, EvalError>;
@@ -81,18 +82,21 @@ pub trait ObjectTraits {
 #[derive(Clone, Debug, PartialEq)]
 pub enum EvalError {
     Error { message: String },
+    IndexError { message: String },
 }
 
 impl ObjectTraits for EvalError {
     fn inspect(&self) -> String {
         match &self {
             EvalError::Error { message } => format!("Error: {}", message),
+            EvalError::IndexError { message } => format!("Index Error: {}", message),
         }
     }
 
     fn object_type(&self) -> String {
         match &self {
             EvalError::Error { .. } => "ERROR".to_string(),
+            EvalError::IndexError { .. } => "INDEX_ERROR".to_string(),
         }
     }
 }
@@ -501,9 +505,42 @@ impl CoerceObject for Expression {
                 let elements = elements.evaluate(env)?;
                 Object::Array { elements }
             }
-            Expression::Index(_) => todo!(),
+            Expression::Index(IndexExpression { left, index, .. }) => {
+                let left = left.evaluate(env)?;
+                let index = index.evaluate(env)?;
+                evaluate_index_expression(left, index)?
+            }
         };
         Ok(result)
+    }
+}
+
+fn evaluate_index_expression(left: Object, index: Object) -> Result<Object, EvalError> {
+    match (&left, index) {
+        (Object::Array { elements }, Object::Integer { value }) => {
+            eval_array_index_expression(elements, value)
+        }
+        _ => Err(EvalError::Error {
+            message: format!("index operator not supported: {}", left.object_type()),
+        }),
+    }
+}
+
+fn eval_array_index_expression(arr: &[Object], idx: i64) -> Result<Object, EvalError> {
+    if idx < 0 {
+        return Err(EvalError::IndexError {
+            message: "index must not be negative".to_string(),
+        });
+    }
+    match arr.get(idx as usize) {
+        Some(val) => Ok(val.clone()),
+        None => Err(EvalError::IndexError {
+            message: format!(
+                "index, {}, out of bounds for array of length {}",
+                idx,
+                arr.len()
+            ),
+        }),
     }
 }
 
