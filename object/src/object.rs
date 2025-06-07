@@ -468,6 +468,7 @@ impl CoerceObject for Expression {
                 value: value.to_string(),
             },
             Expression::Array(_) => todo!(),
+            Expression::Index(_) => todo!(),
         };
         Ok(result)
     }

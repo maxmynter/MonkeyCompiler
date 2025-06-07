@@ -3,6 +3,27 @@ use lexer::{Token, TokenType};
 use std::rc::Rc;
 
 #[derive(PartialEq, Debug, Clone)]
+pub struct IndexExpression {
+    pub token: Token,
+    pub left: Box<Expression>,
+    pub index: Box<Expression>,
+}
+
+impl Node for IndexExpression {
+    fn as_string(&self) -> String {
+        let mut out = String::from("(");
+        out.push_str(&self.left.to_string());
+        out.push('[');
+        out.push_str(&self.index.to_string());
+        out.push_str("])");
+        out
+    }
+    fn token_literal(&self) -> Rc<String> {
+        self.token.literal.clone()
+    }
+}
+
+#[derive(PartialEq, Debug, Clone)]
 pub struct ArrayLiteral {
     pub token: Token,
     pub elements: Vec<Expression>,
@@ -19,7 +40,7 @@ impl Node for ArrayLiteral {
                 .collect::<Vec<_>>()
                 .join(", "),
         );
-        out.push_str("]");
+        out.push(']');
         out
     }
 
@@ -209,6 +230,7 @@ pub enum Expression {
     CallExpression(CallExpression),
     String(StringLiteral),
     Array(ArrayLiteral),
+    Index(IndexExpression),
 }
 
 impl Expression {
@@ -392,6 +414,7 @@ impl Node for Expression {
     fn token_literal(&self) -> Rc<String> {
         match self {
             Expression::Identifier(Identifier { token, .. })
+            | Expression::Index(IndexExpression { token, .. })
             | Expression::String(StringLiteral { token, .. })
             | Expression::CallExpression(CallExpression { token, .. })
             | Expression::Boolean(Boolean { token, .. })
@@ -408,6 +431,7 @@ impl Node for Expression {
         match self {
             Expression::String(StringLiteral { value, .. }) => value.to_string(),
             Expression::Identifier(Identifier { value, .. }) => value.to_string(),
+            Expression::Index(index) => index.as_string(),
             Expression::IntegerLiteral(IntegerLiteral { value, .. }) => value.to_string(),
             Expression::PrefixExpression(prefix) => prefix.as_string(),
             Expression::InfixExpression(infix) => infix.as_string(),

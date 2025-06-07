@@ -4,8 +4,8 @@ use std::rc::Rc;
 
 use ast::{
     ArrayLiteral, BlockStatement, Boolean, CallExpression, Expression, FunctionLiteral, Identifier,
-    IfExpression, InfixExpression, IntegerLiteral, PrefixExpression, Program, Statement,
-    StringLiteral,
+    IfExpression, IndexExpression, InfixExpression, IntegerLiteral, PrefixExpression, Program,
+    Statement, StringLiteral,
 };
 use lexer::{Lexer, Token, TokenType};
 
@@ -22,6 +22,7 @@ pub enum PRECEDENCE {
     PRODUCT,     // *
     PREFIX,      // -x OR !x
     CALL,        // MYfUNCTION(x)
+    INDEX,       // array[index]
 }
 
 impl PRECEDENCE {
@@ -42,6 +43,7 @@ lazy_static! {
             (TokenType::SLASH, PRECEDENCE::PRODUCT),
             (TokenType::ASTERISK, PRECEDENCE::PRODUCT),
             (TokenType::LPAREN, PRECEDENCE::CALL),
+            (TokenType::LBRACKET, PRECEDENCE::INDEX),
         ]
         .iter()
         .cloned()
@@ -93,6 +95,7 @@ impl<'a> Parser<'a> {
         parser.register_infix(TokenType::LT, Parser::parse_infix_expression);
         parser.register_infix(TokenType::GT, Parser::parse_infix_expression);
         parser.register_infix(TokenType::LPAREN, Parser::parse_call_expression);
+        parser.register_infix(TokenType::LBRACKET, Parser::parse_index_expression);
 
         parser
     }
@@ -142,6 +145,18 @@ impl<'a> Parser<'a> {
         }
         self.expect_peek_token(end);
         list
+    }
+
+    fn parse_index_expression(&mut self, left: Expression) -> Expression {
+        let token = self.curr.clone();
+        self.next_token();
+        let index = self.parse_expression(PRECEDENCE::LOWEST);
+        self.expect_peek_token(TokenType::RBRACKET);
+        Expression::Index(IndexExpression {
+            token,
+            left: Box::new(left),
+            index: Box::new(index),
+        })
     }
 
     fn peek_precedence(&self) -> PRECEDENCE {

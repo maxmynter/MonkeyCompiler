@@ -949,6 +949,14 @@ fn test_operator_precedence_parsing() {
             input: "add(a + b + c * d / f + g)",
             expected: "add((((a + b) + ((c * d) / f)) + g))",
         },
+        OperatorPrecedenceTest {
+            input: "a * [1, 2, 3, 4][b * c] * d",
+            expected: "((a * ([1, 2, 3, 4][(b * c)])) * d)",
+        },
+        OperatorPrecedenceTest {
+            input: "add(a * b[2], b[1], 2 * [1, 2][1])",
+            expected: "add((a * (b[2])), (b[1]), (2 * ([1, 2][1])))",
+        },
     ];
 
     for tt in tests {
@@ -1652,5 +1660,23 @@ fn test_parse_array_literals() {
         test_infix_expression(&elements[2], 3, "+", 3);
     } else {
         panic!("Did not get array");
+    }
+}
+
+#[test]
+fn test_parse_index_expression() {
+    let input = "myArray[1 + 1]";
+    let program = prepare_program_for_test(input);
+    dbg!(&program);
+    assert_eq!(program.statements.len(), 1);
+    if let Statement::Expression {
+        value: Expression::Index(idx),
+        ..
+    } = &program.statements[0]
+    {
+        test_identifier(&idx.left, &"myArray");
+        test_infix_expression(&idx.index, 1, "+", 1);
+    } else {
+        panic!("did not find index expression")
     }
 }
