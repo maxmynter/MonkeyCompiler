@@ -4,8 +4,8 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use ast::{
-    BlockStatement, CallExpression, Expression, FunctionLiteral, Identifier, IfExpression,
-    InfixExpression, PrefixExpression, Program, Statement, StringLiteral,
+    ArrayLiteral, BlockStatement, CallExpression, Expression, FunctionLiteral, Identifier,
+    IfExpression, InfixExpression, PrefixExpression, Program, Statement, StringLiteral,
 };
 
 type BuiltinFn = fn(args: Vec<Object>) -> Result<Object, EvalError>;
@@ -66,6 +66,9 @@ pub enum Object {
     },
     Builtin {
         func: BuiltinFn,
+    },
+    Array {
+        elements: Vec<Object>,
     },
     Null,
 }
@@ -152,6 +155,18 @@ impl ObjectTraits for Object {
                 out.push_str("\n}");
                 out
             }
+            Object::Array { elements } => {
+                let mut out = String::from("[");
+                out.push_str(
+                    &elements
+                        .iter()
+                        .map(|el| el.inspect())
+                        .collect::<Vec<_>>()
+                        .join(", "),
+                );
+                out.push('[');
+                out
+            }
         }
     }
 
@@ -164,26 +179,38 @@ impl ObjectTraits for Object {
             Object::Builtin { .. } => "BUILTIN_FUNCTION".to_string(),
             Object::Function { .. } => "FUNCTION".to_string(),
             Object::String { .. } => "STRING".to_string(),
+            Object::Array { .. } => "ARRAY".to_string(),
         }
     }
 }
 
 pub trait CoerceObject {
-    fn coerce(&self, environment: Rc<RefCell<Environment>>) -> Result<Object, EvalError>;
+    type Coerced;
+    fn evaluate(&self, environment: &Rc<RefCell<Environment>>) -> Result<Self::Coerced, EvalError>;
+}
+
+impl CoerceObject for Vec<Expression> {
+    type Coerced = Vec<Object>;
+    fn evaluate(&self, environment: &Rc<RefCell<Environment>>) -> Result<Vec<Object>, EvalError> {
+        self.iter()
+            .map(|ob| ob.evaluate(environment))
+            .collect::<Result<Vec<Object>, EvalError>>()
+    }
 }
 
 impl CoerceObject for Statement {
-    fn coerce(&self, env: Rc<RefCell<Environment>>) -> Result<Object, EvalError> {
+    type Coerced = Object;
+    fn evaluate(&self, env: &Rc<RefCell<Environment>>) -> Result<Self::Coerced, EvalError> {
         match self {
-            Statement::Expression { value, .. } => value.coerce(env),
+            Statement::Expression { value, .. } => value.evaluate(env),
             Statement::Return { value, .. } => {
-                let coerced = value.coerce(env)?;
+                let coerced = value.evaluate(env)?;
                 Ok(Object::Return {
                     value: Box::new(coerced),
                 })
             }
             Statement::Let { name, value, .. } => {
-                let binding = value.coerce(env.clone())?;
+                let binding = value.evaluate(env)?;
                 env.borrow_mut().set(&name.value, binding.clone());
                 Ok(binding)
             }
@@ -192,10 +219,11 @@ impl CoerceObject for Statement {
 }
 
 impl CoerceObject for Program {
-    fn coerce(&self, env: Rc<RefCell<Environment>>) -> Result<Object, EvalError> {
+    type Coerced = Object;
+    fn evaluate(&self, env: &Rc<RefCell<Environment>>) -> Result<Self::Coerced, EvalError> {
         let mut result: Object = Object::Null;
         for stmt in &self.statements {
-            result = stmt.coerce(env.clone())?;
+            result = stmt.evaluate(env)?;
             if let Object::Return { value } = result {
                 return Ok(*value);
             }
@@ -374,10 +402,11 @@ fn eval_infix_expression(operator: &str, left: Object, right: Object) -> Result<
 }
 
 impl CoerceObject for BlockStatement {
-    fn coerce(&self, env: Rc<RefCell<Environment>>) -> Result<Object, EvalError> {
+    type Coerced = Object;
+    fn evaluate(&self, env: &Rc<RefCell<Environment>>) -> Result<Self::Coerced, EvalError> {
         let mut result: Object = Object::Null;
         for stmt in &self.statements {
-            result = stmt.coerce(env.clone())?;
+            result = stmt.evaluate(env)?;
             if let Object::Return { .. } = result {
                 return Ok(result);
             }
@@ -396,7 +425,8 @@ fn is_truthy(expr: Object) -> bool {
 }
 
 impl CoerceObject for Expression {
-    fn coerce(&self, env: Rc<RefCell<Environment>>) -> Result<Object, EvalError> {
+    type Coerced = Object;
+    fn evaluate(&self, env: &Rc<RefCell<Environment>>) -> Result<Self::Coerced, EvalError> {
         let result = match self {
             Expression::IntegerLiteral(int) => Object::Integer { value: int.value },
             Expression::Boolean(boolean) => {
@@ -409,7 +439,7 @@ impl CoerceObject for Expression {
             Expression::PrefixExpression(PrefixExpression {
                 right, operator, ..
             }) => {
-                let evaluated_right = right.coerce(env.clone())?;
+                let evaluated_right = right.evaluate(env)?;
                 eval_prefix_expression(operator, evaluated_right)?
             }
             Expression::InfixExpression(InfixExpression {
@@ -418,8 +448,8 @@ impl CoerceObject for Expression {
                 right,
                 ..
             }) => {
-                let evaluated_left = left.coerce(env.clone())?;
-                let evaluated_right = right.coerce(env.clone())?;
+                let evaluated_left = left.evaluate(env)?;
+                let evaluated_right = right.evaluate(env)?;
                 eval_infix_expression(operator, evaluated_left, evaluated_right)?
             }
             Expression::IfExpression(IfExpression {
@@ -428,11 +458,11 @@ impl CoerceObject for Expression {
                 alternative,
                 ..
             }) => {
-                let cond = condition.coerce(env.clone())?;
+                let cond = condition.evaluate(env)?;
                 if is_truthy(cond) {
-                    consequence.coerce(env.clone())?
+                    consequence.evaluate(env)?
                 } else if let Some(alt) = alternative {
-                    alt.coerce(env.clone())?
+                    alt.evaluate(env)?
                 } else {
                     NULL
                 }
@@ -460,14 +490,17 @@ impl CoerceObject for Expression {
                 arguments,
                 ..
             }) => {
-                let func = function.coerce(env.clone())?;
-                let args = evaluate_expressions(arguments, env.clone())?;
+                let func = function.evaluate(env)?;
+                let args = arguments.evaluate(env)?;
                 apply_function(func, args)?
             }
             Expression::String(StringLiteral { value, .. }) => Object::String {
                 value: value.to_string(),
             },
-            Expression::Array(_) => todo!(),
+            Expression::Array(ArrayLiteral { elements, .. }) => {
+                let elements = elements.evaluate(env)?;
+                Object::Array { elements }
+            }
             Expression::Index(_) => todo!(),
         };
         Ok(result)
@@ -482,7 +515,7 @@ fn apply_function(func: Object, args: Vec<Object>) -> Result<Object, EvalError> 
             env,
         } => {
             let extended_env = extend_environment(env.clone(), args, parameters);
-            let returned = body.coerce(extended_env)?;
+            let returned = body.evaluate(&extended_env)?;
             if let Object::Return { value } = returned {
                 Ok(*value)
             } else {
@@ -510,16 +543,4 @@ fn extend_environment(
             .set(&param.value, args[idx].clone());
     }
     extended_env
-}
-
-fn evaluate_expressions(
-    exps: &Vec<Expression>,
-    env: Rc<RefCell<Environment>>,
-) -> Result<Vec<Object>, EvalError> {
-    let mut results: Vec<Object> = vec![];
-    for ex in exps {
-        let evaluated = ex.coerce(env.clone())?;
-        results.push(evaluated);
-    }
-    Ok(results)
 }

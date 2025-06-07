@@ -1108,7 +1108,7 @@ macro_rules! test_object {
 fn test_evaluator(input: &str) -> Result<Object, EvalError> {
     let program = prepare_program_for_test(input);
     let env = Environment::new();
-    program.coerce(env.clone())
+    program.evaluate(&env)
 }
 
 #[test]
@@ -1678,5 +1678,19 @@ fn test_parse_index_expression() {
         test_infix_expression(&idx.index, 1, "+", 1);
     } else {
         panic!("did not find index expression")
+    }
+}
+
+#[test]
+fn test_array_literal() {
+    let input = "[1, 2 * 2, 3 + 3]";
+    let evaluated = test_evaluator(input);
+    if let Ok(Object::Array { elements }) = evaluated {
+        assert_eq!(elements.len(), 3);
+        test_object!(elements[0], 1, Integer);
+        test_object!(elements[1], 4, Integer);
+        test_object!(elements[2], 6, Integer);
+    } else {
+        panic!("Did not get array object")
     }
 }

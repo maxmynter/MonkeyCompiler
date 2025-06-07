@@ -54,7 +54,7 @@ fn eval(input: &str, env: Rc<RefCell<Environment>>) {
     if !parser.errors.is_empty() {
         parser.print_errors();
     }
-    let evaluated = match program.coerce(env.clone()) {
+    let evaluated = match program.evaluate(&env) {
         Ok(result) => result.inspect(),
         Err(result) => result.inspect(),
     };
