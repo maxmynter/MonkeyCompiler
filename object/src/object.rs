@@ -115,7 +115,7 @@ lazy_static! {
     };
 }
 
-fn expect_builtin_args_len<T>(args: &Vec<T>, length: usize) -> Result<(), EvalError> {
+fn expect_builtin_args_len<T>(args: &[T], length: usize) -> Result<(), EvalError> {
     if args.len() != length {
         Err(EvalError::Error {
             message: format!("wrong number of arguments. got={}, want=1", args.len()),
