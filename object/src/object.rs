@@ -246,7 +246,7 @@ impl ObjectTraits for Object {
                         .collect::<Vec<_>>()
                         .join(", "),
                 );
-                out.push('[');
+                out.push(']');
                 out
             }
         }
