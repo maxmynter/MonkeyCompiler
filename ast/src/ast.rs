@@ -2,7 +2,32 @@ use core::fmt;
 use lexer::{Token, TokenType};
 use std::rc::Rc;
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone, Hash)]
+pub struct HashLiteral {
+    pub token: Token,
+    pub pairs: Vec<(Expression, Expression)>, // Use vec here to stay hashable
+}
+
+impl Node for HashLiteral {
+    fn as_string(&self) -> String {
+        let mut out = String::from("{ ");
+        out.push_str(
+            &self
+                .pairs
+                .iter()
+                .map(|(key, value)| format!("{}:{}", key.as_string(), value.as_string()))
+                .collect::<Vec<String>>()
+                .join(", "),
+        );
+        out.push_str(" }");
+        out
+    }
+    fn token_literal(&self) -> Rc<String> {
+        self.token.literal.clone()
+    }
+}
+
+#[derive(PartialEq, Eq, Debug, Clone, Hash)]
 pub struct IndexExpression {
     pub token: Token,
     pub left: Box<Expression>,
@@ -23,7 +48,7 @@ impl Node for IndexExpression {
     }
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone, Hash)]
 pub struct ArrayLiteral {
     pub token: Token,
     pub elements: Vec<Expression>,
@@ -49,7 +74,7 @@ impl Node for ArrayLiteral {
     }
 }
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Clone, Debug, Hash, Eq)]
 pub struct CallExpression {
     pub token: Token,
     pub function: Box<Expression>,
@@ -78,7 +103,7 @@ impl Node for CallExpression {
     }
 }
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Clone, Debug, Hash, Eq)]
 pub struct StringLiteral {
     pub token: Token,
     pub value: String,
@@ -94,7 +119,7 @@ impl Node for StringLiteral {
     }
 }
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Clone, Debug, Hash, Eq)]
 pub struct Boolean {
     pub token: Token,
     pub value: bool,
@@ -110,7 +135,7 @@ impl Node for Boolean {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Hash, Eq)]
 pub struct Identifier {
     pub token: Token,
     pub value: Rc<String>,
@@ -128,7 +153,7 @@ impl Identifier {
     }
 }
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Clone, Debug, Hash, Eq)]
 pub struct IntegerLiteral {
     pub token: Token,
     pub value: i64,
@@ -143,7 +168,7 @@ impl Node for IntegerLiteral {
     }
 }
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Clone, Debug, Hash, Eq)]
 pub struct PrefixExpression {
     pub token: Token,
     pub operator: String,
@@ -165,7 +190,7 @@ impl Node for PrefixExpression {
     }
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug, Hash)]
 pub struct InfixExpression {
     pub token: Token,
     pub operator: String,
@@ -190,7 +215,7 @@ impl Node for InfixExpression {
     }
 }
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Clone, Debug, Hash, Eq)]
 pub struct FunctionLiteral {
     pub token: Token,
     pub parameters: Rc<Vec<Identifier>>,
@@ -219,7 +244,7 @@ impl Node for FunctionLiteral {
     }
 }
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Eq, Clone, Debug, Hash)]
 pub enum Expression {
     Identifier(Identifier),
     IntegerLiteral(IntegerLiteral),
@@ -232,6 +257,7 @@ pub enum Expression {
     String(StringLiteral),
     Array(ArrayLiteral),
     Index(IndexExpression),
+    HashMap(HashLiteral),
 }
 
 impl Expression {
@@ -258,9 +284,19 @@ impl Expression {
             value: boolean,
         })
     }
+
+    pub fn from_string(string: String) -> Expression {
+        Self::String(StringLiteral {
+            token: Token {
+                kind: TokenType::STRING,
+                literal: string.clone().into(),
+            },
+            value: string,
+        })
+    }
 }
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Clone, Debug, Hash, Eq)]
 pub enum Statement {
     Let {
         token: Token,
@@ -282,7 +318,7 @@ pub trait Node {
     fn as_string(&self) -> String;
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Hash, Eq)]
 pub struct BlockStatement {
     pub token: Token,
     pub statements: Vec<Statement>,
@@ -314,7 +350,7 @@ impl fmt::Display for BlockStatement {
     }
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone, Hash)]
 pub struct IfExpression {
     pub token: Token,
     pub condition: Box<Expression>,
@@ -422,6 +458,7 @@ impl Node for Expression {
     fn token_literal(&self) -> Rc<String> {
         match self {
             Expression::Identifier(Identifier { token, .. })
+            | Expression::HashMap(HashLiteral { token, .. })
             | Expression::Index(IndexExpression { token, .. })
             | Expression::String(StringLiteral { token, .. })
             | Expression::CallExpression(CallExpression { token, .. })
@@ -441,6 +478,7 @@ impl Node for Expression {
             Expression::Identifier(Identifier { value, .. }) => value.to_string(),
             Expression::Index(index) => index.as_string(),
             Expression::IntegerLiteral(IntegerLiteral { value, .. }) => value.to_string(),
+            Expression::HashMap(hash) => hash.as_string(),
             Expression::PrefixExpression(prefix) => prefix.as_string(),
             Expression::InfixExpression(infix) => infix.as_string(),
             Expression::FunctionLiteral(fn_lit) => fn_lit.as_string(),

@@ -85,6 +85,7 @@ impl<'a> Parser<'a> {
         parser.register_prefix(TokenType::FUNCTION, Parser::parse_function_literal);
         parser.register_prefix(TokenType::STRING, Parser::parse_string);
         parser.register_prefix(TokenType::LBRACKET, Parser::parse_array);
+        parser.register_prefix(TokenType::LBRACE, Parser::parse_hash);
 
         parser.register_infix(TokenType::PLUS, Parser::parse_infix_expression);
         parser.register_infix(TokenType::MINUS, Parser::parse_infix_expression);
@@ -119,6 +120,27 @@ impl<'a> Parser<'a> {
             token: self.curr.clone(),
             value: self.curr.literal.to_string(),
         })
+    }
+
+    fn parse_hash(&mut self) -> Expression {
+        let token = self.curr.clone();
+        let mut pairs = vec![];
+        while !self.peek_token_is(&TokenType::RBRACE) {
+            self.next_token();
+            let key = self.parse_expression(PRECEDENCE::LOWEST);
+            if !self.expect_peek_token(TokenType::COLON) {
+                panic!("Expected `:`, got={:?}", self.peek)
+            }
+            self.next_token();
+            let value = self.parse_expression(PRECEDENCE::LOWEST);
+            pairs.push((key, value));
+            if !self.peek_token_is(&TokenType::RBRACE) && !self.expect_peek_token(TokenType::COMMA)
+            {
+                panic!("invalid syntax")
+            }
+        }
+        self.expect_peek_token(TokenType::RBRACE);
+        Expression::HashMap(ast::HashLiteral { token, pairs })
     }
 
     fn parse_array(&mut self) -> Expression {

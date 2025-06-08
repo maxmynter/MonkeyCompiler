@@ -2,13 +2,14 @@
 #![allow(unused_macros)]
 #![allow(unused_imports)]
 use ast::{
-    ArrayLiteral, CallExpression, Expression, FunctionLiteral, Identifier, IfExpression,
-    IntegerLiteral, Node, Program, Statement, StringLiteral,
+    ArrayLiteral, CallExpression, Expression, FunctionLiteral, HashLiteral, Identifier,
+    IfExpression, IntegerLiteral, Node, Program, Statement, StringLiteral,
 };
 use lexer::Lexer;
 use lexer::{Token, TokenType};
 use object::{CoerceObject, Environment, EvalError, NULL, Object, ObjectTraits};
 use parser::Parser;
+use std::collections::HashMap;
 use std::rc::Rc;
 
 #[test]
@@ -105,6 +106,7 @@ fn test_parse_code() {
         \"foobar\"
         \"foo bar\"
         [1, 2];
+        {\"foo\": \"bar\"}
         ",
     );
     let expected = vec![
@@ -449,6 +451,27 @@ fn test_parse_code() {
         Token {
             kind: TokenType::SEMICOLON,
             literal: ";".to_string().into(),
+        },
+        // {"foo": "bar"}
+        Token {
+            kind: TokenType::LBRACE,
+            literal: "{".to_string().into(),
+        },
+        Token {
+            kind: TokenType::STRING,
+            literal: "foo".to_string().into(),
+        },
+        Token {
+            kind: TokenType::COLON,
+            literal: ":".to_string().into(),
+        },
+        Token {
+            kind: TokenType::STRING,
+            literal: "bar".to_string().into(),
+        },
+        Token {
+            kind: TokenType::RBRACE,
+            literal: "}".to_string().into(),
         },
         // EOF
         Token {
@@ -1829,5 +1852,115 @@ fn test_array_index_expressions() {
                 assert_eq!(err, evaluated.unwrap_err());
             }
         }
+    }
+}
+
+#[test]
+fn test_parse_hash_literal_string_keys() {
+    let input = "{\"one\": 1, \"two\": 2, \"three\": 3,}";
+    let expected = vec![("one", 1), ("two", 2), ("three", 3)];
+    let program = prepare_program_for_test(input);
+    assert_eq!(program.statements.len(), 1);
+    if let Statement::Expression {
+        value: Expression::HashMap(HashLiteral { pairs, .. }),
+        ..
+    } = &program.statements[0]
+    {
+        assert_eq!(pairs.len(), 3);
+        for (idx, value) in pairs.iter().enumerate() {
+            assert_eq!(
+                value.0,
+                Expression::from_string(expected[idx].0.to_string())
+            );
+
+            assert_eq!(value.1, Expression::from_int(expected[idx].1));
+        }
+    } else {
+        panic!("Did not parse hashmap")
+    }
+}
+
+#[test]
+fn test_parse_hash_literal_bool_keys() {
+    let input = "{true: 1, false: 2}";
+    let expected = vec![(true, 1), (false, 2)];
+    let program = prepare_program_for_test(input);
+    assert_eq!(program.statements.len(), 1);
+    if let Statement::Expression {
+        value: Expression::HashMap(HashLiteral { pairs, .. }),
+        ..
+    } = &program.statements[0]
+    {
+        assert_eq!(pairs.len(), 2);
+        for (idx, value) in pairs.iter().enumerate() {
+            assert_eq!(value.0, Expression::from_bool(expected[idx].0));
+
+            assert_eq!(value.1, Expression::from_int(expected[idx].1));
+        }
+    } else {
+        panic!("Did not parse hashmap")
+    }
+}
+
+#[test]
+fn test_parse_hash_literal_int_keys() {
+    let input = "{1: 1, 2: 2, 3: 3}";
+    let expected = vec![(1, 1), (2, 2), (3, 3)];
+    let program = prepare_program_for_test(input);
+    assert_eq!(program.statements.len(), 1);
+    if let Statement::Expression {
+        value: Expression::HashMap(HashLiteral { pairs, .. }),
+        ..
+    } = &program.statements[0]
+    {
+        assert_eq!(pairs.len(), 3);
+        for (idx, value) in pairs.iter().enumerate() {
+            assert_eq!(value.0, Expression::from_int(expected[idx].0));
+
+            assert_eq!(value.1, Expression::from_int(expected[idx].1));
+        }
+    } else {
+        panic!("Did not parse hashmap")
+    }
+}
+
+#[test]
+fn test_parse_hash_literal_expression_keys() {
+    let input = "{1: 0 + 1, 2: 10 - 8, 3: 15 / 5}";
+    let program = prepare_program_for_test(input);
+    assert_eq!(program.statements.len(), 1);
+    if let Statement::Expression {
+        value: Expression::HashMap(HashLiteral { pairs, .. }),
+        ..
+    } = &program.statements[0]
+    {
+        assert_eq!(pairs.len(), 3);
+
+        assert_eq!(pairs[0].0, Expression::from_int(1));
+        assert!(test_infix_expression(&pairs[0].1, 0, "+", 1));
+
+        assert_eq!(pairs[1].0, Expression::from_int(2));
+        assert!(test_infix_expression(&pairs[1].1, 10, "-", 8));
+
+        assert_eq!(pairs[2].0, Expression::from_int(3));
+        assert!(test_infix_expression(&pairs[2].1, 15, "/", 5));
+    } else {
+        panic!("Did not parse hashmap")
+    }
+}
+
+#[test]
+fn test_parse_empty_hash_literal() {
+    let input = "{}";
+    let program = prepare_program_for_test(input);
+    assert_eq!(program.statements.len(), 1);
+    if let Statement::Expression {
+        value: Expression::HashMap(HashLiteral { pairs, .. }),
+        ..
+    } = &program.statements[0]
+    {
+        assert_eq!(pairs.len(), 0)
+    } else {
+        panic!("Did not get (empty) hashmap");
     }
 }

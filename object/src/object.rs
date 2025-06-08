@@ -4,9 +4,9 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use ast::{
-    ArrayLiteral, BlockStatement, CallExpression, Expression, FunctionLiteral, Identifier,
-    IfExpression, IndexExpression, InfixExpression, Node, PrefixExpression, Program, Statement,
-    StringLiteral,
+    ArrayLiteral, BlockStatement, CallExpression, Expression, FunctionLiteral, HashLiteral,
+    Identifier, IfExpression, IndexExpression, InfixExpression, Node, PrefixExpression, Program,
+    Statement, StringLiteral,
 };
 
 type BuiltinFn = fn(args: Vec<Object>) -> Result<Object, EvalError>;
@@ -586,6 +586,9 @@ impl CoerceObject for Expression {
                 let left = left.evaluate(env)?;
                 let index = index.evaluate(env)?;
                 evaluate_index_expression(left, index)?
+            }
+            Expression::HashMap(HashLiteral { token, pairs }) => {
+                todo!()
             }
         };
         Ok(result)

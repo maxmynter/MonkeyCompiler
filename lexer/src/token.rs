@@ -15,6 +15,7 @@ pub enum TokenType {
     MINUS,
     COMMA,
     SEMICOLON,
+    COLON,
     LPAREN,
     RPAREN,
     LBRACE,
@@ -56,6 +57,7 @@ lazy_static! {
             ('>', TokenType::GT),
             ('[', TokenType::LBRACKET),
             (']', TokenType::RBRACKET),
+            (':', TokenType::COLON),
         ]
         .iter()
         .cloned()
@@ -95,7 +97,7 @@ impl Keywords {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Token {
     pub kind: TokenType,
     pub literal: Rc<String>,
