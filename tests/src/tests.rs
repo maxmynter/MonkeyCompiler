@@ -1504,7 +1504,7 @@ fn test_function_object() {
     {
         assert_eq!(parameters.len(), 1);
         assert_eq!(parameters[0].as_string(), "x");
-        assert_eq!(body.to_string(), "(x + 2)");
+        assert_eq!(body.to_string(), "{\n (x + 2)\n}");
     } else {
         panic!("This should be a function and not error, really")
     }
