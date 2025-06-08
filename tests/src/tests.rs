@@ -1738,7 +1738,6 @@ fn test_parse_array_literals() {
 fn test_parse_index_expression() {
     let input = "myArray[1 + 1]";
     let program = prepare_program_for_test(input);
-    dbg!(&program);
     assert_eq!(program.statements.len(), 1);
     if let Statement::Expression {
         value: Expression::Index(idx),
@@ -1821,7 +1820,6 @@ fn test_array_index_expressions() {
     ];
 
     for tt in tests {
-        dbg!(tt.input);
         let evaluated = test_evaluator(tt.input);
         match tt.expected {
             Ok(expected) => {

@@ -204,7 +204,7 @@ impl Node for FunctionLiteral {
 
     fn as_string(&self) -> String {
         let mut out = String::new();
-        out.push('(');
+        out.push_str("fn(");
         out.push_str(
             &self
                 .parameters
@@ -214,6 +214,7 @@ impl Node for FunctionLiteral {
                 .join(", "),
         );
         out.push(')');
+        out.push_str(&self.body.as_string());
         out
     }
 }
@@ -289,10 +290,16 @@ pub struct BlockStatement {
 
 impl Node for BlockStatement {
     fn as_string(&self) -> String {
-        let mut out = String::new();
-        for s in &self.statements {
-            out.push_str(&s.to_string())
-        }
+        let mut out = String::from("{\n");
+        out.push_str(
+            &self
+                .statements
+                .iter()
+                .map(|s| format!(" {}", s.as_string()))
+                .collect::<Vec<_>>()
+                .join("\n"),
+        );
+        out.push_str("\n}");
         out
     }
 
@@ -322,10 +329,11 @@ impl Node for IfExpression {
 
     fn as_string(&self) -> String {
         let mut out = String::new();
-        out.push_str("if");
+        out.push_str("if ");
         out.push_str(&self.condition.as_string());
         out.push_str(&self.consequence.as_string());
         if let Some(alternative) = &self.alternative {
+            out.push_str(" else ");
             out.push_str(&alternative.as_string());
         }
         out

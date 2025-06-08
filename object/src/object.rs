@@ -5,7 +5,7 @@ use std::rc::Rc;
 
 use ast::{
     ArrayLiteral, BlockStatement, CallExpression, Expression, FunctionLiteral, Identifier,
-    IfExpression, IndexExpression, InfixExpression, PrefixExpression, Program, Statement,
+    IfExpression, IndexExpression, InfixExpression, Node, PrefixExpression, Program, Statement,
     StringLiteral,
 };
 
@@ -232,9 +232,8 @@ impl ObjectTraits for Object {
                         .collect::<Vec<_>>()
                         .join(", "),
                 );
-                out.push_str(") {\n");
-                out.push_str(&body.to_string());
-                out.push_str("\n}");
+                out.push(')');
+                out.push_str(&body.as_string());
                 out
             }
             Object::Array { elements } => {
