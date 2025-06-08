@@ -108,6 +108,7 @@ lazy_static! {
             ("first", builtin_first as BuiltinFn),
             ("last", builtin_last as BuiltinFn),
             ("rest", builtin_rest as BuiltinFn),
+            ("push", builtin_push as BuiltinFn),
         ]
         .iter()
         .cloned()
@@ -122,6 +123,21 @@ fn expect_builtin_args_len<T>(args: &[T], length: usize) -> Result<(), EvalError
         })
     } else {
         Ok(())
+    }
+}
+
+fn builtin_push(args: Vec<Object>) -> Result<Object, EvalError> {
+    expect_builtin_args_len(&args, 2)?;
+    if let Object::Array { elements } = &args[0] {
+        let mut extended_elements = elements.clone();
+        extended_elements.push(args[1].clone());
+        Ok(Object::Array {
+            elements: extended_elements.to_vec(),
+        })
+    } else {
+        Err(EvalError::Error {
+            message: "can only apply push to type array".to_string(),
+        })
     }
 }
 

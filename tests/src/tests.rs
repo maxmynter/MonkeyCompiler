@@ -1653,6 +1653,14 @@ fn test_builtin_functions() {
             input: "rest([])",
             expected: Expected::Null(NULL),
         },
+        TestBuiltIns {
+            input: "push([], 1)",
+            expected: Expected::IntArray(vec![1]),
+        },
+        TestBuiltIns {
+            input: "push([1, 2, 3], 4)",
+            expected: Expected::IntArray(vec![1, 2, 3, 4]),
+        },
     ];
 
     for tt in tests {
