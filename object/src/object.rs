@@ -1,6 +1,7 @@
 use lazy_static::lazy_static;
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{HashMap, hash_map::DefaultHasher};
+use std::hash::{Hash, Hasher};
 use std::rc::Rc;
 
 use ast::{
@@ -10,6 +11,12 @@ use ast::{
 };
 
 type BuiltinFn = fn(args: Vec<Object>) -> Result<Object, EvalError>;
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct HashKey {
+    kind: String,
+    value: u64,
+}
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct Environment {
@@ -77,12 +84,14 @@ pub enum Object {
 pub trait ObjectTraits {
     fn inspect(&self) -> String;
     fn object_type(&self) -> String;
+    fn hash(&self) -> Result<HashKey, EvalError>;
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum EvalError {
     Error { message: String },
     IndexError { message: String },
+    Unhashable { message: String },
 }
 
 impl ObjectTraits for EvalError {
@@ -90,6 +99,7 @@ impl ObjectTraits for EvalError {
         match &self {
             EvalError::Error { message } => format!("Error: {}", message),
             EvalError::IndexError { message } => format!("Index Error: {}", message),
+            EvalError::Unhashable { message } => format!("Cannot hash unhashable: {}", message),
         }
     }
 
@@ -97,7 +107,14 @@ impl ObjectTraits for EvalError {
         match &self {
             EvalError::Error { .. } => "ERROR".to_string(),
             EvalError::IndexError { .. } => "INDEX_ERROR".to_string(),
+            EvalError::Unhashable { .. } => "UNHASHABLE_ERROR".to_string(),
         }
+    }
+
+    fn hash(&self) -> Result<String, EvalError> {
+        Err(EvalError::Unhashable {
+            message: "cannot hash error".to_string(),
+        })
     }
 }
 
@@ -261,6 +278,30 @@ impl ObjectTraits for Object {
             Object::Function { .. } => "FUNCTION".to_string(),
             Object::String { .. } => "STRING".to_string(),
             Object::Array { .. } => "ARRAY".to_string(),
+        }
+    }
+
+    fn hash(&self) -> Result<HashKey, EvalError> {
+        match &self {
+            Object::String { value } => {
+                let mut hasher = DefaultHasher::new();
+                value.hash(&mut hasher);
+                Ok(HashKey {
+                    kind: self.object_type(),
+                    value: hasher.finish(),
+                })
+            }
+            Object::Boolean { value } => Ok(HashKey {
+                value: if *value { 1 } else { 0 },
+                kind: self.object_type(),
+            }),
+            Object::Integer { value } => Ok(HashKey {
+                kind: self.object_type(),
+                value: *value as u64,
+            }),
+            other => Err(EvalError::Unhashable {
+                message: format!("cannot hash: {}", other.object_type()),
+            }),
         }
     }
 }

@@ -1964,3 +1964,62 @@ fn test_parse_empty_hash_literal() {
         panic!("Did not get (empty) hashmap");
     }
 }
+
+#[test]
+fn test_string_hash_key() {
+    let hello1 = Object::String {
+        value: "Hello World".to_string(),
+    };
+    let hello2 = Object::String {
+        value: "Hello World".to_string(),
+    };
+
+    let diff1 = Object::String {
+        value: "My name is Johnny".to_string(),
+    };
+    let diff2 = Object::String {
+        value: "My name is Johnny".to_string(),
+    };
+
+    if hello1.hash().unwrap() != hello2.hash().unwrap() {
+        panic!("string with same content has different hash key");
+    }
+
+    if diff1.hash().unwrap() != diff2.hash().unwrap() {
+        panic!("string with same content has different hash key");
+    }
+
+    if diff1.hash().unwrap() == hello1.hash().unwrap() {
+        panic!("string with different content has same hash key");
+    }
+}
+
+#[test]
+fn test_int_hash_key() {
+    let val1 = Object::Integer { value: 1 };
+    let val1_ = Object::Integer { value: 1 };
+    let val2 = Object::Integer { value: 2 };
+
+    if val1.hash().unwrap() != val1_.hash().unwrap() {
+        panic!("int with same content has different hash key");
+    }
+
+    if val2.hash().unwrap() == val1.hash().unwrap() {
+        panic!("int with different content has same hash key");
+    }
+}
+
+#[test]
+fn test_bool_hash_key() {
+    let yes = Object::Boolean { value: true };
+    let yep = Object::Boolean { value: true };
+    let nope = Object::Boolean { value: false };
+
+    if yes.hash().unwrap() != yep.hash().unwrap() {
+        panic!("bool with same content has different hash key");
+    }
+
+    if yep.hash().unwrap() == nope.hash().unwrap() {
+        panic!("bool with different content has same hash key");
+    }
+}
