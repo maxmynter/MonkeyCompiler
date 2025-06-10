@@ -7,9 +7,12 @@ use ast::{
 };
 use lexer::Lexer;
 use lexer::{Token, TokenType};
-use object::{CoerceObject, Environment, EvalError, NULL, Object, ObjectTraits};
+use object::{
+    CoerceObject, Environment, EvalError, FALSE, HashKey, NULL, Object, ObjectTraits, TRUE,
+};
 use parser::Parser;
 use std::collections::HashMap;
+use std::hash::Hash;
 use std::rc::Rc;
 
 #[test]
@@ -2021,5 +2024,54 @@ fn test_bool_hash_key() {
 
     if yep.hash().unwrap() == nope.hash().unwrap() {
         panic!("bool with different content has same hash key");
+    }
+}
+
+#[test]
+fn test_hash_literal() {
+    let input = "let two = \"two\"; 
+        {
+        \"one\": 10 -9, two : 1 + 1, \"thr\" + \"ee\":6 / 2,
+        4: 4, true: 5, false: 6
+        }
+        ";
+    let evaluated = test_evaluator(input);
+    let expected = vec![
+        (
+            Object::String {
+                value: "one".to_string(),
+            }
+            .hash()
+            .unwrap(),
+            1,
+        ),
+        (
+            Object::String {
+                value: "two".to_string(),
+            }
+            .hash()
+            .unwrap(),
+            2,
+        ),
+        (
+            Object::String {
+                value: "three".to_string(),
+            }
+            .hash()
+            .unwrap(),
+            3,
+        ),
+        (Object::Integer { value: 4 }.hash().unwrap(), 4),
+        (TRUE.hash().unwrap(), 5),
+        (FALSE.hash().unwrap(), 6),
+    ];
+    if let Ok(Object::Hash { pairs }) = evaluated {
+        assert_eq!(pairs.len(), expected.len());
+        for (ex_key, ex_value) in expected {
+            let key_val = pairs.get(&ex_key).unwrap();
+            test_object!(key_val.value, ex_value, Integer);
+        }
+    } else {
+        panic!("Expected Hashmap")
     }
 }

@@ -12,13 +12,19 @@ use ast::{
 
 type BuiltinFn = fn(args: Vec<Object>) -> Result<Object, EvalError>;
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone)]
+pub struct HashPair {
+    pub key: Object,
+    pub value: Object,
+}
+
+#[derive(PartialEq, Eq, Debug, Clone, Hash)]
 pub struct HashKey {
     kind: String,
     value: u64,
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub struct Environment {
     store: HashMap<String, Object>,
     outer: Option<Rc<RefCell<Environment>>>,
@@ -53,8 +59,11 @@ impl Environment {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Object {
+    Hash {
+        pairs: HashMap<HashKey, HashPair>,
+    },
     Integer {
         value: i64,
     },
@@ -111,7 +120,7 @@ impl ObjectTraits for EvalError {
         }
     }
 
-    fn hash(&self) -> Result<String, EvalError> {
+    fn hash(&self) -> Result<HashKey, EvalError> {
         Err(EvalError::Unhashable {
             message: "cannot hash error".to_string(),
         })
@@ -265,6 +274,20 @@ impl ObjectTraits for Object {
                 out.push(']');
                 out
             }
+            Object::Hash { pairs } => {
+                let mut out = String::from("{ ");
+                out.push_str(
+                    &pairs
+                        .iter()
+                        .map(|(_, pair)| {
+                            format!("{}: {}", pair.key.inspect(), pair.value.inspect())
+                        })
+                        .collect::<Vec<_>>()
+                        .join(", "),
+                );
+                out.push('}');
+                out
+            }
         }
     }
 
@@ -278,6 +301,7 @@ impl ObjectTraits for Object {
             Object::Function { .. } => "FUNCTION".to_string(),
             Object::String { .. } => "STRING".to_string(),
             Object::Array { .. } => "ARRAY".to_string(),
+            Object::Hash { .. } => "HASH".to_string(),
         }
     }
 
@@ -628,8 +652,15 @@ impl CoerceObject for Expression {
                 let index = index.evaluate(env)?;
                 evaluate_index_expression(left, index)?
             }
-            Expression::HashMap(HashLiteral { token, pairs }) => {
-                todo!()
+            Expression::HashMap(HashLiteral { pairs, .. }) => {
+                let mut hash_pairs = HashMap::new();
+                for (key_expr, val_expr) in pairs {
+                    let key = key_expr.evaluate(env)?;
+                    let value = val_expr.evaluate(env)?;
+                    let hash_key = key.hash()?;
+                    hash_pairs.insert(hash_key, HashPair { key, value });
+                }
+                Object::Hash { pairs: hash_pairs }
             }
         };
         Ok(result)
