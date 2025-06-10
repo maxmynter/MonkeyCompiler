@@ -1477,11 +1477,17 @@ fn test_error_handling() {
             input: "\"Hello\" - \"World\"",
             expected: "unknown operator: STRING - STRING",
         },
+        ErrorHandlingTest {
+            input: "{\"name\": \"monkey\"}[fn(x) {x}]",
+            expected: "unusable as hash key: FUNCTION",
+        },
     ];
 
     for tt in tests {
         let evaluated = test_evaluator(tt.input);
-        if let Err(EvalError::Error { message }) = evaluated {
+        if let Err(EvalError::Error { message }) | Err(EvalError::Unhashable { message }) =
+            evaluated
+        {
             assert_eq!(message, tt.expected);
         } else {
             panic!("Did not throw expected error: {}", tt.expected)
@@ -2073,5 +2079,60 @@ fn test_hash_literal() {
         }
     } else {
         panic!("Expected Hashmap")
+    }
+}
+#[test]
+fn test_hash_index_expressions() {
+    enum Expected {
+        Integer(i64),
+        Null,
+    }
+
+    struct HashIndexTest {
+        input: &'static str,
+        expected: Expected,
+    }
+
+    let tests = [
+        HashIndexTest {
+            input: r#"{"foo": 5}["foo"]"#,
+            expected: Expected::Integer(5),
+        },
+        HashIndexTest {
+            input: r#"{"foo": 5}["bar"]"#,
+            expected: Expected::Null,
+        },
+        HashIndexTest {
+            input: r#"let key = "foo"; {"foo": 5}[key]"#,
+            expected: Expected::Integer(5),
+        },
+        HashIndexTest {
+            input: r#"{}["foo"]"#,
+            expected: Expected::Null,
+        },
+        HashIndexTest {
+            input: "{5: 5}[5]",
+            expected: Expected::Integer(5),
+        },
+        HashIndexTest {
+            input: "{true: 5}[true]",
+            expected: Expected::Integer(5),
+        },
+        HashIndexTest {
+            input: "{false: 5}[false]",
+            expected: Expected::Integer(5),
+        },
+    ];
+
+    for tt in tests {
+        let evaluated = test_evaluator(tt.input).unwrap();
+        match tt.expected {
+            Expected::Integer(expected_val) => {
+                test_object!(evaluated, expected_val, Integer);
+            }
+            Expected::Null => {
+                assert_eq!(evaluated, NULL);
+            }
+        }
     }
 }

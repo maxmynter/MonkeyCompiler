@@ -135,6 +135,7 @@ lazy_static! {
             ("last", builtin_last as BuiltinFn),
             ("rest", builtin_rest as BuiltinFn),
             ("push", builtin_push as BuiltinFn),
+            ("push", builtin_puts as BuiltinFn),
         ]
         .iter()
         .cloned()
@@ -150,6 +151,13 @@ fn expect_builtin_args_len<T>(args: &[T], length: usize) -> Result<(), EvalError
     } else {
         Ok(())
     }
+}
+
+fn builtin_puts(args: Vec<Object>) -> Result<Object, EvalError> {
+    for arg in args {
+        println!("{}", arg.inspect());
+    }
+    Ok(NULL)
 }
 
 fn builtin_push(args: Vec<Object>) -> Result<Object, EvalError> {
@@ -668,13 +676,31 @@ impl CoerceObject for Expression {
 }
 
 fn evaluate_index_expression(left: Object, index: Object) -> Result<Object, EvalError> {
-    match (&left, index) {
+    match (&left, &index) {
         (Object::Array { elements }, Object::Integer { value }) => {
-            eval_array_index_expression(elements, value)
+            eval_array_index_expression(elements, value.clone())
         }
+        (Object::Hash { .. }, _) => eval_hash_index_expression(left, index),
         _ => Err(EvalError::Error {
             message: format!("index operator not supported: {}", left.object_type()),
         }),
+    }
+}
+
+fn eval_hash_index_expression(left: Object, index: Object) -> Result<Object, EvalError> {
+    if let Ok(hash) = index.hash() {
+        if let Object::Hash { pairs } = left {
+            match pairs.get(&hash) {
+                Some(pair) => Ok(pair.value.clone()),
+                None => Ok(NULL),
+            }
+        } else {
+            panic!("Expected left Hash Object");
+        }
+    } else {
+        Err(EvalError::Unhashable {
+            message: format!("unusable as hash key: {}", index.object_type()),
+        })
     }
 }
 
