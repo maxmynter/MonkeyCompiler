@@ -135,7 +135,7 @@ lazy_static! {
             ("last", builtin_last as BuiltinFn),
             ("rest", builtin_rest as BuiltinFn),
             ("push", builtin_push as BuiltinFn),
-            ("push", builtin_puts as BuiltinFn),
+            ("puts", builtin_puts as BuiltinFn),
         ]
         .iter()
         .cloned()
