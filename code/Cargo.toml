@@ -1,0 +1,11 @@
+[package]
+name = "code"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "code"
+path = "src/code.rs"
+
+[dependencies]
+lazy_static = "1.5.0"
