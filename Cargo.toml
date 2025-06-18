@@ -1,0 +1,4 @@
+[workspace]
+members = [ "ast", "lexer", "object", "parser", "repl", "tests"]
+resolver = "2"
+

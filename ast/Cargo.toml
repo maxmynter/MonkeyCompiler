@@ -1,0 +1,12 @@
+[package]
+name = "ast"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "ast"
+path = "src/ast.rs"
+
+[dependencies]
+lexer = { path = "../lexer" }
+
