@@ -13,3 +13,4 @@ lexer = { path = "../lexer" }
 object = { path = "../object" }
 parser = { path = "../parser"}
 ast = { path = "../ast"}
+code = { path = "../code"}

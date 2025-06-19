@@ -1,6 +1,5 @@
-use std::collections::HashMap;
-
 use lazy_static::lazy_static;
+use std::collections::HashMap;
 
 type Instructions = Vec<u8>;
 
@@ -13,7 +12,7 @@ pub enum Opcode {
 #[derive(Clone)]
 pub struct Definition {
     pub name: String,
-    pub operand_width: Vec<usize>,
+    pub operand_widths: Vec<usize>,
 }
 
 lazy_static! {
@@ -22,7 +21,7 @@ lazy_static! {
             Opcode::Constant,
             Definition {
                 name: "OpConstant".to_string(),
-                operand_width: vec![2],
+                operand_widths: vec![2],
             },
         )]
         .iter()
@@ -38,4 +37,29 @@ pub fn lookup(op: Opcode) -> Option<Definition> {
         eprintln!("Undefined op code: {:?}", op);
         None
     }
+}
+
+pub fn make(op: Opcode, operands: &[isize]) -> Vec<u8> {
+    let def = match DEFINITIONS.get(&op) {
+        Some(def) => def,
+        None => {
+            return Vec::new();
+        }
+    };
+    let mut instruction = Vec::new();
+    instruction.push(op as u8);
+
+    for (i, &operand) in operands.iter().enumerate() {
+        let width = def.operand_widths[i];
+        match width {
+            2 => {
+                let bytes = (operand as u16).to_be_bytes();
+                instruction.extend_from_slice(&bytes);
+            }
+            _ => {
+                unreachable!()
+            }
+        }
+    }
+    instruction
 }

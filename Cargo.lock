@@ -60,6 +60,7 @@ name = "tests"
 version = "0.1.0"
 dependencies = [
  "ast",
+ "code",
  "lexer",
  "object",
  "parser",
