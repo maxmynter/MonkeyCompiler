@@ -1,7 +1,7 @@
 use lazy_static::lazy_static;
 use std::collections::HashMap;
 
-type Instructions = Vec<u8>;
+pub type Instructions = Vec<u8>;
 
 #[repr(u8)]
 #[derive(Hash, Eq, PartialEq, Clone, Copy, Debug)]
