@@ -4,29 +4,31 @@ use object::Object;
 
 pub struct Compiler {
     pub instructions: Instructions,
-    pub constants: Object,
+    pub constants: Vec<Object>,
 }
 
 impl Compiler {
     pub fn new() -> Self {
         Compiler {
             instructions: Instructions::new(),
-            constants: Object::Null,
+            constants: Vec::new(),
         }
     }
 
-    pub fn compile(node: impl Node) {
-        todo!()
+    pub fn compile(&self, node: impl Node) -> Result<(), String> {
+        // TODO
+        Ok(())
     }
-    pub fn bytecode(self) -> Bytecode {
+
+    pub fn bytecode(&self) -> Bytecode {
         Bytecode {
-            instructions: self.instructions,
-            constants: self.constants,
+            instructions: self.instructions.clone(),
+            constants: self.constants.clone(),
         }
     }
 }
 
 pub struct Bytecode {
     pub instructions: Instructions,
-    pub constants: Object,
+    pub constants: Vec<Object>,
 }

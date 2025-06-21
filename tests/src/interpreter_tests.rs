@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 #![allow(unused_macros)]
 #![allow(unused_imports)]
+use crate::utils::prepare_program_for_test;
 use ast::{
     ArrayLiteral, CallExpression, Expression, FunctionLiteral, HashLiteral, Identifier,
     IfExpression, IntegerLiteral, Node, Program, Statement, StringLiteral,
@@ -489,28 +490,13 @@ fn test_parse_code() {
         assert_eq!(tok, expected[i]);
     }
 }
+
 fn unwrap_expression(stmt: &Statement) -> &Expression {
     if let Statement::Expression { value, .. } = stmt {
         value
     } else {
         panic!("Statement is not an expression statment")
     }
-}
-
-fn check_parse_errors(p: Parser) {
-    println!("Parser has {} errors", p.errors.len());
-    for msg in &p.errors {
-        eprintln!("Error: {}", msg);
-    }
-    assert_eq!(p.errors.len(), 0);
-}
-
-fn prepare_program_for_test(input: &str) -> Program {
-    let l = Lexer::new(input);
-    let mut p = Parser::new(l);
-    let program = p.parse_program();
-    check_parse_errors(p);
-    program
 }
 
 trait TestLiteral {
