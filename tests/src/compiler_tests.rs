@@ -9,7 +9,7 @@ fn test_make() {
         op: Opcode,
         operands: Vec<isize>,
         expected: Vec<u8>,
-    };
+    }
     let cases = [Test {
         op: Opcode::Constant,
         operands: vec![65534],
@@ -37,6 +37,7 @@ fn concat_instructions(s: Vec<Instructions>) -> Instructions {
     }
     out
 }
+
 fn test_instructions(expected: Vec<Instructions>, actual: &Instructions) -> Result<(), String> {
     let concatenated = concat_instructions(expected);
     assert_eq!(actual.len(), concatenated.len());
@@ -108,4 +109,19 @@ fn run_compiler_tests(tests: Vec<CompilerTest>) {
             panic!("testConstants failed: {}", e);
         }
     }
+}
+
+#[test]
+fn test_instructions_string() {
+    let instructions = vec![
+        make(Opcode::Constant, &[1]),
+        make(Opcode::Constant, &[2]),
+        make(Opcode::Constant, &[65535]),
+    ];
+
+    let expected = "0000 OpConstant 1
+0003 OpConstant 2
+0006 OpConstant 65535";
+    let mut concatted = concat_instructions(instructions);
+    assert_eq!(concatted.as_string(), expected);
 }

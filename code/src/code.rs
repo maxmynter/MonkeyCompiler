@@ -1,7 +1,49 @@
 use lazy_static::lazy_static;
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    ops::{Deref, DerefMut},
+};
 
-pub type Instructions = Vec<u8>;
+#[derive(Clone)]
+pub struct Instructions(Vec<u8>);
+
+impl Instructions {
+    pub fn new() -> Self {
+        Self(Vec::new())
+    }
+
+    pub fn as_string(&self) -> String {
+        todo!()
+    }
+}
+
+impl IntoIterator for Instructions {
+    type Item = u8;
+    type IntoIter = std::vec::IntoIter<u8>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+impl<'a> IntoIterator for &'a Instructions {
+    type Item = &'a u8;
+    type IntoIter = std::slice::Iter<'a, u8>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter()
+    }
+}
+
+impl Deref for Instructions {
+    type Target = Vec<u8>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for Instructions {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
 
 #[repr(u8)]
 #[derive(Hash, Eq, PartialEq, Clone, Copy, Debug)]
@@ -39,14 +81,14 @@ pub fn lookup(op: Opcode) -> Option<Definition> {
     }
 }
 
-pub fn make(op: Opcode, operands: &[isize]) -> Vec<u8> {
+pub fn make(op: Opcode, operands: &[isize]) -> Instructions {
     let def = match DEFINITIONS.get(&op) {
         Some(def) => def,
         None => {
-            return Vec::new();
+            return Instructions::new();
         }
     };
-    let mut instruction = Vec::new();
+    let mut instruction = Instructions::new();
     instruction.push(op as u8);
 
     for (i, &operand) in operands.iter().enumerate() {
