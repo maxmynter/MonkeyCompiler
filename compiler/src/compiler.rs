@@ -7,6 +7,12 @@ pub struct Compiler {
     pub constants: Vec<Object>,
 }
 
+impl Default for Compiler {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Compiler {
     pub fn new() -> Self {
         Compiler {

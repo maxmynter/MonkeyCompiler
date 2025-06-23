@@ -91,9 +91,9 @@ fn compiler_tests() {
 
 fn run_compiler_tests(tests: Vec<CompilerTest>) {
     for tt in tests {
-        let program = prepare_program_for_test(&tt.input);
+        let program = prepare_program_for_test(tt.input);
 
-        let mut compiler = Compiler::new();
+        let compiler = Compiler::new();
 
         if let Err(e) = compiler.compile(program) {
             panic!("compiler error: {}", e);
@@ -123,7 +123,7 @@ fn test_instructions_string() {
 0003 OpConstant 2
 0006 OpConstant 65535
 ";
-    let mut concatted = concat_instructions(instructions);
+    let concatted = concat_instructions(instructions);
     assert_eq!(concatted.as_string(), expected);
 }
 

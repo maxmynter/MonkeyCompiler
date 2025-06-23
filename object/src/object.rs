@@ -678,7 +678,7 @@ impl CoerceObject for Expression {
 fn evaluate_index_expression(left: Object, index: Object) -> Result<Object, EvalError> {
     match (&left, &index) {
         (Object::Array { elements }, Object::Integer { value }) => {
-            eval_array_index_expression(elements, value.clone())
+            eval_array_index_expression(elements, *value)
         }
         (Object::Hash { .. }, _) => eval_hash_index_expression(left, index),
         _ => Err(EvalError::Error {

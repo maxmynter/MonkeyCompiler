@@ -1073,7 +1073,7 @@ fn test_function_parameter_parsing() {
     ];
 
     for tt in tests {
-        let program = prepare_program_for_test(&tt.input);
+        let program = prepare_program_for_test(tt.input);
         let expr = unwrap_expression(&program.statements[0]);
         if let Expression::FunctionLiteral(FunctionLiteral { parameters, .. }) = expr {
             assert_eq!(parameters.len(), tt.expected.len());
@@ -1193,7 +1193,7 @@ fn test_eval_integer_expression() {
     ];
 
     for tt in tests {
-        let evaluated = test_evaluator(&tt.input).unwrap();
+        let evaluated = test_evaluator(tt.input).unwrap();
         test_object!(evaluated, tt.expected, Integer);
     }
 }
@@ -1285,7 +1285,7 @@ fn test_boolean_expression() {
     ];
 
     for tt in tests {
-        let evaluated = test_evaluator(&tt.input).unwrap();
+        let evaluated = test_evaluator(tt.input).unwrap();
         test_object!(evaluated, tt.expected, Boolean);
     }
 }
@@ -1508,7 +1508,7 @@ fn test_let_statement_evaluation() {
     ];
 
     for tt in tests {
-        test_object!(test_evaluator(&tt.input).unwrap(), tt.expected, Integer);
+        test_object!(test_evaluator(tt.input).unwrap(), tt.expected, Integer);
     }
 }
 
@@ -1563,7 +1563,7 @@ fn test_function_application() {
     ];
 
     for tt in tests {
-        test_object!(test_evaluator(&tt.input).unwrap(), tt.expected, Integer);
+        test_object!(test_evaluator(tt.input).unwrap(), tt.expected, Integer);
     }
 }
 
@@ -1586,7 +1586,7 @@ fn test_string_literal_expression() {
 #[test]
 fn test_string_literal_evaluation() {
     let input = "\"hello world\"";
-    let evaluated = test_evaluator(&input);
+    let evaluated = test_evaluator(input);
     if let Ok(Object::String { value }) = evaluated {
         assert_eq!(value, "hello world")
     } else {
@@ -1706,7 +1706,7 @@ fn test_builtin_functions() {
                             .iter()
                             .map(|i| {
                                 if let Object::Integer { value } = i {
-                                    value.clone()
+                                    *value
                                 } else {
                                     panic!("Expected integer elements")
                                 }
@@ -1762,7 +1762,7 @@ fn test_parse_index_expression() {
         ..
     } = &program.statements[0]
     {
-        test_identifier(&idx.left, &"myArray");
+        test_identifier(&idx.left, "myArray");
         test_infix_expression(&idx.index, 1, "+", 1);
     } else {
         panic!("did not find index expression")
@@ -1853,7 +1853,7 @@ fn test_array_index_expressions() {
 #[test]
 fn test_parse_hash_literal_string_keys() {
     let input = "{\"one\": 1, \"two\": 2, \"three\": 3,}";
-    let expected = vec![("one", 1), ("two", 2), ("three", 3)];
+    let expected = [("one", 1), ("two", 2), ("three", 3)];
     let program = prepare_program_for_test(input);
     assert_eq!(program.statements.len(), 1);
     if let Statement::Expression {
@@ -1878,7 +1878,7 @@ fn test_parse_hash_literal_string_keys() {
 #[test]
 fn test_parse_hash_literal_bool_keys() {
     let input = "{true: 1, false: 2}";
-    let expected = vec![(true, 1), (false, 2)];
+    let expected = [(true, 1), (false, 2)];
     let program = prepare_program_for_test(input);
     assert_eq!(program.statements.len(), 1);
     if let Statement::Expression {
@@ -1900,7 +1900,7 @@ fn test_parse_hash_literal_bool_keys() {
 #[test]
 fn test_parse_hash_literal_int_keys() {
     let input = "{1: 1, 2: 2, 3: 3}";
-    let expected = vec![(1, 1), (2, 2), (3, 3)];
+    let expected = [(1, 1), (2, 2), (3, 3)];
     let program = prepare_program_for_test(input);
     assert_eq!(program.statements.len(), 1);
     if let Statement::Expression {

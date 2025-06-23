@@ -8,6 +8,12 @@ use std::{
 #[derive(Clone)]
 pub struct Instructions(Vec<u8>);
 
+impl Default for Instructions {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Instructions {
     pub fn new() -> Self {
         Self(Vec::new())
@@ -144,7 +150,7 @@ pub fn make(op: Opcode, operands: &[isize]) -> Instructions {
 }
 
 pub fn read_operands(def: &Definition, ins: Instructions) -> (Vec<isize>, usize) {
-    let mut operands = vec![0 as isize; def.operand_widths.len()];
+    let mut operands = vec![0_isize; def.operand_widths.len()];
     let mut offset = 0;
 
     for (i, &width) in def.operand_widths.iter().enumerate() {
