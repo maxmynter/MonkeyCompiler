@@ -1,6 +1,7 @@
 use lazy_static::lazy_static;
 use std::{
     collections::HashMap,
+    fmt::Write,
     ops::{Deref, DerefMut},
 };
 
@@ -13,7 +14,43 @@ impl Instructions {
     }
 
     pub fn as_string(&self) -> String {
-        todo!()
+        let mut out = String::new();
+        let mut i = 0;
+        while i < self.0.len() {
+            let opcode = match self.0[i] {
+                0 => Opcode::Constant,
+                _ => {
+                    writeln!(out, "ERROR: unknown opcode {}", self.0[i]).unwrap();
+                    i += 1;
+                    continue;
+                }
+            };
+            if let Some(def) = lookup(opcode) {
+                let (operands, read) = read_operands(&def, self.slice(i + 1..));
+                writeln!(out, "{:04} {}", i, self.fmt_instruction(&def, &operands)).unwrap();
+                i += 1 + read;
+            }
+        }
+        out
+    }
+
+    fn fmt_instruction(&self, def: &Definition, operands: &[isize]) -> String {
+        let operand_count = def.operand_widths.len();
+        if operands.len() != operand_count {
+            return format!(
+                "ERROR: operand len {} does not match defined {}",
+                operands.len(),
+                operand_count
+            );
+        }
+        match operand_count {
+            1 => format!("{} {}", def.name, operands[0]),
+            _ => format!("ERROR: unhandled operandCount for {}", def.name),
+        }
+    }
+
+    pub fn slice(&self, range: std::ops::RangeFrom<usize>) -> Instructions {
+        Instructions(self.0[range].to_vec())
     }
 }
 
@@ -104,4 +141,22 @@ pub fn make(op: Opcode, operands: &[isize]) -> Instructions {
         }
     }
     instruction
+}
+
+pub fn read_operands(def: &Definition, ins: Instructions) -> (Vec<isize>, usize) {
+    let mut operands = vec![0 as isize; def.operand_widths.len()];
+    let mut offset = 0;
+
+    for (i, &width) in def.operand_widths.iter().enumerate() {
+        match width {
+            2 => operands[i] = read_uint16(ins.slice(offset..)) as isize,
+            _ => unreachable!(),
+        }
+        offset += width;
+    }
+    (operands, offset)
+}
+
+fn read_uint16(ins: Instructions) -> u16 {
+    u16::from_be_bytes([ins[0], ins[1]])
 }

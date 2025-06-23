@@ -1,5 +1,5 @@
 use crate::utils::prepare_program_for_test;
-use code::{Instructions, Opcode, make};
+use code::{Instructions, Opcode, lookup, make, read_operands};
 use compiler::Compiler;
 use object::Object;
 
@@ -121,7 +121,36 @@ fn test_instructions_string() {
 
     let expected = "0000 OpConstant 1
 0003 OpConstant 2
-0006 OpConstant 65535";
+0006 OpConstant 65535
+";
     let mut concatted = concat_instructions(instructions);
     assert_eq!(concatted.as_string(), expected);
+}
+
+#[test]
+fn test_read_operands() {
+    struct ReadOpTest<'a> {
+        op: Opcode,
+        operands: &'a [isize],
+        bytes_read: isize,
+    }
+
+    let tests = [ReadOpTest {
+        op: Opcode::Constant,
+        operands: &[65535],
+        bytes_read: 2,
+    }];
+
+    for tt in tests {
+        let instruction = make(tt.op, tt.operands);
+        match lookup(tt.op) {
+            Some(def) => {
+                let (operands_read, _n) = read_operands(&def, instruction.slice(1..));
+                for (i, want) in tt.operands.iter().enumerate() {
+                    assert_eq!(operands_read[i], *want);
+                }
+            }
+            None => panic!("could not lookup: {:?}", tt.op),
+        }
+    }
 }
