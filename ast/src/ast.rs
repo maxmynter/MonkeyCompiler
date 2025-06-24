@@ -1,5 +1,6 @@
 use core::fmt;
 use lexer::{Token, TokenType};
+use object::Object;
 use std::rc::Rc;
 
 #[derive(PartialEq, Eq, Debug, Clone, Hash)]
@@ -9,6 +10,9 @@ pub struct HashLiteral {
 }
 
 impl Node for HashLiteral {
+    fn compile(&self) -> Result<(), String> {
+        todo!();
+    }
     fn as_string(&self) -> String {
         let mut out = String::from("{ ");
         out.push_str(
@@ -35,6 +39,9 @@ pub struct IndexExpression {
 }
 
 impl Node for IndexExpression {
+    fn compile(&self) -> Result<(), String> {
+        todo!();
+    }
     fn as_string(&self) -> String {
         let mut out = String::from("(");
         out.push_str(&self.left.to_string());
@@ -55,6 +62,9 @@ pub struct ArrayLiteral {
 }
 
 impl Node for ArrayLiteral {
+    fn compile(&self) -> Result<(), String> {
+        todo!();
+    }
     fn as_string(&self) -> String {
         let mut out = String::from("[");
         out.push_str(
@@ -82,6 +92,9 @@ pub struct CallExpression {
 }
 
 impl Node for CallExpression {
+    fn compile(&self) -> Result<(), String> {
+        todo!();
+    }
     fn token_literal(&self) -> Rc<String> {
         self.token.literal.clone()
     }
@@ -110,6 +123,9 @@ pub struct StringLiteral {
 }
 
 impl Node for StringLiteral {
+    fn compile(&self) -> Result<(), String> {
+        todo!();
+    }
     fn as_string(&self) -> String {
         self.value.clone()
     }
@@ -126,6 +142,9 @@ pub struct Boolean {
 }
 
 impl Node for Boolean {
+    fn compile(&self) -> Result<(), String> {
+        todo!();
+    }
     fn token_literal(&self) -> Rc<String> {
         self.token.literal.clone()
     }
@@ -160,6 +179,11 @@ pub struct IntegerLiteral {
 }
 
 impl Node for IntegerLiteral {
+    fn compile(&self) -> Result<(), String> {
+        Object::Integer {
+            value: self.value.clone(),
+        }
+    }
     fn token_literal(&self) -> Rc<String> {
         self.token.literal.clone()
     }
@@ -176,6 +200,9 @@ pub struct PrefixExpression {
 }
 
 impl Node for PrefixExpression {
+    fn compile(&self) -> Result<(), String> {
+        todo!();
+    }
     fn token_literal(&self) -> Rc<String> {
         self.token.literal.clone()
     }
@@ -199,6 +226,9 @@ pub struct InfixExpression {
 }
 
 impl Node for InfixExpression {
+    fn compile(&self) -> Result<(), String> {
+        todo!();
+    }
     fn token_literal(&self) -> Rc<String> {
         self.token.literal.clone()
     }
@@ -223,6 +253,9 @@ pub struct FunctionLiteral {
 }
 
 impl Node for FunctionLiteral {
+    fn compile(&self) -> Result<(), String> {
+        todo!();
+    }
     fn token_literal(&self) -> Rc<String> {
         self.token.literal.clone()
     }
@@ -316,6 +349,7 @@ pub enum Statement {
 pub trait Node {
     fn token_literal(&self) -> Rc<String>;
     fn as_string(&self) -> String;
+    fn compile(&self) -> Result<(), String>;
 }
 
 #[derive(Debug, Clone, PartialEq, Hash, Eq)]
@@ -325,6 +359,9 @@ pub struct BlockStatement {
 }
 
 impl Node for BlockStatement {
+    fn compile(&self) -> Result<(), String> {
+        todo!();
+    }
     fn as_string(&self) -> String {
         let mut out = String::from("{\n");
         out.push_str(
@@ -359,6 +396,9 @@ pub struct IfExpression {
 }
 
 impl Node for IfExpression {
+    fn compile(&self) -> Result<(), String> {
+        todo!();
+    }
     fn token_literal(&self) -> Rc<String> {
         self.token.literal.clone()
     }
@@ -382,6 +422,9 @@ pub struct Program {
 }
 
 impl Node for Program {
+    fn compile(&self) -> Result<(), String> {
+        todo!();
+    }
     fn token_literal(&self) -> Rc<String> {
         if !self.statements.is_empty() {
             self.statements[0].token_literal()
@@ -409,6 +452,9 @@ impl fmt::Display for Program {
 }
 
 impl Node for Statement {
+    fn compile(&self) -> Result<(), String> {
+        todo!();
+    }
     fn token_literal(&self) -> Rc<String> {
         match self {
             Statement::Let { token, .. }
@@ -455,6 +501,9 @@ impl fmt::Display for Expression {
 }
 
 impl Node for Expression {
+    fn compile(&self) -> Result<(), String> {
+        todo!();
+    }
     fn token_literal(&self) -> Rc<String> {
         match self {
             Expression::Identifier(Identifier { token, .. })
@@ -491,6 +540,9 @@ impl Node for Expression {
 }
 
 impl Node for Identifier {
+    fn compile(&self) -> Result<(), String> {
+        todo!();
+    }
     fn token_literal(&self) -> Rc<String> {
         self.token.literal.clone()
     }

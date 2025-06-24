@@ -26,6 +26,10 @@ impl Compiler {
         Ok(())
     }
 
+    pub fn add_constant(&mut self, obj: Object) -> isize {
+        self.constants.extend(obj);
+    }
+
     pub fn bytecode(&self) -> Bytecode {
         Bytecode {
             instructions: self.instructions.clone(),
