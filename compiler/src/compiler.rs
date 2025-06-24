@@ -1,5 +1,5 @@
-use ast::Node;
-use code::Instructions;
+use ast::{Expression, InfixExpression, IntegerLiteral, Node, Program, Statement};
+use code::{Instructions, Opcode};
 use object::Object;
 
 pub struct Compiler {
@@ -21,13 +21,20 @@ impl Compiler {
         }
     }
 
-    pub fn compile(&self, node: impl Node) -> Result<(), String> {
-        // TODO
-        Ok(())
+    pub fn compile(&mut self, node: impl Compilable) -> Result<(), String> {
+        eprintln!("CompilwWWWWEEE");
+        node.compile(self)
     }
 
     pub fn add_constant(&mut self, obj: Object) -> isize {
-        self.constants.extend(obj);
+        self.constants.push(obj);
+        (self.constants.len() - 1) as isize
+    }
+
+    pub fn add_instructions(&mut self, ins: Instructions) -> usize {
+        let pos = self.instructions.len();
+        self.instructions.extend(ins);
+        pos
     }
 
     pub fn bytecode(&self) -> Bytecode {
@@ -36,9 +43,62 @@ impl Compiler {
             constants: self.constants.clone(),
         }
     }
+
+    pub fn emit(&mut self, op: Opcode, operands: &[isize]) -> usize {
+        let ins = code::make(op, operands);
+        let pos = self.add_instructions(ins);
+        pos
+    }
 }
 
 pub struct Bytecode {
     pub instructions: Instructions,
     pub constants: Vec<Object>,
+}
+
+trait Compilable {
+    fn compile(&self, c: &mut Compiler) -> Result<(), String>;
+}
+
+impl Compilable for IntegerLiteral {
+    fn compile(&self, c: &mut Compiler) -> Result<(), String> {
+        let integer = Object::Integer { value: self.value };
+        let pos = c.add_constant(integer);
+        c.emit(Opcode::Constant, &[pos]);
+        Ok(())
+    }
+}
+
+impl Compilable for Program {
+    fn compile(&self, c: &mut Compiler) -> Result<(), String> {
+        eprintln!("PROGRAM");
+        for statement in &self.statements {
+            statement.compile(c)?;
+        }
+        Ok(())
+    }
+}
+
+impl Compilable for Statement {
+    fn compile(&self, c: &mut Compiler) -> Result<(), String> {
+        match self {
+            Statement::Let { .. } => todo!(),
+            Statement::Return { .. } => todo!(),
+            Statement::Expression { value, .. } => value.compile(c),
+        }
+    }
+}
+
+impl Compilable for Expression {
+    fn compile(&self, c: &mut Compiler) -> Result<(), String> {
+        match self {
+            Expression::IntegerLiteral(int_lit) => int_lit.compile(c),
+            Expression::InfixExpression(infix) => {
+                infix.left.compile(c)?;
+                infix.right.compile(c)?;
+                Ok(())
+            }
+            _ => Ok(()), // TODO: add missing implementations
+        }
+    }
 }

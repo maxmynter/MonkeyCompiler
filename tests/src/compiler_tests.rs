@@ -93,7 +93,7 @@ fn run_compiler_tests(tests: Vec<CompilerTest>) {
     for tt in tests {
         let program = prepare_program_for_test(tt.input);
 
-        let compiler = Compiler::new();
+        let mut compiler = Compiler::new();
 
         if let Err(e) = compiler.compile(program) {
             panic!("compiler error: {}", e);
