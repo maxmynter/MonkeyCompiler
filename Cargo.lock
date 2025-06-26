@@ -75,3 +75,12 @@ dependencies = [
  "object",
  "parser",
 ]
+
+[[package]]
+name = "vm"
+version = "0.1.0"
+dependencies = [
+ "code",
+ "compiler",
+ "object",
+]
