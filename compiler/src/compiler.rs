@@ -45,8 +45,8 @@ impl Compiler {
 
     pub fn emit(&mut self, op: Opcode, operands: &[isize]) -> usize {
         let ins = code::make(op, operands);
-        let pos = self.add_instructions(ins);
-        pos
+        
+        self.add_instructions(ins)
     }
 }
 
