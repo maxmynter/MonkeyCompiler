@@ -1,4 +1,4 @@
-use ast::{Expression, InfixExpression, IntegerLiteral, Node, Program, Statement};
+use ast::{Expression, IntegerLiteral, Program, Statement};
 use code::{Instructions, Opcode};
 use object::Object;
 
@@ -22,7 +22,6 @@ impl Compiler {
     }
 
     pub fn compile(&mut self, node: impl Compilable) -> Result<(), String> {
-        eprintln!("CompilwWWWWEEE");
         node.compile(self)
     }
 
@@ -56,7 +55,7 @@ pub struct Bytecode {
     pub constants: Vec<Object>,
 }
 
-trait Compilable {
+pub trait Compilable {
     fn compile(&self, c: &mut Compiler) -> Result<(), String>;
 }
 
@@ -71,7 +70,6 @@ impl Compilable for IntegerLiteral {
 
 impl Compilable for Program {
     fn compile(&self, c: &mut Compiler) -> Result<(), String> {
-        eprintln!("PROGRAM");
         for statement in &self.statements {
             statement.compile(c)?;
         }
