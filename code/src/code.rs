@@ -5,7 +5,7 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Instructions(Vec<u8>);
 
 impl Default for Instructions {
@@ -164,7 +164,7 @@ pub fn read_operands(def: &Definition, ins: Instructions) -> (Vec<isize>, usize)
 
     for (i, &width) in def.operand_widths.iter().enumerate() {
         match width {
-            2 => operands[i] = read_uint16(ins.slice(offset..)) as isize,
+            2 => operands[i] = read_uint16(ins.slice(offset..)),
             _ => unreachable!(),
         }
         offset += width;
@@ -172,6 +172,6 @@ pub fn read_operands(def: &Definition, ins: Instructions) -> (Vec<isize>, usize)
     (operands, offset)
 }
 
-fn read_uint16(ins: Instructions) -> u16 {
-    u16::from_be_bytes([ins[0], ins[1]])
+pub fn read_uint16(ins: Instructions) -> isize {
+    u16::from_be_bytes([ins[0], ins[1]]) as isize
 }

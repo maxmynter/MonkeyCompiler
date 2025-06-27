@@ -1,8 +1,13 @@
-use code::{Instructions, Opcode, make};
+use code::{Instructions, Opcode};
 use compiler::Bytecode;
 use object::Object;
 
 const STACK_SIZE: usize = 2048;
+
+pub enum VMError {
+    StackOverflow,
+    UnkownOpCode,
+}
 
 pub struct VM {
     constants: Vec<Object>,
@@ -16,21 +21,44 @@ impl VM {
         Self {
             instructions: bytecode.instructions,
             constants: bytecode.constants,
-            stack: Vec::with_capacity(STACK_SIZE),
+            stack: vec![Object::Null; STACK_SIZE],
             sp: 0,
         }
     }
+
     pub fn stack_top(&self) -> Option<&Object> {
-        self.stack.last()
+        if self.sp > 0 {
+            self.stack.get(self.sp - 1)
+        } else {
+            None
+        }
     }
-    pub fn run(&mut self) -> Result<(), ()> {
-        for ip in &self.instructions {
-            let op = Opcode::from_u8(ip.clone());
+
+    pub fn push(&mut self, ob: Object) -> Result<(), VMError> {
+        if self.sp >= STACK_SIZE {
+            Err(VMError::StackOverflow)
+        } else {
+            self.stack[self.sp] = ob;
+            self.sp += 1;
+            Ok(())
+        }
+    }
+
+    pub fn run(&mut self) -> Result<(), VMError> {
+        let mut ip = 0;
+        while ip < self.instructions.len() {
+            let op = Opcode::from_u8(self.instructions[ip]).unwrap();
             match op {
+                Opcode::Constant => {
+                    let const_index = code::read_uint16(self.instructions.slice(ip + 1..));
+                    ip += 2;
+                    self.push(self.constants[const_index as usize].clone())?;
+                }
                 _ => {
-                    return Err(());
+                    return Err(VMError::UnkownOpCode);
                 }
             }
+            ip += 1;
         }
         Ok(())
     }
