@@ -94,6 +94,15 @@ pub enum Opcode {
     Constant,
 }
 
+impl Opcode {
+    pub fn from_u8(code: u8) -> Option<Self> {
+        match code {
+            0 => Some(Opcode::Constant),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct Definition {
     pub name: String,

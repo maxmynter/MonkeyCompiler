@@ -18,9 +18,10 @@ fn run_vm_tests(tests: Vec<VmTestCase>) {
         let program = prepare_program_for_test(tt.input);
         let mut comp = Compiler::new();
         let _ = comp.compile(program).unwrap();
-        let vm = VM::new(comp.bytecode());
-        let stackElem = vm.stack_top().unwrap().clone();
-        test_expected_object(tt.expected, stackElem);
+        let mut vm = VM::new(comp.bytecode());
+        vm.run();
+        let stack_elem = vm.stack_top().unwrap().clone();
+        test_expected_object(tt.expected, stack_elem);
     }
 }
 
