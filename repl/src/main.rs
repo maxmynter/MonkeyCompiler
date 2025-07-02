@@ -65,7 +65,7 @@ fn eval(input: &str, env: Rc<RefCell<Environment>>) {
     if let Err(e) = result {
         println!("{:?}", e);
     } else {
-        let stack_top = machine.stack_top().unwrap();
+        let stack_top = machine.last_popped_stack_elem().unwrap();
         println!("{}\n", stack_top.inspect());
     }
 }

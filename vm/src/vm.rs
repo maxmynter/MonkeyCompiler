@@ -29,6 +29,10 @@ impl VM {
         }
     }
 
+    pub fn last_popped_stack_elem(&self) -> Option<&Object> {
+        self.stack.get(self.sp)
+    }
+
     pub fn stack_top(&self) -> Option<&Object> {
         if self.sp > 0 {
             self.stack.get(self.sp - 1)
@@ -84,6 +88,9 @@ impl VM {
                         }
                     };
                     let _ = self.push(Object::Integer { value: result });
+                }
+                Opcode::OpPop => {
+                    self.pop();
                 }
                 _ => {
                     return Err(VMError::UnkownOpCode);
