@@ -11,3 +11,5 @@ path = "src/main.rs"
 lexer = { path ="../lexer" }
 parser = { path = "../parser"}
 object = { path = "../object"}
+compiler = { path = "../compiler"}
+vm = { path = "../vm"}

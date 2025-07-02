@@ -4,7 +4,9 @@ use std::{
     rc::Rc,
 };
 
+use compiler::Compiler;
 use object::{CoerceObject, Environment, ObjectTraits};
+use vm;
 
 const PROMPT: &str = ">> ";
 
@@ -54,9 +56,16 @@ fn eval(input: &str, env: Rc<RefCell<Environment>>) {
     if !parser.errors.is_empty() {
         parser.print_errors();
     }
-    let evaluated = match program.evaluate(&env) {
-        Ok(result) => result.inspect(),
-        Err(result) => result.inspect(),
-    };
-    println!("{}\n", evaluated);
+    let mut comp = Compiler::new();
+    if let Err(err) = comp.compile(program) {
+        println!("Error: {}", err);
+    }
+    let mut machine = vm::VM::new(comp.bytecode());
+    let result = machine.run();
+    if let Err(e) = result {
+        println!("{:?}", e);
+    } else {
+        let stack_top = machine.stack_top().unwrap();
+        println!("{}\n", stack_top.inspect());
+    }
 }

@@ -4,11 +4,12 @@ use object::Object;
 
 const STACK_SIZE: usize = 2048;
 
+#[derive(Debug)]
 pub enum VMError {
     StackOverflow,
     UnkownOpCode,
     PopFromEmptyStack,
-    UnkownOpForOperands { msg: String },
+    UnknownOpForOperands { msg: String },
 }
 
 pub struct VM {
@@ -74,7 +75,7 @@ impl VM {
                             &Object::Integer { value: right_value },
                         ) => left_value + right_value,
                         _ => {
-                            return Err(VMError::UnkownOpForOperands {
+                            return Err(VMError::UnknownOpForOperands {
                                 msg: format!(
                                     "unkown operation add for operands: {:?}, {:?}",
                                     left, right
