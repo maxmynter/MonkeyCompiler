@@ -92,12 +92,14 @@ impl DerefMut for Instructions {
 #[derive(Hash, Eq, PartialEq, Clone, Copy, Debug)]
 pub enum Opcode {
     Constant,
+    OpAdd,
 }
 
 impl Opcode {
     pub fn from_u8(code: u8) -> Option<Self> {
         match code {
             0 => Some(Opcode::Constant),
+            1 => Some(Opcode::OpAdd),
             _ => None,
         }
     }
@@ -105,19 +107,28 @@ impl Opcode {
 
 #[derive(Clone)]
 pub struct Definition {
-    pub name: String,
+    pub name: &'static str,
     pub operand_widths: Vec<usize>,
 }
 
 lazy_static! {
     pub static ref DEFINITIONS: HashMap<Opcode, Definition> = {
-        [(
-            Opcode::Constant,
-            Definition {
-                name: "OpConstant".to_string(),
-                operand_widths: vec![2],
-            },
-        )]
+        [
+            (
+                Opcode::Constant,
+                Definition {
+                    name: "OpConstant",
+                    operand_widths: vec![2],
+                },
+            ),
+            (
+                Opcode::OpAdd,
+                Definition {
+                    name: "OpAdd",
+                    operand_widths: Vec::new(), // Doesn't have any operands
+                },
+            ),
+        ]
         .iter()
         .cloned()
         .collect()
