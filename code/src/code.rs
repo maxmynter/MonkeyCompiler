@@ -23,13 +23,10 @@ impl Instructions {
         let mut out = String::new();
         let mut i = 0;
         while i < self.0.len() {
-            let opcode = match self.0[i] {
-                0 => Opcode::Constant,
-                _ => {
-                    writeln!(out, "ERROR: unknown opcode {}", self.0[i]).unwrap();
-                    i += 1;
-                    continue;
-                }
+            let Some(opcode) = Opcode::from_u8(self.0[i]) else {
+                writeln!(out, "ERROR: unknown opcode {}", self.0[i]).unwrap();
+                i += 1;
+                continue;
             };
             if let Some(def) = lookup(opcode) {
                 let (operands, read) = read_operands(&def, self.slice(i + 1..));
@@ -50,6 +47,7 @@ impl Instructions {
             );
         }
         match operand_count {
+            0 => def.name.to_string(),
             1 => format!("{} {}", def.name, operands[0]),
             _ => format!("ERROR: unhandled operandCount for {}", def.name),
         }
