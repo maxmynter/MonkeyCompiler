@@ -45,7 +45,7 @@ impl Compiler {
 
     pub fn emit(&mut self, op: Opcode, operands: &[isize]) -> usize {
         let ins = code::make(op, operands);
-        
+
         self.add_instructions(ins)
     }
 }
@@ -94,9 +94,15 @@ impl Compilable for Expression {
             Expression::InfixExpression(infix) => {
                 infix.left.compile(c)?;
                 infix.right.compile(c)?;
+                match infix.operator.as_str() {
+                    "+" => c.emit(Opcode::OpAdd, &[]),
+                    _ => {
+                        return Err(format!("unkown operator, {}", infix.operator.to_string()));
+                    }
+                };
                 Ok(())
             }
-            _ => Ok(()), // TODO: add missing implementations
+            _ => Err("Not yet implemented".to_string()), // TODO: add missing implementations
         }
     }
 }

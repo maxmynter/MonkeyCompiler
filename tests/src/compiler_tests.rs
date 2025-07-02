@@ -47,7 +47,13 @@ fn concat_instructions(s: Vec<Instructions>) -> Instructions {
 
 fn test_instructions(expected: Vec<Instructions>, actual: &Instructions) -> Result<(), String> {
     let concatenated = concat_instructions(expected);
-    assert_eq!(actual.len(), concatenated.len());
+    if actual.len() != concatenated.len() {
+        panic!(
+            "test_instructions failed: wrong instructions length\nwant={}\ngot={}",
+            concatenated.as_string(),
+            actual.as_string()
+        );
+    }
 
     for (i, &expected_byte) in concatenated.iter().enumerate() {
         assert_eq!(actual[i], expected_byte);
@@ -91,7 +97,11 @@ fn compiler_tests() {
     let tests = vec![CompilerTest {
         input: "1 + 2",
         expected_constants: vec![Object::Integer { value: 1 }, Object::Integer { value: 2 }],
-        expected_instructions: vec![make(Opcode::Constant, &[0]), make(Opcode::Constant, &[1])],
+        expected_instructions: vec![
+            make(Opcode::Constant, &[0]),
+            make(Opcode::Constant, &[1]),
+            make(Opcode::OpAdd, &[]),
+        ],
     }];
     run_compiler_tests(tests);
 }
