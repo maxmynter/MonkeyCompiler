@@ -94,15 +94,28 @@ fn test_integer_object(expected: i64, actual: &Object) -> Result<(), String> {
 
 #[test]
 fn compiler_tests() {
-    let tests = vec![CompilerTest {
-        input: "1 + 2",
-        expected_constants: vec![Object::Integer { value: 1 }, Object::Integer { value: 2 }],
-        expected_instructions: vec![
-            make(Opcode::Constant, &[0]),
-            make(Opcode::Constant, &[1]),
-            make(Opcode::OpAdd, &[]),
-        ],
-    }];
+    let tests = vec![
+        CompilerTest {
+            input: "1 + 2",
+            expected_constants: vec![Object::Integer { value: 1 }, Object::Integer { value: 2 }],
+            expected_instructions: vec![
+                make(Opcode::Constant, &[0]),
+                make(Opcode::Constant, &[1]),
+                make(Opcode::OpAdd, &[]),
+                make(Opcode::OpPop, &[]),
+            ],
+        },
+        CompilerTest {
+            input: "1;2",
+            expected_constants: vec![Object::Integer { value: 1 }, Object::Integer { value: 2 }],
+            expected_instructions: vec![
+                make(Opcode::Constant, &[0]),
+                make(Opcode::OpPop, &[]),
+                make(Opcode::Constant, &[1]),
+                make(Opcode::OpPop, &[]),
+            ],
+        },
+    ];
     run_compiler_tests(tests);
 }
 

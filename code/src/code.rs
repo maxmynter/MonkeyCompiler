@@ -91,6 +91,7 @@ impl DerefMut for Instructions {
 pub enum Opcode {
     Constant,
     OpAdd,
+    OpPop,
 }
 
 impl Opcode {
@@ -98,6 +99,7 @@ impl Opcode {
         match code {
             0 => Some(Opcode::Constant),
             1 => Some(Opcode::OpAdd),
+            2 => Some(Opcode::OpPop),
             _ => None,
         }
     }
@@ -126,6 +128,13 @@ lazy_static! {
                     operand_widths: Vec::new(), // Doesn't have any operands
                 },
             ),
+            (
+                Opcode::OpPop,
+                Definition {
+                    name: "OpPop",
+                    operand_widths: Vec::new()
+            }
+        ),
         ]
         .iter()
         .cloned()

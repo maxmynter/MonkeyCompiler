@@ -82,7 +82,11 @@ impl Compilable for Statement {
         match self {
             Statement::Let { .. } => todo!(),
             Statement::Return { .. } => todo!(),
-            Statement::Expression { value, .. } => value.compile(c),
+            Statement::Expression { value, .. } => {
+                let result = value.compile(c);
+                c.emit(Opcode::OpPop, &[]);
+                result
+            }
         }
     }
 }
