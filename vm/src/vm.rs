@@ -7,6 +7,8 @@ const STACK_SIZE: usize = 2048;
 pub enum VMError {
     StackOverflow,
     UnkownOpCode,
+    PopFromEmptyStack,
+    UnkownOpForOperands { msg: String },
 }
 
 pub struct VM {
@@ -44,6 +46,15 @@ impl VM {
         }
     }
 
+    pub fn pop(&mut self) -> Result<Object, VMError> {
+        if self.sp <= 0 {
+            Err(VMError::PopFromEmptyStack)
+        } else {
+            self.sp -= 1;
+            Ok(self.stack[self.sp].clone())
+        }
+    }
+
     pub fn run(&mut self) -> Result<(), VMError> {
         let mut ip = 0;
         while ip < self.instructions.len() {
@@ -53,6 +64,25 @@ impl VM {
                     let const_index = code::read_uint16(self.instructions.slice(ip + 1..));
                     ip += 2;
                     self.push(self.constants[const_index as usize].clone())?;
+                }
+                Opcode::OpAdd => {
+                    let right = self.pop()?;
+                    let left = self.pop()?;
+                    let result = match (&left, &right) {
+                        (
+                            &Object::Integer { value: left_value },
+                            &Object::Integer { value: right_value },
+                        ) => left_value + right_value,
+                        _ => {
+                            return Err(VMError::UnkownOpForOperands {
+                                msg: format!(
+                                    "unkown operation add for operands: {:?}, {:?}",
+                                    left, right
+                                ),
+                            });
+                        }
+                    };
+                    let _ = self.push(Object::Integer { value: result });
                 }
                 _ => {
                     return Err(VMError::UnkownOpCode);

@@ -52,7 +52,7 @@ fn test_integer_arithmetic() {
         },
         VmTestCase {
             input: "1 + 2",
-            expected: Object::Integer { value: 2 }, //TODO: FIXME
+            expected: Object::Integer { value: 3 },
         },
     ];
 
