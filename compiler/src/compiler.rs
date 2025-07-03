@@ -101,7 +101,7 @@ impl Compilable for Expression {
                 match infix.operator.as_str() {
                     "+" => c.emit(Opcode::OpAdd, &[]),
                     _ => {
-                        return Err(format!("unkown operator, {}", infix.operator.to_string()));
+                        return Err(format!("unkown operator, {}", infix.operator));
                     }
                 };
                 Ok(())

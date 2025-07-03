@@ -5,8 +5,7 @@ use std::{
 };
 
 use compiler::Compiler;
-use object::{CoerceObject, Environment, ObjectTraits};
-use vm;
+use object::{Environment, ObjectTraits};
 
 const PROMPT: &str = ">> ";
 

@@ -52,7 +52,7 @@ impl VM {
     }
 
     pub fn pop(&mut self) -> Result<Object, VMError> {
-        if self.sp <= 0 {
+        if self.sp == 0 {
             Err(VMError::PopFromEmptyStack)
         } else {
             self.sp -= 1;
@@ -90,10 +90,10 @@ impl VM {
                     let _ = self.push(Object::Integer { value: result });
                 }
                 Opcode::OpPop => {
-                    self.pop();
+                    let _ = self.pop();
                 }
                 _ => {
-                    return Err(VMError::UnkownOpCode);
+                    unreachable!();
                 }
             }
             ip += 1;
