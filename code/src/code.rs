@@ -92,6 +92,9 @@ pub enum Opcode {
     Constant,
     OpAdd,
     OpPop,
+    OpSub,
+    OpMul,
+    OpDiv,
 }
 
 impl Opcode {
@@ -100,6 +103,9 @@ impl Opcode {
             0 => Some(Opcode::Constant),
             1 => Some(Opcode::OpAdd),
             2 => Some(Opcode::OpPop),
+            3 => Some(Opcode::OpSub),
+            4 => Some(Opcode::OpMul),
+            5 => Some(Opcode::OpDiv),
             _ => None,
         }
     }
@@ -135,6 +141,27 @@ lazy_static! {
                     operand_widths: Vec::new()
             }
         ),
+            (
+                Opcode::OpSub,
+                Definition {
+                    name: "OpSub",
+                    operand_widths: Vec::new()
+            }
+        ),
+            (
+                Opcode::OpMul,
+                Definition {
+                    name: "OpMul",
+                    operand_widths: Vec::new()
+            }
+        ),
+            (
+                Opcode::OpDiv,
+                Definition {
+                    name: "OpDiv",
+                    operand_widths: Vec::new()
+            }
+        )
         ]
         .iter()
         .cloned()

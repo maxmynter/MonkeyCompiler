@@ -100,6 +100,9 @@ impl Compilable for Expression {
                 infix.right.compile(c)?;
                 match infix.operator.as_str() {
                     "+" => c.emit(Opcode::OpAdd, &[]),
+                    "-" => c.emit(Opcode::OpSub, &[]),
+                    "*" => c.emit(Opcode::OpMul, &[]),
+                    "/" => c.emit(Opcode::OpDiv, &[]),
                     _ => {
                         return Err(format!("unkown operator, {}", infix.operator));
                     }

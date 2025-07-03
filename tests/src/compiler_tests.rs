@@ -115,6 +115,36 @@ fn compiler_tests() {
                 make(Opcode::OpPop, &[]),
             ],
         },
+        CompilerTest {
+            input: "1 - 2",
+            expected_constants: vec![Object::Integer { value: 1 }, Object::Integer { value: 2 }],
+            expected_instructions: vec![
+                make(Opcode::Constant, &[0]),
+                make(Opcode::Constant, &[1]),
+                make(Opcode::OpSub, &[]),
+                make(Opcode::OpPop, &[]),
+            ],
+        },
+        CompilerTest {
+            input: "1 * 2",
+            expected_constants: vec![Object::Integer { value: 1 }, Object::Integer { value: 2 }],
+            expected_instructions: vec![
+                make(Opcode::Constant, &[0]),
+                make(Opcode::Constant, &[1]),
+                make(Opcode::OpMul, &[]),
+                make(Opcode::OpPop, &[]),
+            ],
+        },
+        CompilerTest {
+            input: "2 / 1",
+            expected_constants: vec![Object::Integer { value: 2 }, Object::Integer { value: 1 }],
+            expected_instructions: vec![
+                make(Opcode::Constant, &[0]),
+                make(Opcode::Constant, &[1]),
+                make(Opcode::OpDiv, &[]),
+                make(Opcode::OpPop, &[]),
+            ],
+        },
     ];
     run_compiler_tests(tests);
 }
