@@ -35,7 +35,16 @@ fn test_expected_object(expected: Object, actual: Object) {
                 value: actual_value,
             },
         ) => {
-            let (expected_value, actual_value) = dbg!((expected_value, actual_value));
+            assert_eq!(expected_value, actual_value);
+        }
+        (
+            &Object::Boolean {
+                value: expected_value,
+            },
+            &Object::Boolean {
+                value: actual_value,
+            },
+        ) => {
             assert_eq!(expected_value, actual_value);
         }
         _ => panic!("unexpected object value {:?}, got={:?}", actual, expected),
@@ -92,6 +101,22 @@ fn test_integer_arithmetic() {
         VmTestCase {
             input: "5 * (2 + 10)",
             expected: Object::Integer { value: 60 },
+        },
+    ];
+
+    run_vm_tests(tests);
+}
+
+#[test]
+fn test_boolean_expression() {
+    let tests: Vec<VmTestCase> = vec![
+        VmTestCase {
+            input: "true",
+            expected: Object::Boolean { value: true },
+        },
+        VmTestCase {
+            input: "false",
+            expected: Object::Boolean { value: false },
         },
     ];
 

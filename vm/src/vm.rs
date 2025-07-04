@@ -3,6 +3,8 @@ use compiler::Bytecode;
 use object::Object;
 
 const STACK_SIZE: usize = 2048;
+const TRUE: Object = Object::Boolean { value: true };
+const FALSE: Object = Object::Boolean { value: false };
 
 #[derive(Debug)]
 pub enum VMError {
@@ -109,6 +111,12 @@ impl VM {
                 }
                 Opcode::OpPop => {
                     self.pop()?;
+                }
+                Opcode::OpTrue => {
+                    self.push(TRUE)?;
+                }
+                Opcode::OpFalse => {
+                    self.push(FALSE)?;
                 }
                 _ => {
                     unreachable!();
