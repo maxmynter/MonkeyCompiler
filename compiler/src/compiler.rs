@@ -1,4 +1,4 @@
-use ast::{Expression, IntegerLiteral, Program, Statement};
+use ast::{Boolean, Expression, IntegerLiteral, Program, Statement};
 use code::{Instructions, Opcode};
 use object::Object;
 
@@ -106,6 +106,14 @@ impl Compilable for Expression {
                     _ => {
                         return Err(format!("unkown operator, {}", infix.operator));
                     }
+                };
+                Ok(())
+            }
+            Expression::Boolean(Boolean { value, .. }) => {
+                if *value {
+                    c.emit(Opcode::OpTrue, &[])
+                } else {
+                    c.emit(Opcode::OpFalse, &[])
                 };
                 Ok(())
             }

@@ -145,6 +145,16 @@ fn compiler_tests() {
                 make(Opcode::OpPop, &[]),
             ],
         },
+        CompilerTest {
+            input: "true",
+            expected_constants: Vec::new(),
+            expected_instructions: vec![make(Opcode::OpTrue, &[]), make(Opcode::OpPop, &[])],
+        },
+        CompilerTest {
+            input: "false",
+            expected_constants: Vec::new(),
+            expected_instructions: vec![make(Opcode::OpFalse, &[]), make(Opcode::OpPop, &[])],
+        },
     ];
     run_compiler_tests(tests);
 }

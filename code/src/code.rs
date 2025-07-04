@@ -95,6 +95,8 @@ pub enum Opcode {
     OpSub,
     OpMul,
     OpDiv,
+    OpTrue,
+    OpFalse,
 }
 
 impl Opcode {
@@ -106,6 +108,8 @@ impl Opcode {
             3 => Some(Opcode::OpSub),
             4 => Some(Opcode::OpMul),
             5 => Some(Opcode::OpDiv),
+            6 => Some(Opcode::OpTrue),
+            7 => Some(Opcode::OpFalse),
             _ => None,
         }
     }
@@ -161,8 +165,21 @@ lazy_static! {
                     name: "OpDiv",
                     operand_widths: Vec::new()
             }
-        )
-        ]
+        ),
+            (
+                Opcode::OpTrue,
+                Definition {
+                    name: "OpTrue",
+                    operand_widths: Vec::new()
+            }
+        ),
+            (
+                Opcode::OpFalse,
+                Definition {
+                    name: "OpFalse",
+                    operand_widths: Vec::new()
+            }
+        )]
         .iter()
         .cloned()
         .collect()
