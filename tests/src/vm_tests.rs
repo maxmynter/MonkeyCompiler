@@ -34,7 +34,10 @@ fn test_expected_object(expected: Object, actual: Object) {
             &Object::Integer {
                 value: actual_value,
             },
-        ) => assert_eq!(expected_value, actual_value),
+        ) => {
+            let (expected_value, actual_value) = dbg!((expected_value, actual_value));
+            assert_eq!(expected_value, actual_value);
+        }
         _ => panic!("unexpected object value {:?}, got={:?}", actual, expected),
     }
 }
@@ -53,6 +56,42 @@ fn test_integer_arithmetic() {
         VmTestCase {
             input: "1 + 2",
             expected: Object::Integer { value: 3 },
+        },
+        VmTestCase {
+            input: "1 - 2",
+            expected: Object::Integer { value: -1 },
+        },
+        VmTestCase {
+            input: "1 * 2",
+            expected: Object::Integer { value: 2 },
+        },
+        VmTestCase {
+            input: "4 / 2",
+            expected: Object::Integer { value: 2 },
+        },
+        VmTestCase {
+            input: "50 / 2 * 2 + 10 - 5",
+            expected: Object::Integer { value: 55 },
+        },
+        VmTestCase {
+            input: "5 + 5 + 5 + 5 - 10",
+            expected: Object::Integer { value: 10 },
+        },
+        VmTestCase {
+            input: "2 * 2 * 2 * 2 * 2",
+            expected: Object::Integer { value: 32 },
+        },
+        VmTestCase {
+            input: "5 * 2 + 10",
+            expected: Object::Integer { value: 20 },
+        },
+        VmTestCase {
+            input: "5 + 2 * 10",
+            expected: Object::Integer { value: 25 },
+        },
+        VmTestCase {
+            input: "5 * (2 + 10)",
+            expected: Object::Integer { value: 60 },
         },
     ];
 

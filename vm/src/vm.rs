@@ -60,6 +60,40 @@ impl VM {
         }
     }
 
+    fn execute_binary_integer_op(
+        &mut self,
+        op: Opcode,
+        left_value: i64,
+        right_value: i64,
+    ) -> Result<(), VMError> {
+        let result = match op {
+            Opcode::OpAdd => left_value + right_value,
+            Opcode::OpSub => left_value - right_value,
+            Opcode::OpMul => left_value * right_value,
+            Opcode::OpDiv => left_value / right_value,
+            _ => {
+                return Err(VMError::UnknownOpForOperands {
+                    msg: format!(
+                        "Unkown integer operation: {:?} for operand values {:?}, {:?}",
+                        op, left_value, right_value
+                    ),
+                });
+            }
+        };
+        self.push(Object::Integer { value: result })
+    }
+
+    fn execute_binary_op(&mut self, op: Opcode) -> Result<(), VMError> {
+        match (self.pop()?, self.pop()?) {
+            (Object::Integer { value: right_value }, Object::Integer { value: left_value }) => {
+                self.execute_binary_integer_op(op, left_value, right_value)
+            }
+            (left, right) => Err(VMError::UnknownOpForOperands {
+                msg: format!("unkown operands: {:?}, {:?}", left, right),
+            }),
+        }
+    }
+
     pub fn run(&mut self) -> Result<(), VMError> {
         let mut ip = 0;
         while ip < self.instructions.len() {
@@ -70,27 +104,11 @@ impl VM {
                     ip += 2;
                     self.push(self.constants[const_index as usize].clone())?;
                 }
-                Opcode::OpAdd => {
-                    let right = self.pop()?;
-                    let left = self.pop()?;
-                    let result = match (&left, &right) {
-                        (
-                            &Object::Integer { value: left_value },
-                            &Object::Integer { value: right_value },
-                        ) => left_value + right_value,
-                        _ => {
-                            return Err(VMError::UnknownOpForOperands {
-                                msg: format!(
-                                    "unkown operation add for operands: {:?}, {:?}",
-                                    left, right
-                                ),
-                            });
-                        }
-                    };
-                    let _ = self.push(Object::Integer { value: result });
+                Opcode::OpAdd | Opcode::OpSub | Opcode::OpMul | Opcode::OpDiv => {
+                    self.execute_binary_op(op)?;
                 }
                 Opcode::OpPop => {
-                    let _ = self.pop();
+                    self.pop()?;
                 }
                 _ => {
                     unreachable!();
