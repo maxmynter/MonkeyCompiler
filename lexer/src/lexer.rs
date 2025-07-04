@@ -1,4 +1,5 @@
 pub mod token;
+use std::rc::Rc;
 pub use token::{Keywords, Token, TokenType};
 use token::{ATOMS, TWO_CHAR_ATOMS};
 
@@ -97,7 +98,7 @@ impl<'a> Lexer<'a> {
         let number = self.eat_molecule(Lexer::is_digit);
         Token {
             kind: TokenType::INT,
-            literal: number.to_string().into(),
+            literal: Rc::new(number.to_string()),
         }
     }
 
@@ -106,16 +107,13 @@ impl<'a> Lexer<'a> {
         self.eat_symbol();
         Token {
             kind: TokenType::ILLEGAL,
-            literal: self.input[position..self.position].to_string().into(),
+            literal: Rc::new(self.input[position..self.position].to_string()),
         }
     }
 
     fn read_string(&mut self) -> Token {
         self.eat_symbol(); // opening quote
-        let literal = self
-            .eat_molecule(|ch| ch != '"' && ch != '\0')
-            .to_string()
-            .into();
+        let literal = Rc::new(self.eat_molecule(|ch| ch != '"' && ch != '\0').to_string());
         self.eat_symbol(); // closing quote
         Token {
             kind: TokenType::STRING,
@@ -128,7 +126,7 @@ impl<'a> Lexer<'a> {
         match self.ch {
             '\0' => Token {
                 kind: TokenType::EOF,
-                literal: "".to_string().into(),
+                literal: Rc::from(String::new()),
             },
             ch if ATOMS.contains_key(&ch) => self.read_atom(),
             ch if Lexer::is_letter(ch) => self.read_identifier(),
