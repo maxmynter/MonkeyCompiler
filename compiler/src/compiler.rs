@@ -131,7 +131,10 @@ impl Compilable for Expression {
                 let op = prefix.operator.as_str();
                 prefix.right.compile(c)?;
                 match op {
-                    "!" => c.emit(Opcode::OpBang, &[]),
+                    "!" => {
+                        eprintln!("EMitting banf");
+                        c.emit(Opcode::OpBang, &[])
+                    }
                     "-" => c.emit(Opcode::OpMinus, &[]),
                     _ => {
                         return Err(format!("unkown operator {:?}", op));

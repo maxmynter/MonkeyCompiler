@@ -48,7 +48,7 @@ fn repl() -> io::Result<()> {
     Ok(())
 }
 
-fn eval(input: &str, env: Rc<RefCell<Environment>>) {
+fn eval(input: &str, _env: Rc<RefCell<Environment>>) {
     let lex = lexer::Lexer::new(input);
     let mut parser = parser::Parser::new(lex);
     let program = parser.parse_program();

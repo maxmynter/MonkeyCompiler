@@ -211,6 +211,20 @@ lazy_static! {
                     operand_widths: Vec::new()
             }
         ),
+        (
+                Opcode::OpMinus,
+                Definition {
+                    name: "OpMinus",
+                    operand_widths: Vec::new()
+            }
+        ),
+        (
+                Opcode::OpBang,
+                Definition {
+                    name: "OpBang",
+                    operand_widths: Vec::new()
+            }
+        ),
         ]
         .iter()
         .cloned()

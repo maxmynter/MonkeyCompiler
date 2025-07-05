@@ -1,10 +1,8 @@
 use code::{Instructions, Opcode};
 use compiler::Bytecode;
-use object::Object;
+use object::{FALSE, Object, TRUE};
 
 const STACK_SIZE: usize = 2048;
-const TRUE: Object = Object::Boolean { value: true };
-const FALSE: Object = Object::Boolean { value: false };
 
 #[derive(Debug)]
 pub enum VMError {
@@ -103,9 +101,9 @@ impl VM {
                 self.execute_integer_comparison(op, left_value, right_value)
             }
             (left, right) => match op {
-                Opcode::OpEqual => self.push(nativeBoolToBooleanObject(right == left)),
+                Opcode::OpEqual => self.push(native_bool_to_boolean_object(right == left)),
 
-                Opcode::OpNotEqual => self.push(nativeBoolToBooleanObject(right != left)),
+                Opcode::OpNotEqual => self.push(native_bool_to_boolean_object(right != left)),
 
                 _ => Err(VMError::UnkownOperator {
                     msg: format!("unkown operator: {:?} ({:?}, {:?})", op, left, right),
@@ -121,11 +119,33 @@ impl VM {
         right_value: i64,
     ) -> Result<(), VMError> {
         match op {
-            Opcode::OpEqual => self.push(nativeBoolToBooleanObject(left_value == right_value)),
-            Opcode::OpNotEqual => self.push(nativeBoolToBooleanObject(left_value != right_value)),
-            Opcode::OpGreaterThan => self.push(nativeBoolToBooleanObject(left_value > right_value)),
+            Opcode::OpEqual => self.push(native_bool_to_boolean_object(left_value == right_value)),
+            Opcode::OpNotEqual => {
+                self.push(native_bool_to_boolean_object(left_value != right_value))
+            }
+            Opcode::OpGreaterThan => {
+                self.push(native_bool_to_boolean_object(left_value > right_value))
+            }
             _ => Err(VMError::UnkownOperator {
                 msg: format!("unkonwn operator {:?}", op),
+            }),
+        }
+    }
+
+    fn execute_bang_operator(&mut self) -> Result<(), VMError> {
+        let operator = self.pop()?;
+        match operator {
+            TRUE => self.push(FALSE),
+            FALSE => self.push(TRUE),
+            _ => self.push(FALSE),
+        }
+    }
+
+    fn execute_minus_operator(&mut self) -> Result<(), VMError> {
+        match self.pop()? {
+            Object::Integer { value } => self.push(Object::Integer { value: -value }),
+            _ => Err(VMError::UnkownOperator {
+                msg: "unsupported type for negation".to_string(),
             }),
         }
     }
@@ -155,6 +175,12 @@ impl VM {
                 Opcode::OpEqual | Opcode::OpNotEqual | Opcode::OpGreaterThan => {
                     self.execute_comparison(op)?;
                 }
+                Opcode::OpBang => {
+                    self.execute_bang_operator()?;
+                }
+                Opcode::OpMinus => {
+                    self.execute_minus_operator()?;
+                }
                 _ => {
                     unreachable!();
                 }
@@ -165,6 +191,6 @@ impl VM {
     }
 }
 
-fn nativeBoolToBooleanObject(input: bool) -> Object {
+fn native_bool_to_boolean_object(input: bool) -> Object {
     if input { TRUE } else { FALSE }
 }
