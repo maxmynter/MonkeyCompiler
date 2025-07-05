@@ -242,12 +242,9 @@ pub fn lookup(op: Opcode) -> Option<Definition> {
 }
 
 pub fn make(op: Opcode, operands: &[isize]) -> Instructions {
-    let def = match DEFINITIONS.get(&op) {
-        Some(def) => def,
-        None => {
-            return Instructions::new();
-        }
-    };
+    let def = DEFINITIONS
+        .get(&op)
+        .unwrap_or_else(|| panic!("undefined opcode {:?}", op));
     let mut instruction = Instructions::new();
     instruction.push(op as u8);
 
