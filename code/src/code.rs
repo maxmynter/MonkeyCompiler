@@ -97,6 +97,9 @@ pub enum Opcode {
     OpDiv,
     OpTrue,
     OpFalse,
+    OpEqual,
+    OpNotEqual,
+    OpGreaterThan,
 }
 
 impl Opcode {
@@ -110,6 +113,9 @@ impl Opcode {
             5 => Some(Opcode::OpDiv),
             6 => Some(Opcode::OpTrue),
             7 => Some(Opcode::OpFalse),
+            7 => Some(Opcode::OpEqual),
+            7 => Some(Opcode::OpNotEqual),
+            7 => Some(Opcode::OpGreaterThan),
             _ => None,
         }
     }
@@ -179,7 +185,29 @@ lazy_static! {
                     name: "OpFalse",
                     operand_widths: Vec::new()
             }
-        )]
+        ),
+        (
+                Opcode::OpEqual,
+                Definition {
+                    name: "OpEqual",
+                    operand_widths: Vec::new()
+            }
+        ),
+        (
+                Opcode::OpNotEqual,
+                Definition {
+                    name: "OpNotEqual",
+                    operand_widths: Vec::new()
+            }
+        ),
+        (
+                Opcode::OpGreaterThan,
+                Definition {
+                    name: "OpGreaterThan",
+                    operand_widths: Vec::new()
+            }
+        ),
+        ]
         .iter()
         .cloned()
         .collect()

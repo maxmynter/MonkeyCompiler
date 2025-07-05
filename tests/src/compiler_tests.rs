@@ -155,6 +155,66 @@ fn compiler_tests() {
             expected_constants: Vec::new(),
             expected_instructions: vec![make(Opcode::OpFalse, &[]), make(Opcode::OpPop, &[])],
         },
+        CompilerTest {
+            input: "1 > 2",
+            expected_constants: vec![Object::Integer { value: 1 }, Object::Integer { value: 2 }],
+            expected_instructions: vec![
+                make(Opcode::Constant, &[0]),
+                make(Opcode::Constant, &[1]),
+                make(Opcode::OpGreaterThan, &[]),
+                make(Opcode::OpPop, &[]),
+            ],
+        },
+        CompilerTest {
+            input: "1 < 2",
+            expected_constants: vec![Object::Integer { value: 2 }, Object::Integer { value: 1 }],
+            expected_instructions: vec![
+                make(Opcode::Constant, &[0]),
+                make(Opcode::Constant, &[1]),
+                make(Opcode::OpGreaterThan, &[]),
+                make(Opcode::OpPop, &[]),
+            ],
+        },
+        CompilerTest {
+            input: "1 == 2",
+            expected_constants: vec![Object::Integer { value: 1 }, Object::Integer { value: 2 }],
+            expected_instructions: vec![
+                make(Opcode::Constant, &[0]),
+                make(Opcode::Constant, &[1]),
+                make(Opcode::OpEqual, &[]),
+                make(Opcode::OpPop, &[]),
+            ],
+        },
+        CompilerTest {
+            input: "1 != 2",
+            expected_constants: vec![Object::Integer { value: 1 }, Object::Integer { value: 2 }],
+            expected_instructions: vec![
+                make(Opcode::Constant, &[0]),
+                make(Opcode::Constant, &[1]),
+                make(Opcode::OpNotEqual, &[]),
+                make(Opcode::OpPop, &[]),
+            ],
+        },
+        CompilerTest {
+            input: "true == false",
+            expected_constants: Vec::new(),
+            expected_instructions: vec![
+                make(Opcode::OpTrue, &[]),
+                make(Opcode::OpFalse, &[]),
+                make(Opcode::OpEqual, &[]),
+                make(Opcode::OpPop, &[]),
+            ],
+        },
+        CompilerTest {
+            input: "true != false",
+            expected_constants: Vec::new(),
+            expected_instructions: vec![
+                make(Opcode::OpTrue, &[]),
+                make(Opcode::OpFalse, &[]),
+                make(Opcode::OpNotEqual, &[]),
+                make(Opcode::OpPop, &[]),
+            ],
+        },
     ];
     run_compiler_tests(tests);
 }

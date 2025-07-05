@@ -96,16 +96,26 @@ impl Compilable for Expression {
         match self {
             Expression::IntegerLiteral(int_lit) => int_lit.compile(c),
             Expression::InfixExpression(infix) => {
-                infix.left.compile(c)?;
-                infix.right.compile(c)?;
-                match infix.operator.as_str() {
-                    "+" => c.emit(Opcode::OpAdd, &[]),
-                    "-" => c.emit(Opcode::OpSub, &[]),
-                    "*" => c.emit(Opcode::OpMul, &[]),
-                    "/" => c.emit(Opcode::OpDiv, &[]),
-                    _ => {
-                        return Err(format!("unkown operator, {}", infix.operator));
-                    }
+                let op = infix.operator.as_str();
+                if op == "<" {
+                    infix.right.compile(c)?;
+                    infix.left.compile(c)?;
+                    c.emit(Opcode::OpGreaterThan, &[]);
+                } else {
+                    infix.left.compile(c)?;
+                    infix.right.compile(c)?;
+                    match op {
+                        "+" => c.emit(Opcode::OpAdd, &[]),
+                        "-" => c.emit(Opcode::OpSub, &[]),
+                        "*" => c.emit(Opcode::OpMul, &[]),
+                        "/" => c.emit(Opcode::OpDiv, &[]),
+                        ">" => c.emit(Opcode::OpGreaterThan, &[]),
+                        "==" => c.emit(Opcode::OpEqual, &[]),
+                        "!=" => c.emit(Opcode::OpNotEqual, &[]),
+                        _ => {
+                            return Err(format!("unkown operator, {}", infix.operator));
+                        }
+                    };
                 };
                 Ok(())
             }
