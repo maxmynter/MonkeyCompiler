@@ -113,9 +113,9 @@ impl Opcode {
             5 => Some(Opcode::OpDiv),
             6 => Some(Opcode::OpTrue),
             7 => Some(Opcode::OpFalse),
-            7 => Some(Opcode::OpEqual),
-            7 => Some(Opcode::OpNotEqual),
-            7 => Some(Opcode::OpGreaterThan),
+            8 => Some(Opcode::OpEqual),
+            9 => Some(Opcode::OpNotEqual),
+            10 => Some(Opcode::OpGreaterThan),
             _ => None,
         }
     }

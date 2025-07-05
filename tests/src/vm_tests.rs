@@ -118,6 +118,74 @@ fn test_boolean_expression() {
             input: "false",
             expected: Object::Boolean { value: false },
         },
+        VmTestCase {
+            input: "1 < 2",
+            expected: Object::Boolean { value: true },
+        },
+        VmTestCase {
+            input: "1 > 2",
+            expected: Object::Boolean { value: false },
+        },
+        VmTestCase {
+            input: "1 < 1",
+            expected: Object::Boolean { value: false },
+        },
+        VmTestCase {
+            input: "1 > 1",
+            expected: Object::Boolean { value: false },
+        },
+        VmTestCase {
+            input: "1 == 1",
+            expected: Object::Boolean { value: true },
+        },
+        VmTestCase {
+            input: "1 != 1",
+            expected: Object::Boolean { value: false },
+        },
+        VmTestCase {
+            input: "1 == 2",
+            expected: Object::Boolean { value: false },
+        },
+        VmTestCase {
+            input: "1 != 2",
+            expected: Object::Boolean { value: true },
+        },
+        VmTestCase {
+            input: "true == true",
+            expected: Object::Boolean { value: true },
+        },
+        VmTestCase {
+            input: "false == false",
+            expected: Object::Boolean { value: true },
+        },
+        VmTestCase {
+            input: "true == false",
+            expected: Object::Boolean { value: false },
+        },
+        VmTestCase {
+            input: "true != false",
+            expected: Object::Boolean { value: true },
+        },
+        VmTestCase {
+            input: "false != true",
+            expected: Object::Boolean { value: true },
+        },
+        VmTestCase {
+            input: "(1 < 2) == true",
+            expected: Object::Boolean { value: true },
+        },
+        VmTestCase {
+            input: "(1 < 2) == false",
+            expected: Object::Boolean { value: false },
+        },
+        VmTestCase {
+            input: "(1 > 2) == true",
+            expected: Object::Boolean { value: false },
+        },
+        VmTestCase {
+            input: "(1 > 2) == false",
+            expected: Object::Boolean { value: true },
+        },
     ];
 
     run_vm_tests(tests);

@@ -12,6 +12,7 @@ pub enum VMError {
     UnkownOpCode,
     PopFromEmptyStack,
     UnknownOpForOperands { msg: String },
+    UnkownOperator { msg: String },
 }
 
 pub struct VM {
@@ -96,6 +97,39 @@ impl VM {
         }
     }
 
+    fn execute_comparison(&mut self, op: Opcode) -> Result<(), VMError> {
+        match (self.pop()?, self.pop()?) {
+            (Object::Integer { value: right_value }, Object::Integer { value: left_value }) => {
+                self.execute_integer_comparison(op, left_value, right_value)
+            }
+            (left, right) => match op {
+                Opcode::OpEqual => self.push(nativeBoolToBooleanObject(right == left)),
+
+                Opcode::OpNotEqual => self.push(nativeBoolToBooleanObject(right != left)),
+
+                _ => Err(VMError::UnkownOperator {
+                    msg: format!("unkown operator: {:?} ({:?}, {:?})", op, left, right),
+                }),
+            },
+        }
+    }
+
+    fn execute_integer_comparison(
+        &mut self,
+        op: Opcode,
+        left_value: i64,
+        right_value: i64,
+    ) -> Result<(), VMError> {
+        match op {
+            Opcode::OpEqual => self.push(nativeBoolToBooleanObject(left_value == right_value)),
+            Opcode::OpNotEqual => self.push(nativeBoolToBooleanObject(left_value != right_value)),
+            Opcode::OpGreaterThan => self.push(nativeBoolToBooleanObject(left_value > right_value)),
+            _ => Err(VMError::UnkownOperator {
+                msg: format!("unkonwn operator {:?}", op),
+            }),
+        }
+    }
+
     pub fn run(&mut self) -> Result<(), VMError> {
         let mut ip = 0;
         while ip < self.instructions.len() {
@@ -118,6 +152,9 @@ impl VM {
                 Opcode::OpFalse => {
                     self.push(FALSE)?;
                 }
+                Opcode::OpEqual | Opcode::OpNotEqual | Opcode::OpGreaterThan => {
+                    self.execute_comparison(op)?;
+                }
                 _ => {
                     unreachable!();
                 }
@@ -126,4 +163,8 @@ impl VM {
         }
         Ok(())
     }
+}
+
+fn nativeBoolToBooleanObject(input: bool) -> Object {
+    if input { TRUE } else { FALSE }
 }
