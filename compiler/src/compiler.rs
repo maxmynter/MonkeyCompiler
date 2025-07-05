@@ -127,7 +127,19 @@ impl Compilable for Expression {
                 };
                 Ok(())
             }
-            _ => Err("Not yet implemented".to_string()), // TODO: add missing implementations
+            Expression::PrefixExpression(prefix) => {
+                let op = prefix.operator.as_str();
+                prefix.right.compile(c)?;
+                match op {
+                    "!" => c.emit(Opcode::OpBang, &[]),
+                    "-" => c.emit(Opcode::OpMinus, &[]),
+                    _ => {
+                        return Err(format!("unkown operator {:?}", op));
+                    }
+                };
+                Ok(())
+            }
+            _ => Err(format!("Not yer implemented: {:?}", self)), // TODO: add missing implementations
         }
     }
 }

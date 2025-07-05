@@ -100,6 +100,8 @@ pub enum Opcode {
     OpEqual,
     OpNotEqual,
     OpGreaterThan,
+    OpMinus,
+    OpBang,
 }
 
 impl Opcode {
@@ -116,6 +118,8 @@ impl Opcode {
             8 => Some(Opcode::OpEqual),
             9 => Some(Opcode::OpNotEqual),
             10 => Some(Opcode::OpGreaterThan),
+            11 => Some(Opcode::OpMinus),
+            12 => Some(Opcode::OpBang),
             _ => None,
         }
     }

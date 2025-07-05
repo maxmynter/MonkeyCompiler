@@ -215,6 +215,24 @@ fn compiler_tests() {
                 make(Opcode::OpPop, &[]),
             ],
         },
+        CompilerTest {
+            input: "-1",
+            expected_constants: vec![Object::Integer { value: 1 }],
+            expected_instructions: vec![
+                make(Opcode::Constant, &[0]),
+                make(Opcode::OpMinus, &[]),
+                make(Opcode::OpPop, &[]),
+            ],
+        },
+        CompilerTest {
+            input: "!true",
+            expected_constants: Vec::new(),
+            expected_instructions: vec![
+                make(Opcode::OpTrue, &[]),
+                make(Opcode::OpBang, &[]),
+                make(Opcode::OpPop, &[]),
+            ],
+        },
     ];
     run_compiler_tests(tests);
 }
