@@ -2,9 +2,16 @@ use ast::{BlockStatement, Boolean, Expression, IfExpression, IntegerLiteral, Pro
 use code::{Instructions, Opcode};
 use object::Object;
 
+pub struct EmittedInstruction {
+    pub opcode: Opcode,
+    pub position: usize,
+}
+
 pub struct Compiler {
     pub instructions: Instructions,
     pub constants: Vec<Object>,
+    pub last_instruction: Option<EmittedInstruction>,
+    pub previous_instruction: Option<EmittedInstruction>,
 }
 
 impl Default for Compiler {
@@ -18,6 +25,8 @@ impl Compiler {
         Compiler {
             instructions: Instructions::new(),
             constants: Vec::new(),
+            last_instruction: None,
+            previous_instruction: None,
         }
     }
 
@@ -43,10 +52,35 @@ impl Compiler {
         }
     }
 
+    fn set_last_instruction(&mut self, op: Opcode, pos: usize) {
+        let prev = self.last_instruction.take();
+        self.previous_instruction = prev;
+        self.last_instruction = Some(EmittedInstruction {
+            opcode: op,
+            position: pos,
+        });
+    }
+
     pub fn emit(&mut self, op: Opcode, operands: &[isize]) -> usize {
         let ins = code::make(op, operands);
+        let pos = self.add_instructions(ins);
+        self.set_last_instruction(op, pos);
+        pos
+    }
 
-        self.add_instructions(ins)
+    pub fn last_instruction_is_pop(&self) -> bool {
+        if let Some(last) = &self.last_instruction {
+            last.opcode == Opcode::OpPop
+        } else {
+            false
+        }
+    }
+
+    pub fn remove_last_pop(&mut self) {
+        self.instructions = self
+            .instructions
+            .slice(0..self.last_instruction.as_ref().unwrap().position);
+        self.last_instruction = self.previous_instruction.take();
     }
 }
 
@@ -147,7 +181,11 @@ impl Compilable for Expression {
                 condition.compile(c)?;
                 // Emit jump not truthy with bogus value
                 c.emit(Opcode::OpJumpNotTruthy, &[9999]);
-                consequence.compile(c)
+                consequence.compile(c);
+                if c.last_instruction_is_pop() {
+                    c.remove_last_pop();
+                }
+                Ok(())
             }
 
             _ => Err(format!("Not yer implemented: {:?}", self)), // TODO: add missing implementations

@@ -53,7 +53,10 @@ impl Instructions {
         }
     }
 
-    pub fn slice(&self, range: std::ops::RangeFrom<usize>) -> Instructions {
+    pub fn slice<R>(&self, range: R) -> Instructions
+    where
+        R: std::slice::SliceIndex<[u8], Output = [u8]>,
+    {
         Instructions(self.0[range].to_vec())
     }
 }
