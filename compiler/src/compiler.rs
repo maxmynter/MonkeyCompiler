@@ -1,5 +1,5 @@
 use ast::{BlockStatement, Boolean, Expression, IfExpression, IntegerLiteral, Program, Statement};
-use code::{Instructions, Opcode};
+use code::{Instructions, Opcode, make};
 use object::Object;
 
 pub struct EmittedInstruction {
@@ -81,6 +81,16 @@ impl Compiler {
             .instructions
             .slice(0..self.last_instruction.as_ref().unwrap().position);
         self.last_instruction = self.previous_instruction.take();
+    }
+
+    fn replace_instruction(&mut self, pos: usize, new_instruction: Instructions) {
+        self.instructions[pos..pos + new_instruction.len()].copy_from_slice(&new_instruction);
+    }
+
+    pub fn change_operand(&mut self, op_pos: usize, operand: isize) {
+        let op = Opcode::from_u8(self.instructions[op_pos]).expect("Unkown instruction code");
+        let new_instruction = make(op, &[operand]);
+        self.replace_instruction(op_pos, new_instruction);
     }
 }
 
@@ -180,11 +190,18 @@ impl Compilable for Expression {
             }) => {
                 condition.compile(c)?;
                 // Emit jump not truthy with bogus value
-                c.emit(Opcode::OpJumpNotTruthy, &[9999]);
+                let jump_not_truthy_pos = c.emit(Opcode::OpJumpNotTruthy, &[9999]);
                 consequence.compile(c);
+
+                // We only need one Pop because it's a conditional
+                // Only one path is executed.
                 if c.last_instruction_is_pop() {
                     c.remove_last_pop();
                 }
+
+                // If False, jump after consequence
+                let after_consequence_pos = c.instructions.len() as isize;
+                c.change_operand(jump_not_truthy_pos, after_consequence_pos);
                 Ok(())
             }
 

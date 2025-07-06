@@ -314,7 +314,7 @@ fn test_conditionals() {
         expected_instructions: vec![
             make(Opcode::OpTrue, &[]),
             make(Opcode::OpJumpNotTruthy, &[7]),
-            make(Opcode::OpConstant, &[]),
+            make(Opcode::OpConstant, &[0]),
             make(Opcode::OpPop, &[]),
             make(Opcode::OpConstant, &[1]),
             make(Opcode::OpPop, &[]),
