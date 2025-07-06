@@ -155,7 +155,7 @@ impl VM {
         while ip < self.instructions.len() {
             let op = Opcode::from_u8(self.instructions[ip]).unwrap();
             match op {
-                Opcode::Constant => {
+                Opcode::OpConstant => {
                     let const_index = code::read_uint16(self.instructions.slice(ip + 1..));
                     ip += 2;
                     self.push(self.constants[const_index as usize].clone())?;

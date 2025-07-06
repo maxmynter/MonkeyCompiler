@@ -1,4 +1,4 @@
-use ast::{Boolean, Expression, IntegerLiteral, Program, Statement};
+use ast::{BlockStatement, Boolean, Expression, IfExpression, IntegerLiteral, Program, Statement};
 use code::{Instructions, Opcode};
 use object::Object;
 
@@ -63,7 +63,7 @@ impl Compilable for IntegerLiteral {
     fn compile(&self, c: &mut Compiler) -> Result<(), String> {
         let integer = Object::Integer { value: self.value };
         let pos = c.add_constant(integer);
-        c.emit(Opcode::Constant, &[pos]);
+        c.emit(Opcode::OpConstant, &[pos]);
         Ok(())
     }
 }
@@ -131,10 +131,7 @@ impl Compilable for Expression {
                 let op = prefix.operator.as_str();
                 prefix.right.compile(c)?;
                 match op {
-                    "!" => {
-                        eprintln!("EMitting banf");
-                        c.emit(Opcode::OpBang, &[])
-                    }
+                    "!" => c.emit(Opcode::OpBang, &[]),
                     "-" => c.emit(Opcode::OpMinus, &[]),
                     _ => {
                         return Err(format!("unkown operator {:?}", op));
@@ -142,7 +139,27 @@ impl Compilable for Expression {
                 };
                 Ok(())
             }
+            Expression::IfExpression(IfExpression {
+                condition,
+                consequence,
+                ..
+            }) => {
+                condition.compile(c)?;
+                // Emit jump not truthy with bogus value
+                c.emit(Opcode::OpJumpNotTruthy, &[9999]);
+                consequence.compile(c)
+            }
+
             _ => Err(format!("Not yer implemented: {:?}", self)), // TODO: add missing implementations
         }
+    }
+}
+
+impl Compilable for BlockStatement {
+    fn compile(&self, c: &mut Compiler) -> Result<(), String> {
+        for s in &self.statements {
+            s.compile(c)?;
+        }
+        Ok(())
     }
 }

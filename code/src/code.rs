@@ -89,7 +89,7 @@ impl DerefMut for Instructions {
 #[repr(u8)]
 #[derive(Hash, Eq, PartialEq, Clone, Copy, Debug)]
 pub enum Opcode {
-    Constant,
+    OpConstant,
     OpAdd,
     OpPop,
     OpSub,
@@ -102,12 +102,14 @@ pub enum Opcode {
     OpGreaterThan,
     OpMinus,
     OpBang,
+    OpJumpNotTruthy,
+    OpJump,
 }
 
 impl Opcode {
     pub fn from_u8(code: u8) -> Option<Self> {
         match code {
-            0 => Some(Opcode::Constant),
+            0 => Some(Opcode::OpConstant),
             1 => Some(Opcode::OpAdd),
             2 => Some(Opcode::OpPop),
             3 => Some(Opcode::OpSub),
@@ -120,6 +122,8 @@ impl Opcode {
             10 => Some(Opcode::OpGreaterThan),
             11 => Some(Opcode::OpMinus),
             12 => Some(Opcode::OpBang),
+            13 => Some(Opcode::OpJumpNotTruthy),
+            14 => Some(Opcode::OpJump),
             _ => None,
         }
     }
@@ -135,7 +139,7 @@ lazy_static! {
     pub static ref DEFINITIONS: HashMap<Opcode, Definition> = {
         [
             (
-                Opcode::Constant,
+                Opcode::OpConstant,
                 Definition {
                     name: "OpConstant",
                     operand_widths: vec![2],
@@ -223,6 +227,20 @@ lazy_static! {
                 Definition {
                     name: "OpBang",
                     operand_widths: Vec::new()
+            }
+        ),
+        (
+                Opcode::OpJumpNotTruthy,
+                Definition {
+                    name: "OpJumpNotTruthy",
+                    operand_widths: vec![2]
+            }
+        ),
+        (
+                Opcode::OpJump,
+                Definition {
+                    name: "OpJump",
+                    operand_widths: vec![2]
             }
         ),
         ]
