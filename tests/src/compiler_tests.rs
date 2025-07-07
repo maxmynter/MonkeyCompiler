@@ -305,21 +305,41 @@ fn test_read_operands() {
 
 #[test]
 fn test_conditionals() {
-    let tests = vec![CompilerTest {
-        input: "if (true) { 10 }; 3333;",
-        expected_constants: vec![
-            Object::Integer { value: 10 },
-            Object::Integer { value: 3333 },
-        ],
-        expected_instructions: vec![
-            make(Opcode::OpTrue, &[]),
-            make(Opcode::OpJumpNotTruthy, &[7]),
-            make(Opcode::OpConstant, &[0]),
-            make(Opcode::OpPop, &[]),
-            make(Opcode::OpConstant, &[1]),
-            make(Opcode::OpPop, &[]),
-        ],
-    }];
+    let tests = vec![
+        CompilerTest {
+            input: "if (true) { 10 }; 3333;",
+            expected_constants: vec![
+                Object::Integer { value: 10 },
+                Object::Integer { value: 3333 },
+            ],
+            expected_instructions: vec![
+                make(Opcode::OpTrue, &[]),
+                make(Opcode::OpJumpNotTruthy, &[7]),
+                make(Opcode::OpConstant, &[0]),
+                make(Opcode::OpPop, &[]),
+                make(Opcode::OpConstant, &[1]),
+                make(Opcode::OpPop, &[]),
+            ],
+        },
+        CompilerTest {
+            input: "if (true) { 10 } else { 20 }; 3333;",
+            expected_constants: vec![
+                Object::Integer { value: 10 },
+                Object::Integer { value: 20 },
+                Object::Integer { value: 3333 },
+            ],
+            expected_instructions: vec![
+                make(Opcode::OpTrue, &[]),
+                make(Opcode::OpJumpNotTruthy, &[10]),
+                make(Opcode::OpConstant, &[0]),
+                make(Opcode::OpJump, &[13]),
+                make(Opcode::OpConstant, &[1]),
+                make(Opcode::OpPop, &[]),
+                make(Opcode::OpConstant, &[2]),
+                make(Opcode::OpPop, &[]),
+            ],
+        },
+    ];
 
     run_compiler_tests(tests);
 }

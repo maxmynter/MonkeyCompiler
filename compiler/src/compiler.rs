@@ -186,6 +186,7 @@ impl Compilable for Expression {
             Expression::IfExpression(IfExpression {
                 condition,
                 consequence,
+                alternative,
                 ..
             }) => {
                 condition.compile(c)?;
@@ -198,10 +199,23 @@ impl Compilable for Expression {
                 if c.last_instruction_is_pop() {
                     c.remove_last_pop();
                 }
+                if let Some(alternative) = alternative {
+                    // Emit unconditional jump to placeholder address
+                    let jump_pos = c.emit(Opcode::OpJump, &[9999]);
+                    let after_consequence_pos = c.instructions.len() as isize;
+                    c.change_operand(jump_not_truthy_pos, after_consequence_pos);
+                    alternative.compile(c);
+                    if c.last_instruction_is_pop() {
+                        c.remove_last_pop()
+                    }
+                    let after_alternative_pos = c.instructions.len() as isize;
+                    c.change_operand(jump_pos, after_alternative_pos);
+                } else {
+                    // If False, jump after consequence
+                    let after_consequence_pos = c.instructions.len() as isize;
+                    c.change_operand(jump_not_truthy_pos, after_consequence_pos);
+                }
 
-                // If False, jump after consequence
-                let after_consequence_pos = c.instructions.len() as isize;
-                c.change_operand(jump_not_truthy_pos, after_consequence_pos);
                 Ok(())
             }
 
