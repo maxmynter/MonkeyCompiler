@@ -569,7 +569,7 @@ impl CoerceObject for BlockStatement {
     }
 }
 
-fn is_truthy(expr: Object) -> bool {
+pub fn is_truthy(expr: Object) -> bool {
     match expr {
         Object::Null => false,
         TRUE => true,

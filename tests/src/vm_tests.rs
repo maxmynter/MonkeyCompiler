@@ -231,3 +231,38 @@ fn test_boolean_expression() {
 
     run_vm_tests(tests);
 }
+
+#[test]
+fn test_conditionals() {
+    let tests = vec![
+        VmTestCase {
+            input: "if (true) {10}",
+            expected: Object::Integer { value: 10 },
+        },
+        VmTestCase {
+            input: "if (true) {10} else {20}",
+            expected: Object::Integer { value: 10 },
+        },
+        VmTestCase {
+            input: "if (false) {10} else {20}",
+            expected: Object::Integer { value: 20 },
+        },
+        VmTestCase {
+            input: "if (1) {10}",
+            expected: Object::Integer { value: 10 },
+        },
+        VmTestCase {
+            input: "if (1) {10}",
+            expected: Object::Integer { value: 10 },
+        },
+        VmTestCase {
+            input: "if (1 < 2) {10} else { 20 }",
+            expected: Object::Integer { value: 10 },
+        },
+        VmTestCase {
+            input: "if (1 > 2) {10} else { 20 }",
+            expected: Object::Integer { value: 20 },
+        },
+    ];
+    run_vm_tests(tests);
+}

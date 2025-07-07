@@ -1,4 +1,4 @@
-use code::{Instructions, Opcode};
+use code::{Instructions, Opcode, read_uint16};
 use compiler::Bytecode;
 use object::{FALSE, Object, TRUE};
 
@@ -181,8 +181,18 @@ impl VM {
                 Opcode::OpMinus => {
                     self.execute_minus_operator()?;
                 }
-                _ => {
-                    unreachable!();
+                Opcode::OpJump => {
+                    let pos = read_uint16(self.instructions.slice(ip + 1..)) as usize;
+                    // Set to preceeding instruction since we increment at loop end
+                    ip = pos - 1;
+                }
+                Opcode::OpJumpNotTruthy => {
+                    let pos = read_uint16(self.instructions.slice(ip + 1..)) as usize;
+                    ip += 2;
+                    let condition = self.pop()?;
+                    if !object::is_truthy(condition) {
+                        ip = pos - 1;
+                    }
                 }
             }
             ip += 1;
