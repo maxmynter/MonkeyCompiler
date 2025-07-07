@@ -2,6 +2,8 @@ use ast::{BlockStatement, Boolean, Expression, IfExpression, IntegerLiteral, Pro
 use code::{Instructions, Opcode, make};
 use object::Object;
 
+const JUMP_PLACEHOLDER: isize = 9999;
+
 pub struct EmittedInstruction {
     pub opcode: Opcode,
     pub position: usize,
@@ -81,6 +83,12 @@ impl Compiler {
             .instructions
             .slice(0..self.last_instruction.as_ref().unwrap().position);
         self.last_instruction = self.previous_instruction.take();
+    }
+
+    pub fn maybe_remove_last_pop(&mut self) {
+        if self.last_instruction_is_pop() {
+            self.remove_last_pop();
+        }
     }
 
     fn replace_instruction(&mut self, pos: usize, new_instruction: Instructions) {
@@ -190,32 +198,29 @@ impl Compilable for Expression {
                 ..
             }) => {
                 condition.compile(c)?;
-                // Emit jump not truthy with bogus value
-                let jump_not_truthy_pos = c.emit(Opcode::OpJumpNotTruthy, &[9999]);
-                consequence.compile(c);
+                let jump_not_truthy_pos = c.emit(Opcode::OpJumpNotTruthy, &[JUMP_PLACEHOLDER]);
+                let _ = consequence.compile(c);
 
                 // We only need one Pop because it's a conditional
                 // Only one path is executed.
-                if c.last_instruction_is_pop() {
-                    c.remove_last_pop();
-                }
-                if let Some(alternative) = alternative {
-                    // Emit unconditional jump to placeholder address
-                    let jump_pos = c.emit(Opcode::OpJump, &[9999]);
-                    let after_consequence_pos = c.instructions.len() as isize;
-                    c.change_operand(jump_not_truthy_pos, after_consequence_pos);
-                    alternative.compile(c);
-                    if c.last_instruction_is_pop() {
-                        c.remove_last_pop()
-                    }
-                    let after_alternative_pos = c.instructions.len() as isize;
-                    c.change_operand(jump_pos, after_alternative_pos);
-                } else {
-                    // If False, jump after consequence
-                    let after_consequence_pos = c.instructions.len() as isize;
-                    c.change_operand(jump_not_truthy_pos, after_consequence_pos);
-                }
+                c.maybe_remove_last_pop();
 
+                match alternative {
+                    Some(alternative) => {
+                        let jump_pos = c.emit(Opcode::OpJump, &[JUMP_PLACEHOLDER]);
+                        let after_consequence_pos = c.instructions.len() as isize;
+                        c.change_operand(jump_not_truthy_pos, after_consequence_pos);
+                        let _ = alternative.compile(c);
+                        c.maybe_remove_last_pop();
+                        let after_alternative_pos = c.instructions.len() as isize;
+                        c.change_operand(jump_pos, after_alternative_pos);
+                    }
+                    None => {
+                        // If False, jump after consequence
+                        let after_consequence_pos = c.instructions.len() as isize;
+                        c.change_operand(jump_not_truthy_pos, after_consequence_pos);
+                    }
+                }
                 Ok(())
             }
 
