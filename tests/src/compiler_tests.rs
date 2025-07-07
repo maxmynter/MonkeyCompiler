@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use crate::utils::prepare_program_for_test;
 use code::{Instructions, Opcode, lookup, make, read_operands};
 use compiler::Compiler;
