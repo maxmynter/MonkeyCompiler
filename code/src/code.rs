@@ -107,6 +107,7 @@ pub enum Opcode {
     OpBang,
     OpJumpNotTruthy,
     OpJump,
+    OpNull,
 }
 
 impl Opcode {
@@ -127,6 +128,7 @@ impl Opcode {
             12 => Some(Opcode::OpBang),
             13 => Some(Opcode::OpJumpNotTruthy),
             14 => Some(Opcode::OpJump),
+            15 => Some(Opcode::OpNull),
             _ => None,
         }
     }
@@ -244,6 +246,13 @@ lazy_static! {
                 Definition {
                     name: "OpJump",
                     operand_widths: vec![2]
+            }
+        ),
+        (
+                Opcode::OpNull,
+                Definition {
+                    name: "OpNull",
+                    operand_widths: Vec::new()
             }
         ),
         ]

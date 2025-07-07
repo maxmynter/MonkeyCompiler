@@ -49,7 +49,11 @@ fn test_expected_object(expected: Object, actual: Object) {
         ) => {
             assert_eq!(expected_value, actual_value);
         }
-        _ => panic!("unexpected object value {:?}, got={:?}", actual, expected),
+        (&Object::Null, &Object::Null) => {}
+        _ => panic!(
+            "unexpected object value {:?}, expected={:?}",
+            actual, expected
+        ),
     }
 }
 
@@ -263,6 +267,14 @@ fn test_conditionals() {
         VmTestCase {
             input: "if (1 > 2) {10} else { 20 }",
             expected: Object::Integer { value: 20 },
+        },
+        VmTestCase {
+            input: "if (1 > 2) { 10 }",
+            expected: Object::Null,
+        },
+        VmTestCase {
+            input: "if (false) { 10 }",
+            expected: Object::Null,
         },
     ];
     run_vm_tests(tests);

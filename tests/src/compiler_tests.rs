@@ -32,6 +32,7 @@ fn test_make() {
     }
 }
 
+#[derive(Debug)]
 struct CompilerTest {
     input: &'static str,
     expected_constants: Vec<Object>,
@@ -315,8 +316,10 @@ fn test_conditionals() {
             ],
             expected_instructions: vec![
                 make(Opcode::OpTrue, &[]),
-                make(Opcode::OpJumpNotTruthy, &[7]),
+                make(Opcode::OpJumpNotTruthy, &[10]),
                 make(Opcode::OpConstant, &[0]),
+                make(Opcode::OpJump, &[11]),
+                make(Opcode::OpNull, &[]),
                 make(Opcode::OpPop, &[]),
                 make(Opcode::OpConstant, &[1]),
                 make(Opcode::OpPop, &[]),

@@ -199,28 +199,31 @@ impl Compilable for Expression {
             }) => {
                 condition.compile(c)?;
                 let jump_not_truthy_pos = c.emit(Opcode::OpJumpNotTruthy, &[JUMP_PLACEHOLDER]);
+
                 let _ = consequence.compile(c);
 
                 // We only need one Pop because it's a conditional
                 // Only one path is executed.
                 c.maybe_remove_last_pop();
 
+                let jump_pos = c.emit(Opcode::OpJump, &[JUMP_PLACEHOLDER]);
+
+                let after_consequence_pos = c.instructions.len() as isize;
+                c.change_operand(jump_not_truthy_pos, after_consequence_pos);
+
                 match alternative {
                     Some(alternative) => {
-                        let jump_pos = c.emit(Opcode::OpJump, &[JUMP_PLACEHOLDER]);
-                        let after_consequence_pos = c.instructions.len() as isize;
-                        c.change_operand(jump_not_truthy_pos, after_consequence_pos);
                         let _ = alternative.compile(c);
                         c.maybe_remove_last_pop();
-                        let after_alternative_pos = c.instructions.len() as isize;
-                        c.change_operand(jump_pos, after_alternative_pos);
                     }
                     None => {
-                        // If False, jump after consequence
-                        let after_consequence_pos = c.instructions.len() as isize;
-                        c.change_operand(jump_not_truthy_pos, after_consequence_pos);
+                        let _ = c.emit(Opcode::OpNull, &[]);
                     }
                 }
+
+                let after_alternative_pos = c.instructions.len() as isize;
+                c.change_operand(jump_pos, after_alternative_pos);
+
                 Ok(())
             }
 

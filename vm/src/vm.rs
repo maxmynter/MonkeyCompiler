@@ -1,6 +1,6 @@
 use code::{Instructions, Opcode, read_uint16};
 use compiler::Bytecode;
-use object::{FALSE, Object, TRUE};
+use object::{FALSE, NULL, Object, TRUE};
 
 const STACK_SIZE: usize = 2048;
 
@@ -193,6 +193,9 @@ impl VM {
                     if !object::is_truthy(condition) {
                         ip = pos - 1;
                     }
+                }
+                Opcode::OpNull => {
+                    self.push(NULL)?;
                 }
             }
             ip += 1;
