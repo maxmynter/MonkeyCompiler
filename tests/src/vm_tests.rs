@@ -127,102 +127,102 @@ fn test_integer_arithmetic() {
 #[test]
 fn test_boolean_expression() {
     let tests: Vec<VmTestCase> = vec![
-        // VmTestCase {
-        //     input: "true",
-        //     expected: Object::Boolean { value: true },
-        // },
-        // VmTestCase {
-        //     input: "false",
-        //     expected: Object::Boolean { value: false },
-        // },
-        // VmTestCase {
-        //     input: "1 < 2",
-        //     expected: Object::Boolean { value: true },
-        // },
-        // VmTestCase {
-        //     input: "1 > 2",
-        //     expected: Object::Boolean { value: false },
-        // },
-        // VmTestCase {
-        //     input: "1 < 1",
-        //     expected: Object::Boolean { value: false },
-        // },
-        // VmTestCase {
-        //     input: "1 > 1",
-        //     expected: Object::Boolean { value: false },
-        // },
-        // VmTestCase {
-        //     input: "1 == 1",
-        //     expected: Object::Boolean { value: true },
-        // },
-        // VmTestCase {
-        //     input: "1 != 1",
-        //     expected: Object::Boolean { value: false },
-        // },
-        // VmTestCase {
-        //     input: "1 == 2",
-        //     expected: Object::Boolean { value: false },
-        // },
-        // VmTestCase {
-        //     input: "1 != 2",
-        //     expected: Object::Boolean { value: true },
-        // },
-        // VmTestCase {
-        //     input: "true == true",
-        //     expected: Object::Boolean { value: true },
-        // },
-        // VmTestCase {
-        //     input: "false == false",
-        //     expected: Object::Boolean { value: true },
-        // },
-        // VmTestCase {
-        //     input: "true == false",
-        //     expected: Object::Boolean { value: false },
-        // },
-        // VmTestCase {
-        //     input: "true != false",
-        //     expected: Object::Boolean { value: true },
-        // },
-        // VmTestCase {
-        //     input: "false != true",
-        //     expected: Object::Boolean { value: true },
-        // },
-        // VmTestCase {
-        //     input: "(1 < 2) == true",
-        //     expected: Object::Boolean { value: true },
-        // },
-        // VmTestCase {
-        //     input: "(1 < 2) == false",
-        //     expected: Object::Boolean { value: false },
-        // },
-        // VmTestCase {
-        //     input: "(1 > 2) == true",
-        //     expected: Object::Boolean { value: false },
-        // },
-        // VmTestCase {
-        //     input: "(1 > 2) == false",
-        //     expected: Object::Boolean { value: true },
-        // },
-        // VmTestCase {
-        //     input: "!true",
-        //     expected: Object::Boolean { value: false },
-        // },
-        // VmTestCase {
-        //     input: "!false",
-        //     expected: Object::Boolean { value: true },
-        // },
+        VmTestCase {
+            input: "true",
+            expected: Object::Boolean { value: true },
+        },
+        VmTestCase {
+            input: "false",
+            expected: Object::Boolean { value: false },
+        },
+        VmTestCase {
+            input: "1 < 2",
+            expected: Object::Boolean { value: true },
+        },
+        VmTestCase {
+            input: "1 > 2",
+            expected: Object::Boolean { value: false },
+        },
+        VmTestCase {
+            input: "1 < 1",
+            expected: Object::Boolean { value: false },
+        },
+        VmTestCase {
+            input: "1 > 1",
+            expected: Object::Boolean { value: false },
+        },
+        VmTestCase {
+            input: "1 == 1",
+            expected: Object::Boolean { value: true },
+        },
+        VmTestCase {
+            input: "1 != 1",
+            expected: Object::Boolean { value: false },
+        },
+        VmTestCase {
+            input: "1 == 2",
+            expected: Object::Boolean { value: false },
+        },
+        VmTestCase {
+            input: "1 != 2",
+            expected: Object::Boolean { value: true },
+        },
+        VmTestCase {
+            input: "true == true",
+            expected: Object::Boolean { value: true },
+        },
+        VmTestCase {
+            input: "false == false",
+            expected: Object::Boolean { value: true },
+        },
+        VmTestCase {
+            input: "true == false",
+            expected: Object::Boolean { value: false },
+        },
+        VmTestCase {
+            input: "true != false",
+            expected: Object::Boolean { value: true },
+        },
+        VmTestCase {
+            input: "false != true",
+            expected: Object::Boolean { value: true },
+        },
+        VmTestCase {
+            input: "(1 < 2) == true",
+            expected: Object::Boolean { value: true },
+        },
+        VmTestCase {
+            input: "(1 < 2) == false",
+            expected: Object::Boolean { value: false },
+        },
+        VmTestCase {
+            input: "(1 > 2) == true",
+            expected: Object::Boolean { value: false },
+        },
+        VmTestCase {
+            input: "(1 > 2) == false",
+            expected: Object::Boolean { value: true },
+        },
+        VmTestCase {
+            input: "!true",
+            expected: Object::Boolean { value: false },
+        },
+        VmTestCase {
+            input: "!false",
+            expected: Object::Boolean { value: true },
+        },
         VmTestCase {
             input: "!5",
             expected: Object::Boolean { value: false },
         },
-        // VmTestCase {
-        //     input: "!!true",
-        //     expected: Object::Boolean { value: true },
-        // },
-        // VmTestCase {
-        //     input: "!!false",
-        //     expected: Object::Boolean { value: false },
-        // },
+        VmTestCase {
+            input: "!!true",
+            expected: Object::Boolean { value: true },
+        },
+        VmTestCase {
+            input: "!!false",
+            expected: Object::Boolean { value: false },
+        },
         VmTestCase {
             input: "!!5",
             expected: Object::Boolean { value: true },
