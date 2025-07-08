@@ -198,6 +198,8 @@ impl VM {
                 Opcode::OpNull => {
                     self.push(NULL)?;
                 }
+                Opcode::OpGetGlobal => todo!(),
+                Opcode::OpSetGlobal => todo!(),
             }
             ip += 1;
         }

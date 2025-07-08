@@ -135,7 +135,7 @@ impl Compilable for Statement {
         match self {
             Statement::Let { value, .. } => {
                 let result = value.compile(c);
-                todo!()
+                Ok(())
             }
             Statement::Return { .. } => todo!(),
             Statement::Expression { value, .. } => {
