@@ -1,3 +1,4 @@
+pub mod symbol_table;
 use ast::{BlockStatement, Boolean, Expression, IfExpression, IntegerLiteral, Program, Statement};
 use code::{Instructions, Opcode, make};
 use object::Object;
@@ -132,7 +133,10 @@ impl Compilable for Program {
 impl Compilable for Statement {
     fn compile(&self, c: &mut Compiler) -> Result<(), String> {
         match self {
-            Statement::Let { .. } => todo!(),
+            Statement::Let { value, .. } => {
+                let result = value.compile(c);
+                todo!()
+            }
             Statement::Return { .. } => todo!(),
             Statement::Expression { value, .. } => {
                 let result = value.compile(c);

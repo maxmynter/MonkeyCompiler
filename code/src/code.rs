@@ -108,6 +108,8 @@ pub enum Opcode {
     OpJumpNotTruthy,
     OpJump,
     OpNull,
+    OpGetGlobal,
+    OpSetGlobal,
 }
 
 impl Opcode {
@@ -129,6 +131,8 @@ impl Opcode {
             13 => Some(Opcode::OpJumpNotTruthy),
             14 => Some(Opcode::OpJump),
             15 => Some(Opcode::OpNull),
+            16 => Some(Opcode::OpGetGlobal),
+            17 => Some(Opcode::OpSetGlobal),
             _ => None,
         }
     }
@@ -253,6 +257,20 @@ lazy_static! {
                 Definition {
                     name: "OpNull",
                     operand_widths: Vec::new()
+            }
+        ),
+        (
+                Opcode::OpSetGlobal,
+                Definition {
+                    name: "OpSetGlobal",
+                    operand_widths: vec![2]
+            }
+        ),
+        (
+                Opcode::OpGetGlobal,
+                Definition {
+                    name: "OpGetGlobal",
+                    operand_widths: vec![2]
             }
         ),
         ]

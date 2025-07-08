@@ -343,6 +343,38 @@ fn test_conditionals() {
                 make(Opcode::OpPop, &[]),
             ],
         },
+        CompilerTest {
+            input: "let one = 1; let two = 2;",
+            expected_constants: vec![Object::Integer { value: 1 }, Object::Integer { value: 2 }],
+            expected_instructions: vec![
+                make(Opcode::OpConstant, &[0]),
+                make(Opcode::OpSetGlobal, &[0]),
+                make(Opcode::OpConstant, &[1]),
+                make(Opcode::OpSetGlobal, &[1]),
+            ],
+        },
+        CompilerTest {
+            input: "let one = 1; one;",
+            expected_constants: vec![Object::Integer { value: 1 }],
+            expected_instructions: vec![
+                make(Opcode::OpConstant, &[0]),
+                make(Opcode::OpSetGlobal, &[0]),
+                make(Opcode::OpGetGlobal, &[0]),
+                make(Opcode::OpPop, &[]),
+            ],
+        },
+        CompilerTest {
+            input: "let one = 1; let two = one; two;",
+            expected_constants: vec![Object::Integer { value: 1 }],
+            expected_instructions: vec![
+                make(Opcode::OpConstant, &[0]),
+                make(Opcode::OpSetGlobal, &[0]),
+                make(Opcode::OpGetGlobal, &[0]),
+                make(Opcode::OpSetGlobal, &[1]),
+                make(Opcode::OpGetGlobal, &[1]),
+                make(Opcode::OpPop, &[]),
+            ],
+        },
     ];
 
     run_compiler_tests(tests);
