@@ -1,7 +1,12 @@
 pub mod symbol_table;
-use ast::{BlockStatement, Boolean, Expression, IfExpression, IntegerLiteral, Program, Statement};
+use ast::{
+    BlockStatement, Boolean, Expression, Identifier, IfExpression, IntegerLiteral, Program,
+    Statement,
+};
 use code::{Instructions, Opcode, make};
 use object::Object;
+
+use crate::symbol_table::SymbolTable;
 
 const JUMP_PLACEHOLDER: isize = 9999;
 
@@ -15,6 +20,7 @@ pub struct Compiler {
     pub constants: Vec<Object>,
     pub last_instruction: Option<EmittedInstruction>,
     pub previous_instruction: Option<EmittedInstruction>,
+    pub symbol_table: SymbolTable,
 }
 
 impl Default for Compiler {
@@ -30,6 +36,7 @@ impl Compiler {
             constants: Vec::new(),
             last_instruction: None,
             previous_instruction: None,
+            symbol_table: SymbolTable::new(),
         }
     }
 
@@ -133,9 +140,12 @@ impl Compilable for Program {
 impl Compilable for Statement {
     fn compile(&self, c: &mut Compiler) -> Result<(), String> {
         match self {
-            Statement::Let { value, .. } => {
+            Statement::Let { value, name, .. } => {
                 let result = value.compile(c);
-                Ok(())
+                let symbol = c.symbol_table.define((*name.value).clone());
+                let symbol_index = symbol.index as isize;
+                c.emit(Opcode::OpSetGlobal, &[symbol_index]);
+                result
             }
             Statement::Return { .. } => todo!(),
             Statement::Expression { value, .. } => {
@@ -230,8 +240,16 @@ impl Compilable for Expression {
 
                 Ok(())
             }
+            Expression::Identifier(Identifier { value, .. }) => {
+                if let Some(symbol) = c.symbol_table.resolve(value) {
+                    c.emit(Opcode::OpGetGlobal, &[symbol.index as isize]);
+                    Ok(())
+                } else {
+                    Err(format!("unkown identifier: {}", value))
+                }
+            }
 
-            _ => Err(format!("Not yer implemented: {:?}", self)), // TODO: add missing implementations
+            _ => Err(format!("Not yet implemented: {:?}", self)), // TODO: add missing implementations
         }
     }
 }
