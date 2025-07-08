@@ -40,6 +40,16 @@ impl Compiler {
         }
     }
 
+    pub fn new_with_state(constants: Vec<Object>, symbols: SymbolTable) -> Self {
+        Compiler {
+            instructions: Instructions::new(),
+            constants,
+            last_instruction: None,
+            previous_instruction: None,
+            symbol_table: symbols,
+        }
+    }
+
     pub fn compile(&mut self, node: impl Compilable) -> Result<(), String> {
         node.compile(self)
     }

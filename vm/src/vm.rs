@@ -2,7 +2,8 @@ use code::{Instructions, Opcode, read_uint16};
 use compiler::Bytecode;
 use object::{FALSE, NULL, Object, TRUE};
 
-const STACK_SIZE: usize = 2048;
+pub const STACK_SIZE: usize = 2048;
+pub const GLOBALS_SIZE: usize = 65536;
 
 #[derive(Debug)]
 pub enum VMError {
@@ -18,6 +19,7 @@ pub struct VM {
     instructions: Instructions,
     stack: Vec<Object>,
     sp: usize,
+    globals: Vec<Object>,
 }
 
 impl VM {
@@ -27,6 +29,16 @@ impl VM {
             constants: bytecode.constants,
             stack: vec![Object::Null; STACK_SIZE],
             sp: 0,
+            globals: vec![Object::Null; GLOBALS_SIZE],
+        }
+    }
+    pub fn new_with_global_store(bytecode: Bytecode, globals: Vec<Object>) -> Self {
+        Self {
+            instructions: bytecode.instructions,
+            constants: bytecode.constants,
+            stack: vec![Object::Null; STACK_SIZE],
+            sp: 0,
+            globals,
         }
     }
 
@@ -59,6 +71,9 @@ impl VM {
             self.sp -= 1;
             Ok(self.stack[self.sp].clone())
         }
+    }
+    pub fn get_globals(&self) -> Vec<Object> {
+        self.globals.clone()
     }
 
     fn execute_binary_integer_op(
@@ -198,8 +213,16 @@ impl VM {
                 Opcode::OpNull => {
                     self.push(NULL)?;
                 }
-                Opcode::OpGetGlobal => todo!(),
-                Opcode::OpSetGlobal => todo!(),
+                Opcode::OpSetGlobal => {
+                    let global_index = read_uint16(self.instructions.slice(ip + 1..));
+                    ip += 2;
+                    self.globals[global_index as usize] = self.pop()?;
+                }
+                Opcode::OpGetGlobal => {
+                    let global_index = read_uint16(self.instructions.slice(ip + 1..));
+                    ip += 2;
+                    self.push(self.globals[global_index as usize].clone());
+                }
             }
             ip += 1;
         }

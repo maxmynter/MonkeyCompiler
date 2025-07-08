@@ -4,8 +4,9 @@ use std::{
     rc::Rc,
 };
 
-use compiler::Compiler;
-use object::{Environment, ObjectTraits};
+use compiler::{symbol_table::SymbolTable, Compiler};
+use object::{Environment, Object, ObjectTraits};
+use vm::GLOBALS_SIZE;
 
 const PROMPT: &str = ">> ";
 
@@ -22,6 +23,9 @@ fn repl() -> io::Result<()> {
     let mut stdout = io::stdout();
 
     let env = Environment::new();
+    let mut constants: Vec<Object> = Vec::new();
+    let mut globals = vec![Object::Null; GLOBALS_SIZE];
+    let mut symbol_table = SymbolTable::new();
     loop {
         print!("{}", PROMPT);
         stdout.flush()?;
@@ -37,7 +41,8 @@ fn repl() -> io::Result<()> {
                     println!("\nexiting...");
                     break;
                 }
-                eval(input, env.clone());
+                (constants, symbol_table, globals) =
+                    eval(input, env.clone(), constants, symbol_table, globals);
             }
             Err(e) => {
                 eprintln!("Error: {}", e);
@@ -48,18 +53,24 @@ fn repl() -> io::Result<()> {
     Ok(())
 }
 
-fn eval(input: &str, _env: Rc<RefCell<Environment>>) {
+fn eval(
+    input: &str,
+    env: Rc<RefCell<Environment>>,
+    constants: Vec<Object>,
+    symbols: SymbolTable,
+    globals: Vec<Object>,
+) -> (Vec<Object>, SymbolTable, Vec<Object>) {
     let lex = lexer::Lexer::new(input);
     let mut parser = parser::Parser::new(lex);
     let program = parser.parse_program();
     if !parser.errors.is_empty() {
         parser.print_errors();
     }
-    let mut comp = Compiler::new();
+    let mut comp = Compiler::new_with_state(constants, symbols);
     if let Err(err) = comp.compile(program) {
         println!("Error: {}", err);
     }
-    let mut machine = vm::VM::new(comp.bytecode());
+    let mut machine = vm::VM::new_with_global_store(comp.bytecode(), globals);
     let result = machine.run();
     if let Err(e) = result {
         println!("{:?}", e);
@@ -67,4 +78,5 @@ fn eval(input: &str, _env: Rc<RefCell<Environment>>) {
         let stack_top = machine.last_popped_stack_elem().unwrap();
         println!("{}\n", stack_top.inspect());
     }
+    (comp.constants, comp.symbol_table, machine.get_globals())
 }
