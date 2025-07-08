@@ -232,6 +232,10 @@ fn test_boolean_expression() {
             input: "!!5",
             expected: Object::Boolean { value: true },
         },
+        VmTestCase {
+            input: "!(if (false) {5;})",
+            expected: Object::Boolean { value: true },
+        },
     ];
 
     run_vm_tests(tests);
@@ -275,6 +279,10 @@ fn test_conditionals() {
         VmTestCase {
             input: "if (false) { 10 }",
             expected: Object::Null,
+        },
+        VmTestCase {
+            input: "if ((if (false) { 10 })) { 10 } else { 20 }",
+            expected: Object::Integer { value: 20 },
         },
     ];
     run_vm_tests(tests);

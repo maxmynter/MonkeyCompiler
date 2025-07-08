@@ -137,6 +137,7 @@ impl VM {
         match operator {
             TRUE => self.push(FALSE),
             FALSE => self.push(TRUE),
+            NULL => self.push(TRUE),
             _ => self.push(FALSE),
         }
     }
