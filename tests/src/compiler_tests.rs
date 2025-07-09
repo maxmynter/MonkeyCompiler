@@ -75,6 +75,21 @@ fn test_constants(expected: &[Object], actual: &[Object]) -> Result<(), String> 
                     ));
                 }
             }
+            Object::String {
+                value: expected_value,
+            } => {
+                if let Object::String {
+                    value: actual_value,
+                } = &actual[i]
+                {
+                    assert_eq!(expected_value, actual_value);
+                } else {
+                    return Err(format!(
+                        "unexpected type. expected={:?}, got={:?} ",
+                        expected_constant, &actual[i]
+                    ));
+                }
+            }
             _ => {
                 return Err(format!(
                     "unsupported constant type: {:?}",
@@ -377,5 +392,36 @@ fn test_conditionals() {
         },
     ];
 
+    run_compiler_tests(tests);
+}
+
+#[test]
+fn test_string_expression() {
+    let tests = vec![
+        CompilerTest {
+            input: "monkey",
+            expected_constants: vec![Object::String {
+                value: "monkey".to_string(),
+            }],
+            expected_instructions: vec![make(Opcode::OpConstant, &[0]), make(Opcode::OpPop, &[])],
+        },
+        CompilerTest {
+            input: "mon + key",
+            expected_constants: vec![
+                Object::String {
+                    value: "mon".to_string(),
+                },
+                Object::String {
+                    value: "key".to_string(),
+                },
+            ],
+            expected_instructions: vec![
+                make(Opcode::OpConstant, &[0]),
+                make(Opcode::OpConstant, &[1]),
+                make(Opcode::OpAdd, &[]),
+                make(Opcode::OpPop, &[]),
+            ],
+        },
+    ];
     run_compiler_tests(tests);
 }
