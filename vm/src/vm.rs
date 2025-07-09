@@ -99,10 +99,31 @@ impl VM {
         self.push(Object::Integer { value: result })
     }
 
+    fn execute_binary_string_op(
+        &mut self,
+        op: Opcode,
+        left: String,
+        right: String,
+    ) -> Result<(), VMError> {
+        if Opcode::OpAdd == op {
+            let mut result = left.clone();
+            result.push_str(&right);
+            self.push(Object::String { value: result });
+            Ok(())
+        } else {
+            Err(VMError::UnknownOpForOperands {
+                msg: format!("String Operands: {}, {}", left, right),
+            })
+        }
+    }
+
     fn execute_binary_op(&mut self, op: Opcode) -> Result<(), VMError> {
         match (self.pop()?, self.pop()?) {
             (Object::Integer { value: right_value }, Object::Integer { value: left_value }) => {
                 self.execute_binary_integer_op(op, left_value, right_value)
+            }
+            (Object::String { value: right_value }, Object::String { value: left_value }) => {
+                self.execute_binary_string_op(op, left_value, right_value)
             }
             (left, right) => Err(VMError::UnknownOpForOperands {
                 msg: format!("unkown operands: {:?}, {:?}", left, right),

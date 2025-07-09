@@ -30,26 +30,36 @@ fn run_vm_tests(tests: Vec<VmTestCase>) {
 fn test_expected_object(expected: Object, actual: Object) {
     match (&expected, &actual) {
         (
-            &Object::Integer {
+            Object::Integer {
                 value: expected_value,
             },
-            &Object::Integer {
+            Object::Integer {
                 value: actual_value,
             },
         ) => {
             assert_eq!(expected_value, actual_value);
         }
         (
-            &Object::Boolean {
+            Object::Boolean {
                 value: expected_value,
             },
-            &Object::Boolean {
+            Object::Boolean {
                 value: actual_value,
             },
         ) => {
             assert_eq!(expected_value, actual_value);
         }
-        (&Object::Null, &Object::Null) => {}
+        (Object::Null, Object::Null) => {}
+        (
+            Object::String {
+                value: expected_value,
+            },
+            Object::String {
+                value: actual_value,
+            },
+        ) => {
+            assert_eq!(expected_value, actual_value);
+        }
         _ => panic!(
             "unexpected object value {:?}, expected={:?}",
             actual, expected
@@ -302,6 +312,25 @@ fn test_global_let_statements() {
         VmTestCase {
             input: "let one = 1; let two = one + one; one + two",
             expected: Object::Integer { value: 3 },
+        },
+    ];
+    run_vm_tests(tests);
+}
+
+#[test]
+fn test_string_expressions() {
+    let tests = vec![
+        VmTestCase {
+            input: "\"monkey\"",
+            expected: Object::String {
+                value: "monkey".to_string(),
+            },
+        },
+        VmTestCase {
+            input: "\"mon\" + \"key\" + \"banana\"",
+            expected: Object::String {
+                value: "monkeybanana".to_string(),
+            },
         },
     ];
     run_vm_tests(tests);
