@@ -1,7 +1,7 @@
 pub mod symbol_table;
 use ast::{
     BlockStatement, Boolean, Expression, Identifier, IfExpression, IntegerLiteral, Program,
-    Statement,
+    Statement, StringLiteral,
 };
 use code::{Instructions, Opcode, make};
 use object::Object;
@@ -138,6 +138,17 @@ impl Compilable for IntegerLiteral {
     }
 }
 
+impl Compilable for StringLiteral {
+    fn compile(&self, c: &mut Compiler) -> Result<(), String> {
+        let string = Object::String {
+            value: self.value.clone(),
+        };
+        let pos = c.add_constant(string);
+        c.emit(Opcode::OpConstant, &[pos]);
+        Ok(())
+    }
+}
+
 impl Compilable for Program {
     fn compile(&self, c: &mut Compiler) -> Result<(), String> {
         for statement in &self.statements {
@@ -250,6 +261,7 @@ impl Compilable for Expression {
 
                 Ok(())
             }
+            Expression::String(string_lit) => string_lit.compile(c),
             Expression::Identifier(Identifier { value, .. }) => {
                 if let Some(symbol) = c.symbol_table.resolve(value) {
                     c.emit(Opcode::OpGetGlobal, &[symbol.index as isize]);

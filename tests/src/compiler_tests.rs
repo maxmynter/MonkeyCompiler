@@ -399,14 +399,14 @@ fn test_conditionals() {
 fn test_string_expression() {
     let tests = vec![
         CompilerTest {
-            input: "monkey",
+            input: "\"monkey\"",
             expected_constants: vec![Object::String {
                 value: "monkey".to_string(),
             }],
             expected_instructions: vec![make(Opcode::OpConstant, &[0]), make(Opcode::OpPop, &[])],
         },
         CompilerTest {
-            input: "mon + key",
+            input: "\"mon\" + \"key\"",
             expected_constants: vec![
                 Object::String {
                     value: "mon".to_string(),
