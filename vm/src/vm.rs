@@ -108,7 +108,7 @@ impl VM {
         if Opcode::OpAdd == op {
             let mut result = left.clone();
             result.push_str(&right);
-            self.push(Object::String { value: result });
+            self.push(Object::String { value: result })?;
             Ok(())
         } else {
             Err(VMError::UnknownOpForOperands {
@@ -242,7 +242,7 @@ impl VM {
                 Opcode::OpGetGlobal => {
                     let global_index = read_uint16(self.instructions.slice(ip + 1..));
                     ip += 2;
-                    self.push(self.globals[global_index as usize].clone());
+                    self.push(self.globals[global_index as usize].clone())?;
                 }
                 Opcode::OpArray => {
                     todo!()

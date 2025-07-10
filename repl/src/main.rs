@@ -55,7 +55,7 @@ fn repl() -> io::Result<()> {
 
 fn eval(
     input: &str,
-    env: Rc<RefCell<Environment>>,
+    _env: Rc<RefCell<Environment>>,
     constants: Vec<Object>,
     symbols: SymbolTable,
     globals: Vec<Object>,

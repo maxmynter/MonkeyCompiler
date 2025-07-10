@@ -1,4 +1,4 @@
-#![allow(dead_code)]
+#![cfg(test)]
 use compiler::symbol_table::{GLOBAL_SCOPE, Symbol, SymbolTable};
 use std::collections::HashMap;
 
