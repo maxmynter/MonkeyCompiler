@@ -244,6 +244,9 @@ impl VM {
                     ip += 2;
                     self.push(self.globals[global_index as usize].clone());
                 }
+                Opcode::OpArray => {
+                    todo!()
+                }
             }
             ip += 1;
         }

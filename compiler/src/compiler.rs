@@ -1,7 +1,7 @@
 pub mod symbol_table;
 use ast::{
-    BlockStatement, Boolean, Expression, Identifier, IfExpression, IntegerLiteral, Program,
-    Statement, StringLiteral,
+    ArrayLiteral, BlockStatement, Boolean, Expression, Identifier, IfExpression, IntegerLiteral,
+    Program, Statement, StringLiteral,
 };
 use code::{Instructions, Opcode, make};
 use object::Object;
@@ -149,6 +149,16 @@ impl Compilable for StringLiteral {
     }
 }
 
+impl Compilable for ArrayLiteral {
+    fn compile(&self, c: &mut Compiler) -> Result<(), String> {
+        for el in self.elements.iter() {
+            el.compile(c)?;
+        }
+        c.emit(Opcode::OpArray, &[self.elements.len() as isize]);
+        Ok(())
+    }
+}
+
 impl Compilable for Program {
     fn compile(&self, c: &mut Compiler) -> Result<(), String> {
         for statement in &self.statements {
@@ -270,6 +280,7 @@ impl Compilable for Expression {
                     Err(format!("unkown identifier: {}", value))
                 }
             }
+            Expression::Array(arr) => arr.compile(c),
 
             _ => Err(format!("Not yet implemented: {:?}", self)), // TODO: add missing implementations
         }
