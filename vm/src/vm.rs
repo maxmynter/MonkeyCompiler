@@ -1,3 +1,5 @@
+use std::usize;
+
 use code::{Instructions, Opcode, read_uint16};
 use compiler::Bytecode;
 use object::{FALSE, NULL, Object, TRUE};
@@ -187,6 +189,16 @@ impl VM {
         }
     }
 
+    fn build_array(&mut self, start_index: usize, end_index: usize) -> Result<Object, VMError> {
+        let mut elements = vec![Object::Null; end_index - start_index];
+        let mut i = start_index;
+        while i < end_index {
+            elements[i - start_index] = self.stack[i].clone();
+            i += 1;
+        }
+        Ok(Object::Array { elements })
+    }
+
     pub fn run(&mut self) -> Result<(), VMError> {
         let mut ip = 0;
         while ip < self.instructions.len() {
@@ -245,7 +257,11 @@ impl VM {
                     self.push(self.globals[global_index as usize].clone())?;
                 }
                 Opcode::OpArray => {
-                    todo!()
+                    let num_elements = read_uint16(self.instructions.slice(ip + 1..)) as usize;
+                    ip += 2;
+                    let arr = self.build_array(self.sp - num_elements, self.sp)?;
+                    self.sp -= num_elements;
+                    self.push(arr)?;
                 }
             }
             ip += 1;
