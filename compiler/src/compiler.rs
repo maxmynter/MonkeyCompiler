@@ -1,7 +1,7 @@
 pub mod symbol_table;
 use ast::{
-    ArrayLiteral, BlockStatement, Boolean, Expression, Identifier, IfExpression, IntegerLiteral,
-    Program, Statement, StringLiteral,
+    ArrayLiteral, BlockStatement, Boolean, Expression, HashLiteral, Identifier, IfExpression,
+    IntegerLiteral, Node, Program, Statement, StringLiteral,
 };
 use code::{Instructions, Opcode, make};
 use object::Object;
@@ -159,6 +159,17 @@ impl Compilable for ArrayLiteral {
     }
 }
 
+impl Compilable for HashLiteral {
+    fn compile(&self, c: &mut Compiler) -> Result<(), String> {
+        for (k, v) in &self.pairs {
+            k.compile(c)?;
+            v.compile(c)?;
+        }
+        c.emit(Opcode::OpHash, &[(self.pairs.len() * 2) as isize]);
+        Ok(())
+    }
+}
+
 impl Compilable for Program {
     fn compile(&self, c: &mut Compiler) -> Result<(), String> {
         for statement in &self.statements {
@@ -281,6 +292,7 @@ impl Compilable for Expression {
                 }
             }
             Expression::Array(arr) => arr.compile(c),
+            Expression::HashMap(hash) => hash.compile(c),
 
             _ => Err(format!("Not yet implemented: {:?}", self)), // TODO: add missing implementations
         }

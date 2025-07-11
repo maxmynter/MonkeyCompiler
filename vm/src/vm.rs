@@ -263,6 +263,9 @@ impl VM {
                     self.sp -= num_elements;
                     self.push(arr)?;
                 }
+                Opcode::OpHash => {
+                    todo!()
+                }
             }
             ip += 1;
         }

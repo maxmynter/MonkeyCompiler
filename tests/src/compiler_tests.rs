@@ -476,3 +476,59 @@ fn test_array_literals() {
     ];
     run_compiler_tests(tests);
 }
+
+#[test]
+fn test_hash_literal() {
+    let tests = vec![
+        CompilerTest {
+            input: "{}",
+            expected_constants: Vec::new(),
+            expected_instructions: vec![make(Opcode::OpHash, &[0]), make(Opcode::OpPop, &[])],
+        },
+        CompilerTest {
+            input: "{1: 2, 3: 4, 5: 6}",
+            expected_constants: vec![
+                Object::Integer { value: 1 },
+                Object::Integer { value: 2 },
+                Object::Integer { value: 3 },
+                Object::Integer { value: 4 },
+                Object::Integer { value: 5 },
+                Object::Integer { value: 6 },
+            ],
+            expected_instructions: vec![
+                make(Opcode::OpConstant, &[0]),
+                make(Opcode::OpConstant, &[1]),
+                make(Opcode::OpConstant, &[2]),
+                make(Opcode::OpConstant, &[3]),
+                make(Opcode::OpConstant, &[4]),
+                make(Opcode::OpConstant, &[5]),
+                make(Opcode::OpHash, &[6]),
+                make(Opcode::OpPop, &[]),
+            ],
+        },
+        CompilerTest {
+            input: "{1: 2 + 3, 4: 5 * 6}",
+            expected_constants: vec![
+                Object::Integer { value: 1 },
+                Object::Integer { value: 2 },
+                Object::Integer { value: 3 },
+                Object::Integer { value: 4 },
+                Object::Integer { value: 5 },
+                Object::Integer { value: 6 },
+            ],
+            expected_instructions: vec![
+                make(Opcode::OpConstant, &[0]),
+                make(Opcode::OpConstant, &[1]),
+                make(Opcode::OpConstant, &[2]),
+                make(Opcode::OpAdd, &[]),
+                make(Opcode::OpConstant, &[3]),
+                make(Opcode::OpConstant, &[4]),
+                make(Opcode::OpConstant, &[5]),
+                make(Opcode::OpMul, &[]),
+                make(Opcode::OpHash, &[4]),
+                make(Opcode::OpPop, &[]),
+            ],
+        },
+    ];
+    run_compiler_tests(tests);
+}

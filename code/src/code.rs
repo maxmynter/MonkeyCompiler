@@ -111,6 +111,7 @@ pub enum Opcode {
     OpGetGlobal,
     OpSetGlobal,
     OpArray,
+    OpHash,
 }
 
 impl Opcode {
@@ -135,6 +136,7 @@ impl Opcode {
             16 => Some(Opcode::OpGetGlobal),
             17 => Some(Opcode::OpSetGlobal),
             18 => Some(Opcode::OpArray),
+            19 => Some(Opcode::OpHash),
             _ => None,
         }
     }
@@ -279,6 +281,13 @@ lazy_static! {
                 Opcode::OpArray,
                 Definition {
                     name: "OpArray",
+                    operand_widths: vec![2]
+            }
+        ),
+        (
+                Opcode::OpHash,
+                Definition {
+                    name: "OpHash",
                     operand_widths: vec![2]
             }
         ),
