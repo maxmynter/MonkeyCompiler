@@ -60,6 +60,13 @@ fn test_expected_object(expected: Object, actual: Object) {
         ) => {
             assert_eq!(expected_value, actual_value);
         }
+        (Object::Array { elements: expected }, Object::Array { elements: actual }) => {
+            assert_eq!(expected.len(), actual.len());
+
+            for (i, _) in expected.iter().enumerate() {
+                test_expected_object(expected[i].clone(), actual[i].clone());
+            }
+        }
         _ => panic!(
             "unexpected object value {:?}, expected={:?}",
             actual, expected
@@ -333,5 +340,39 @@ fn test_string_expressions() {
             },
         },
     ];
+    run_vm_tests(tests);
+}
+
+#[test]
+fn test_array_literals() {
+    let tests = vec![
+        VmTestCase {
+            input: "[]",
+            expected: Object::Array {
+                elements: Vec::new(),
+            },
+        },
+        VmTestCase {
+            input: "[1, 2, 3]",
+            expected: Object::Array {
+                elements: vec![
+                    Object::Integer { value: 1 },
+                    Object::Integer { value: 2 },
+                    Object::Integer { value: 3 },
+                ],
+            },
+        },
+        VmTestCase {
+            input: "[1 + 2, 3 * 4, 5 + 6]",
+            expected: Object::Array {
+                elements: vec![
+                    Object::Integer { value: 3 },
+                    Object::Integer { value: 12 },
+                    Object::Integer { value: 11 },
+                ],
+            },
+        },
+    ];
+
     run_vm_tests(tests);
 }
