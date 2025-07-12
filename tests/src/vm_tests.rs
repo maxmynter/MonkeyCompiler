@@ -1,7 +1,9 @@
 #![allow(dead_code)]
+use std::collections::HashMap;
+
 use crate::utils::prepare_program_for_test;
 use compiler::Compiler;
-use object::Object;
+use object::{HashKey, HashPair, Object, ObjectTraits};
 use vm::VM;
 
 fn test_integer_object(expected: Object, actual: Object) -> Result<(), String> {
@@ -65,6 +67,12 @@ fn test_expected_object(expected: Object, actual: Object) {
 
             for (i, _) in expected.iter().enumerate() {
                 test_expected_object(expected[i].clone(), actual[i].clone());
+            }
+        }
+        (Object::Hash { pairs: expected }, Object::Hash { pairs: actual }) => {
+            assert_eq!(expected.len(), actual.len());
+            for (key, _) in expected.iter() {
+                assert_eq!(expected.get(key), actual.get(key));
             }
         }
         _ => panic!(
@@ -374,5 +382,60 @@ fn test_array_literals() {
         },
     ];
 
+    run_vm_tests(tests);
+}
+
+#[test]
+fn test_hash_literal() {
+    let tests = vec![
+        VmTestCase {
+            input: "{}",
+            expected: Object::Hash {
+                pairs: HashMap::new(),
+            },
+        },
+        VmTestCase {
+            input: "{1:2, 2:3}",
+            expected: Object::Hash {
+                pairs: HashMap::from([
+                    (
+                        Object::Integer { value: 1 }.hash().unwrap(),
+                        HashPair {
+                            key: Object::Integer { value: 1 },
+                            value: Object::Integer { value: 2 },
+                        },
+                    ),
+                    (
+                        Object::Integer { value: 2 }.hash().unwrap(),
+                        HashPair {
+                            key: Object::Integer { value: 2 },
+                            value: Object::Integer { value: 3 },
+                        },
+                    ),
+                ]),
+            },
+        },
+        VmTestCase {
+            input: "{1+ 2: 2*2, 3+3: 4*4}",
+            expected: Object::Hash {
+                pairs: HashMap::from([
+                    (
+                        Object::Integer { value: 2 }.hash().unwrap(),
+                        HashPair {
+                            key: Object::Integer { value: 2 },
+                            value: Object::Integer { value: 4 },
+                        },
+                    ),
+                    (
+                        Object::Integer { value: 6 }.hash().unwrap(),
+                        HashPair {
+                            key: Object::Integer { value: 6 },
+                            value: Object::Integer { value: 16 },
+                        },
+                    ),
+                ]),
+            },
+        },
+    ];
     run_vm_tests(tests);
 }
