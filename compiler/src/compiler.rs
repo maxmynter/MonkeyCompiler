@@ -1,7 +1,7 @@
 pub mod symbol_table;
 use ast::{
     ArrayLiteral, BlockStatement, Boolean, Expression, HashLiteral, Identifier, IfExpression,
-    IntegerLiteral, Node, Program, Statement, StringLiteral,
+    IndexExpression, IntegerLiteral, Node, Program, Statement, StringLiteral,
 };
 use code::{Instructions, Opcode, make};
 use object::Object;
@@ -293,9 +293,19 @@ impl Compilable for Expression {
             }
             Expression::Array(arr) => arr.compile(c),
             Expression::HashMap(hash) => hash.compile(c),
+            Expression::Index(index) => index.compile(c),
 
             _ => Err(format!("Not yet implemented: {:?}", self)), // TODO: add missing implementations
         }
+    }
+}
+
+impl Compilable for IndexExpression {
+    fn compile(&self, c: &mut Compiler) -> Result<(), String> {
+        self.left.compile(c)?;
+        self.index.compile(c)?;
+        c.emit(Opcode::OpIndex, &[]);
+        Ok(())
     }
 }
 

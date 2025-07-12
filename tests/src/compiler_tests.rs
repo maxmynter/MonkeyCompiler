@@ -532,3 +532,50 @@ fn test_hash_literal() {
     ];
     run_compiler_tests(tests);
 }
+
+#[test]
+fn test_index_expression() {
+    let tests = vec![
+        CompilerTest {
+            input: "[1, 2, 3][1 + 1]",
+            expected_constants: vec![
+                Object::Integer { value: 1 },
+                Object::Integer { value: 2 },
+                Object::Integer { value: 3 },
+                Object::Integer { value: 1 },
+                Object::Integer { value: 1 },
+            ],
+            expected_instructions: vec![
+                make(Opcode::OpConstant, &[0]),
+                make(Opcode::OpConstant, &[1]),
+                make(Opcode::OpConstant, &[2]),
+                make(Opcode::OpArray, &[3]),
+                make(Opcode::OpConstant, &[3]),
+                make(Opcode::OpConstant, &[4]),
+                make(Opcode::OpAdd, &[]),
+                make(Opcode::OpIndex, &[]),
+                make(Opcode::OpPop, &[]),
+            ],
+        },
+        CompilerTest {
+            input: "{1: 2}[2 - 1]",
+            expected_constants: vec![
+                Object::Integer { value: 1 },
+                Object::Integer { value: 2 },
+                Object::Integer { value: 2 },
+                Object::Integer { value: 1 },
+            ],
+            expected_instructions: vec![
+                make(Opcode::OpConstant, &[0]),
+                make(Opcode::OpConstant, &[1]),
+                make(Opcode::OpHash, &[2]),
+                make(Opcode::OpConstant, &[2]),
+                make(Opcode::OpConstant, &[3]),
+                make(Opcode::OpSub, &[]),
+                make(Opcode::OpIndex, &[]),
+                make(Opcode::OpPop, &[]),
+            ],
+        },
+    ];
+    run_compiler_tests(tests);
+}

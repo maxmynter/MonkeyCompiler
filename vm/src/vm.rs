@@ -290,6 +290,9 @@ impl VM {
                     self.sp = self.sp - num_elements;
                     self.push(hash)?;
                 }
+                Opcode::OpIndex => {
+                    todo!()
+                }
             }
             ip += 1;
         }
