@@ -416,7 +416,7 @@ fn test_hash_literal() {
             },
         },
         VmTestCase {
-            input: "{1+ 2: 2*2, 3+3: 4*4}",
+            input: "{1 + 1: 2*2, 3+3: 4*4}",
             expected: Object::Hash {
                 pairs: HashMap::from([
                     (

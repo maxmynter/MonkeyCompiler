@@ -1,8 +1,8 @@
-use std::usize;
+use std::{collections::HashMap, num, usize};
 
 use code::{Instructions, Opcode, read_uint16};
 use compiler::Bytecode;
-use object::{FALSE, NULL, Object, TRUE};
+use object::{FALSE, HashKey, HashPair, NULL, Object, ObjectTraits, TRUE};
 
 pub const STACK_SIZE: usize = 2048;
 pub const GLOBALS_SIZE: usize = 65536;
@@ -14,6 +14,7 @@ pub enum VMError {
     PopFromEmptyStack,
     UnknownOpForOperands { msg: String },
     UnkownOperator { msg: String },
+    UnHashable { msg: String },
 }
 
 pub struct VM {
@@ -199,6 +200,25 @@ impl VM {
         Ok(Object::Array { elements })
     }
 
+    fn build_hash(&mut self, start_index: usize, end_index: usize) -> Result<Object, VMError> {
+        let mut hashed_pairs: HashMap<HashKey, HashPair> = HashMap::new();
+        for i in (start_index..end_index).step_by(2) {
+            let key = self.stack[i].clone();
+            let value = self.stack[i + 1].clone();
+            let pair = HashPair {
+                key: key.clone(),
+                value,
+            };
+            let hash_key = key.hash().map_err(|e| VMError::UnHashable {
+                msg: format!("cannot hash: {:?}, error: {:?}", key, e),
+            })?;
+            hashed_pairs.insert(hash_key, pair);
+        }
+        Ok(Object::Hash {
+            pairs: hashed_pairs,
+        })
+    }
+
     pub fn run(&mut self) -> Result<(), VMError> {
         let mut ip = 0;
         while ip < self.instructions.len() {
@@ -264,7 +284,11 @@ impl VM {
                     self.push(arr)?;
                 }
                 Opcode::OpHash => {
-                    todo!()
+                    let num_elements = read_uint16(self.instructions.slice(ip + 1..)) as usize;
+                    ip += 2;
+                    let hash = self.build_hash(self.sp - num_elements, self.sp)?;
+                    self.sp = self.sp - num_elements;
+                    self.push(hash)?;
                 }
             }
             ip += 1;
