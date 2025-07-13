@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 use std::collections::HashMap;
 
-use crate::utils::prepare_program_for_test;
+use crate::{utils::prepare_program_for_test, vm_tests};
 use compiler::Compiler;
 use object::{HashKey, HashPair, Object, ObjectTraits};
 use vm::VM;
@@ -19,6 +19,7 @@ struct VmTestCase {
 
 fn run_vm_tests(tests: Vec<VmTestCase>) {
     for tt in tests {
+        dbg!(&tt);
         let program = prepare_program_for_test(tt.input);
         let mut comp = Compiler::new();
         comp.compile(program).unwrap();
@@ -437,5 +438,53 @@ fn test_hash_literal() {
             },
         },
     ];
+    run_vm_tests(tests);
+}
+
+#[test]
+fn test_index_expression() {
+    let tests = vec![
+        VmTestCase {
+            input: "[1, 2, 3][1]",
+            expected: Object::Integer { value: 2 },
+        },
+        VmTestCase {
+            input: "[1, 2, 3][0 + 2]",
+            expected: Object::Integer { value: 3 },
+        },
+        VmTestCase {
+            input: "[[1, 1, 1]][0][0]",
+            expected: Object::Integer { value: 1 },
+        },
+        VmTestCase {
+            input: "[][0]",
+            expected: Object::Null,
+        },
+        VmTestCase {
+            input: "[1, 2, 3][99]",
+            expected: Object::Null,
+        },
+        VmTestCase {
+            input: "[1][-1]",
+            expected: Object::Null,
+        },
+        VmTestCase {
+            input: "{1: 1, 2: 2}[1]",
+            expected: Object::Integer { value: 1 },
+        },
+        VmTestCase {
+            input: "{1: 1, 2: 2}[2]",
+            expected: Object::Integer { value: 2 },
+        },
+        VmTestCase {
+            input: "{1: 1}[0]",
+            expected: Object::Null,
+        },
+        VmTestCase {
+            input: "{}[0]",
+            expected: Object::Null,
+        },
+    ];
+
     run_vm_tests(tests);
 }

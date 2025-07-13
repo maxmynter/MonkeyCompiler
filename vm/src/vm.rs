@@ -15,6 +15,7 @@ pub enum VMError {
     UnknownOpForOperands { msg: String },
     UnkownOperator { msg: String },
     UnHashable { msg: String },
+    IndexedUnindexable,
 }
 
 pub struct VM {
@@ -219,6 +220,39 @@ impl VM {
         })
     }
 
+    fn execute_array_index(&mut self, elements: Vec<Object>, idx: i64) -> Result<(), VMError> {
+        if idx < 0 || idx >= elements.len() as i64 {
+            self.push(NULL)
+        } else {
+            self.push(elements[idx as usize].clone())
+        }
+    }
+
+    fn execute_hash_index(
+        &mut self,
+        hash: &HashMap<HashKey, HashPair>,
+        index: Object,
+    ) -> Result<(), VMError> {
+        let hashkey = index.hash().map_err(|_| VMError::UnHashable {
+            msg: format!("Cannot use unhashable hash key"),
+        })?;
+        if let Some(pair) = hash.get(&hashkey) {
+            self.push(pair.value.clone())
+        } else {
+            self.push(NULL)
+        }
+    }
+
+    fn execute_index_expression(&mut self, left: Object, index: Object) -> Result<(), VMError> {
+        match (left, &index) {
+            (Object::Array { elements }, Object::Integer { value }) => {
+                self.execute_array_index(elements, *value)
+            }
+            (Object::Hash { pairs }, _) => self.execute_hash_index(&pairs, index),
+            _ => Err(VMError::IndexedUnindexable),
+        }
+    }
+
     pub fn run(&mut self) -> Result<(), VMError> {
         let mut ip = 0;
         while ip < self.instructions.len() {
@@ -291,7 +325,9 @@ impl VM {
                     self.push(hash)?;
                 }
                 Opcode::OpIndex => {
-                    todo!()
+                    let index = self.pop()?;
+                    let left = self.pop()?;
+                    self.execute_index_expression(left, index)?;
                 }
             }
             ip += 1;
