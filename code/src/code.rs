@@ -113,6 +113,9 @@ pub enum Opcode {
     OpArray,
     OpHash,
     OpIndex,
+    OpCall,
+    OpReturnValue,
+    OpReturn,
 }
 
 impl Opcode {
@@ -139,6 +142,9 @@ impl Opcode {
             18 => Some(Opcode::OpArray),
             19 => Some(Opcode::OpHash),
             20 => Some(Opcode::OpIndex),
+            21 => Some(Opcode::OpCall),
+            22 => Some(Opcode::OpReturnValue),
+            23 => Some(Opcode::OpReturn),
             _ => None,
         }
     }
@@ -298,6 +304,27 @@ lazy_static! {
                 Definition {
                     name: "OpIndex",
                     operand_widths: vec![2]
+            }
+        ),
+        (
+                Opcode::OpCall,
+                Definition {
+                    name: "OpCall",
+                    operand_widths: vec![]
+            }
+        ),
+        (
+                Opcode::OpReturnValue,
+                Definition {
+                    name: "OpReturnValue",
+                    operand_widths: vec![]
+            }
+        ),
+        (
+                Opcode::OpReturn,
+                Definition {
+                    name: "OpReturn",
+                    operand_widths: vec![]
             }
         ),
         ]
