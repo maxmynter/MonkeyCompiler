@@ -1,3 +1,4 @@
+use code::Instructions;
 use lazy_static::lazy_static;
 use std::cell::RefCell;
 use std::collections::{HashMap, hash_map::DefaultHasher};
@@ -12,7 +13,7 @@ use ast::{
 
 type BuiltinFn = fn(args: Vec<Object>) -> Result<Object, EvalError>;
 
-#[derive(PartialEq, Eq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct HashPair {
     pub key: Object,
     pub value: Object,
@@ -24,7 +25,7 @@ pub struct HashKey {
     value: u64,
 }
 
-#[derive(PartialEq, Eq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct Environment {
     store: HashMap<String, Object>,
     outer: Option<Rc<RefCell<Environment>>>,
@@ -59,7 +60,7 @@ impl Environment {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Object {
     Hash {
         pairs: HashMap<HashKey, HashPair>,
@@ -77,6 +78,9 @@ pub enum Object {
         parameters: Rc<Vec<Identifier>>,
         body: Rc<BlockStatement>,
         env: Rc<RefCell<Environment>>,
+    },
+    CompiledFunction {
+        Instructions: Instructions,
     },
     String {
         value: String,
@@ -254,6 +258,7 @@ impl ObjectTraits for Object {
             Object::String { value } => value.to_string(),
             Object::Return { .. } => "return_value".to_string(),
             Object::Builtin { .. } => "builtin_function".to_string(),
+            Object::CompiledFunction { .. } => "compiled_function".to_string(),
             Object::Function {
                 parameters, body, ..
             } => {
@@ -310,6 +315,7 @@ impl ObjectTraits for Object {
             Object::String { .. } => "STRING".to_string(),
             Object::Array { .. } => "ARRAY".to_string(),
             Object::Hash { .. } => "HASH".to_string(),
+            Object::CompiledFunction { .. } => "COMPILED_FUNCTION".to_string(),
         }
     }
 

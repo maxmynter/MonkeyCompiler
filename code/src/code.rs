@@ -5,7 +5,7 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Instructions(Vec<u8>);
 
 impl Default for Instructions {
