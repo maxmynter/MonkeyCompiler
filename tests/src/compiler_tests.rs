@@ -1,6 +1,8 @@
 #![allow(dead_code)]
+use std::vec;
+
 use crate::utils::prepare_program_for_test;
-use code::{Instructions, Opcode, lookup, make, read_operands};
+use code::{Instruction, Opcode, lookup, make, read_operands};
 use compiler::Compiler;
 use object::Object;
 
@@ -36,28 +38,27 @@ fn test_make() {
 struct CompilerTest {
     input: &'static str,
     expected_constants: Vec<Object>,
-    expected_instructions: Vec<Instructions>,
+    expected_instructions: Vec<Instruction>,
 }
 
-fn concat_instructions(s: Vec<Instructions>) -> Instructions {
-    let mut out = Instructions::new();
+fn concat_instructions(s: Vec<Instruction>) -> Instruction {
+    let mut out = Instruction::new();
     for ins in s {
         out.extend(ins);
     }
     out
 }
 
-fn test_instructions(expected: Vec<Instructions>, actual: &Instructions) -> Result<(), String> {
-    let concatenated = concat_instructions(expected);
-    if actual.len() != concatenated.len() {
+fn test_instruction(expected: Instruction, actual: &Instruction) -> Result<(), String> {
+    if actual.len() != expected.len() {
         panic!(
             "test_instructions failed: wrong instructions length\nwant={}\ngot={}",
-            concatenated.as_string(),
+            expected.as_string(),
             actual.as_string()
         );
     }
 
-    for (i, &expected_byte) in concatenated.iter().enumerate() {
+    for (i, &expected_byte) in expected.iter().enumerate() {
         assert_eq!(actual[i], expected_byte);
     }
     Ok(())
@@ -66,7 +67,7 @@ fn test_instructions(expected: Vec<Instructions>, actual: &Instructions) -> Resu
 fn test_constants(expected: &[Object], actual: &[Object]) -> Result<(), String> {
     assert_eq!(expected.len(), actual.len());
     for (i, expected_constant) in expected.iter().enumerate() {
-        match expected_constant {
+        match &expected_constant {
             Object::Integer { value } => {
                 if let Err(e) = test_integer_object(*value, &actual[i]) {
                     return Err(format!(
@@ -88,6 +89,21 @@ fn test_constants(expected: &[Object], actual: &[Object]) -> Result<(), String> 
                         "unexpected type. expected={:?}, got={:?} ",
                         expected_constant, &actual[i]
                     ));
+                }
+            }
+            &Object::CompiledFunction {
+                instructions: expected_instructions,
+            } => {
+                if let Object::CompiledFunction {
+                    instructions: actual_instructions,
+                } = &actual[i]
+                {
+                    assert_eq!(expected_instructions.len(), actual_instructions.len());
+                    for (i, _) in expected_instructions.iter().enumerate() {
+                        test_instruction(expected_instructions[i].clone(), &actual_instructions[i]);
+                    }
+                } else {
+                    panic!("Did not find compiled function instructions");
                 }
             }
             _ => {
@@ -266,10 +282,10 @@ fn run_compiler_tests(tests: Vec<CompilerTest>) {
 
         let bytecode = compiler.bytecode();
 
-        if let Err(e) = test_instructions(tt.expected_instructions, &bytecode.instructions) {
+        let expected_flattened = concat_instructions(tt.expected_instructions);
+        if let Err(e) = test_instruction(expected_flattened, &bytecode.instructions) {
             panic!("testInstructions failed: {}", e);
         }
-
         if let Err(e) = test_constants(&tt.expected_constants, &bytecode.constants) {
             panic!("testConstants failed: {}", e);
         }
@@ -577,5 +593,26 @@ fn test_index_expression() {
             ],
         },
     ];
+    run_compiler_tests(tests);
+}
+
+#[test]
+fn test_functions() {
+    let tests = vec![CompilerTest {
+        input: "fn() { return 5 + 10 }",
+        expected_constants: vec![
+            Object::Integer { value: 5 },
+            Object::Integer { value: 10 },
+            Object::CompiledFunction {
+                instructions: vec![
+                    make(Opcode::OpConstant, &[0]),
+                    make(Opcode::OpConstant, &[1]),
+                    make(Opcode::OpAdd, &[]),
+                    make(Opcode::OpReturnValue, &[]),
+                ],
+            },
+        ],
+        expected_instructions: vec![make(Opcode::OpConstant, &[2]), make(Opcode::OpPop, &[])],
+    }];
     run_compiler_tests(tests);
 }

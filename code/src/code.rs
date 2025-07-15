@@ -6,15 +6,15 @@ use std::{
 };
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Instructions(Vec<u8>);
+pub struct Instruction(Vec<u8>);
 
-impl Default for Instructions {
+impl Default for Instruction {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl Instructions {
+impl Instruction {
     pub fn new() -> Self {
         Self(Vec::new())
     }
@@ -53,22 +53,22 @@ impl Instructions {
         }
     }
 
-    pub fn slice<R>(&self, range: R) -> Instructions
+    pub fn slice<R>(&self, range: R) -> Instruction
     where
         R: std::slice::SliceIndex<[u8], Output = [u8]>,
     {
-        Instructions(self.0[range].to_vec())
+        Instruction(self.0[range].to_vec())
     }
 }
 
-impl IntoIterator for Instructions {
+impl IntoIterator for Instruction {
     type Item = u8;
     type IntoIter = std::vec::IntoIter<u8>;
     fn into_iter(self) -> Self::IntoIter {
         self.0.into_iter()
     }
 }
-impl<'a> IntoIterator for &'a Instructions {
+impl<'a> IntoIterator for &'a Instruction {
     type Item = &'a u8;
     type IntoIter = std::slice::Iter<'a, u8>;
     fn into_iter(self) -> Self::IntoIter {
@@ -76,14 +76,14 @@ impl<'a> IntoIterator for &'a Instructions {
     }
 }
 
-impl Deref for Instructions {
+impl Deref for Instruction {
     type Target = Vec<u8>;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl DerefMut for Instructions {
+impl DerefMut for Instruction {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
@@ -343,11 +343,11 @@ pub fn lookup(op: Opcode) -> Option<Definition> {
     }
 }
 
-pub fn make(op: Opcode, operands: &[isize]) -> Instructions {
+pub fn make(op: Opcode, operands: &[isize]) -> Instruction {
     let def = DEFINITIONS
         .get(&op)
         .unwrap_or_else(|| panic!("undefined opcode {:?}", op));
-    let mut instruction = Instructions::new();
+    let mut instruction = Instruction::new();
     instruction.push(op as u8);
 
     for (i, &operand) in operands.iter().enumerate() {
@@ -365,13 +365,13 @@ pub fn make(op: Opcode, operands: &[isize]) -> Instructions {
     instruction
 }
 
-pub fn read_operands(def: &Definition, ins: Instructions) -> (Vec<isize>, usize) {
+pub fn read_operands(def: &Definition, ins: Instruction) -> (Vec<isize>, usize) {
     let mut operands = vec![0_isize; def.operand_widths.len()];
     let mut offset = 0;
 
     for (i, &width) in def.operand_widths.iter().enumerate() {
         match width {
-            2 => operands[i] = read_uint16(ins.slice(offset..)),
+            2 => operands[i] = read_uint16(&ins[offset..]),
             _ => unreachable!(),
         }
         offset += width;
@@ -379,6 +379,6 @@ pub fn read_operands(def: &Definition, ins: Instructions) -> (Vec<isize>, usize)
     (operands, offset)
 }
 
-pub fn read_uint16(ins: Instructions) -> isize {
+pub fn read_uint16(ins: &[u8]) -> isize {
     u16::from_be_bytes([ins[0], ins[1]]) as isize
 }

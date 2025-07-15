@@ -3,7 +3,7 @@ use ast::{
     ArrayLiteral, BlockStatement, Boolean, Expression, HashLiteral, Identifier, IfExpression,
     IndexExpression, IntegerLiteral, Node, Program, Statement, StringLiteral,
 };
-use code::{Instructions, Opcode, make};
+use code::{Instruction, Opcode, make};
 use object::Object;
 
 use crate::symbol_table::SymbolTable;
@@ -16,7 +16,7 @@ pub struct EmittedInstruction {
 }
 
 pub struct Compiler {
-    pub instructions: Instructions,
+    pub instructions: Vec<Instruction>,
     pub constants: Vec<Object>,
     pub last_instruction: Option<EmittedInstruction>,
     pub previous_instruction: Option<EmittedInstruction>,
@@ -32,7 +32,7 @@ impl Default for Compiler {
 impl Compiler {
     pub fn new() -> Self {
         Compiler {
-            instructions: Instructions::new(),
+            instructions: Vec::new(),
             constants: Vec::new(),
             last_instruction: None,
             previous_instruction: None,
@@ -42,7 +42,7 @@ impl Compiler {
 
     pub fn new_with_state(constants: Vec<Object>, symbols: SymbolTable) -> Self {
         Compiler {
-            instructions: Instructions::new(),
+            instructions: Vec::new(),
             constants,
             last_instruction: None,
             previous_instruction: None,
@@ -59,15 +59,19 @@ impl Compiler {
         (self.constants.len() - 1) as isize
     }
 
-    pub fn add_instructions(&mut self, ins: Instructions) -> usize {
+    pub fn add_instructions(&mut self, ins: Instruction) -> usize {
         let pos = self.instructions.len();
-        self.instructions.extend(ins);
+        self.instructions.push(ins);
         pos
     }
 
     pub fn bytecode(&self) -> Bytecode {
+        let mut instructions = Instruction::new();
+        for instruction in &self.instructions {
+            instructions.extend(instruction.iter());
+        }
         Bytecode {
-            instructions: self.instructions.clone(),
+            instructions,
             constants: self.constants.clone(),
         }
     }
@@ -97,9 +101,8 @@ impl Compiler {
     }
 
     pub fn remove_last_pop(&mut self) {
-        self.instructions = self
-            .instructions
-            .slice(0..self.last_instruction.as_ref().unwrap().position);
+        self.instructions =
+            self.instructions[0..self.last_instruction.as_ref().unwrap().position].to_vec();
         self.last_instruction = self.previous_instruction.take();
     }
 
@@ -109,19 +112,20 @@ impl Compiler {
         }
     }
 
-    fn replace_instruction(&mut self, pos: usize, new_instruction: Instructions) {
-        self.instructions[pos..pos + new_instruction.len()].copy_from_slice(&new_instruction);
+    fn replace_instruction(&mut self, pos: usize, new_instruction: Instruction) {
+        self.instructions.drain(pos..pos + new_instruction.len());
+        self.instructions.insert(pos, new_instruction);
     }
 
     pub fn change_operand(&mut self, op_pos: usize, operand: isize) {
-        let op = Opcode::from_u8(self.instructions[op_pos]).expect("Unkown instruction code");
+        let op = Opcode::from_u8(self.instructions[op_pos][0]).expect("Unkown instruction code");
         let new_instruction = make(op, &[operand]);
         self.replace_instruction(op_pos, new_instruction);
     }
 }
 
 pub struct Bytecode {
-    pub instructions: Instructions,
+    pub instructions: Instruction, // Flattened Instruction vec
     pub constants: Vec<Object>,
 }
 

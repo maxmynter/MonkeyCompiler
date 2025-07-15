@@ -19,7 +19,6 @@ struct VmTestCase {
 
 fn run_vm_tests(tests: Vec<VmTestCase>) {
     for tt in tests {
-        dbg!(&tt);
         let program = prepare_program_for_test(tt.input);
         let mut comp = Compiler::new();
         comp.compile(program).unwrap();

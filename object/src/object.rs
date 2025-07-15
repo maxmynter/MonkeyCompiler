@@ -1,4 +1,4 @@
-use code::Instructions;
+use code::Instruction;
 use lazy_static::lazy_static;
 use std::cell::RefCell;
 use std::collections::{HashMap, hash_map::DefaultHasher};
@@ -80,7 +80,7 @@ pub enum Object {
         env: Rc<RefCell<Environment>>,
     },
     CompiledFunction {
-        Instructions: Instructions,
+        instructions: Vec<Instruction>,
     },
     String {
         value: String,

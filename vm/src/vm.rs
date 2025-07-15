@@ -1,6 +1,6 @@
 use std::{collections::HashMap, num, usize};
 
-use code::{Instructions, Opcode, read_uint16};
+use code::{Instruction, Opcode, read_uint16};
 use compiler::Bytecode;
 use object::{FALSE, HashKey, HashPair, NULL, Object, ObjectTraits, TRUE};
 
@@ -20,7 +20,7 @@ pub enum VMError {
 
 pub struct VM {
     constants: Vec<Object>,
-    instructions: Instructions,
+    instructions: Instruction,
     stack: Vec<Object>,
     sp: usize,
     globals: Vec<Object>,
@@ -259,7 +259,7 @@ impl VM {
             let op = Opcode::from_u8(self.instructions[ip]).unwrap();
             match op {
                 Opcode::OpConstant => {
-                    let const_index = code::read_uint16(self.instructions.slice(ip + 1..));
+                    let const_index = code::read_uint16(&self.instructions[ip + 1..]);
                     ip += 2;
                     self.push(self.constants[const_index as usize].clone())?;
                 }
@@ -285,12 +285,12 @@ impl VM {
                     self.execute_minus_operator()?;
                 }
                 Opcode::OpJump => {
-                    let pos = read_uint16(self.instructions.slice(ip + 1..)) as usize;
+                    let pos = read_uint16(&self.instructions[ip + 1..]) as usize;
                     // Set to preceeding instruction since we increment at loop end
                     ip = pos - 1;
                 }
                 Opcode::OpJumpNotTruthy => {
-                    let pos = read_uint16(self.instructions.slice(ip + 1..)) as usize;
+                    let pos = read_uint16(&self.instructions[ip + 1..]) as usize;
                     ip += 2;
                     let condition = self.pop()?;
                     if !object::is_truthy(condition) {
@@ -301,24 +301,24 @@ impl VM {
                     self.push(NULL)?;
                 }
                 Opcode::OpSetGlobal => {
-                    let global_index = read_uint16(self.instructions.slice(ip + 1..));
+                    let global_index = read_uint16(&self.instructions[ip + 1..]);
                     ip += 2;
                     self.globals[global_index as usize] = self.pop()?;
                 }
                 Opcode::OpGetGlobal => {
-                    let global_index = read_uint16(self.instructions.slice(ip + 1..));
+                    let global_index = read_uint16(&self.instructions[ip + 1..]);
                     ip += 2;
                     self.push(self.globals[global_index as usize].clone())?;
                 }
                 Opcode::OpArray => {
-                    let num_elements = read_uint16(self.instructions.slice(ip + 1..)) as usize;
+                    let num_elements = read_uint16(&self.instructions[ip + 1..]) as usize;
                     ip += 2;
                     let arr = self.build_array(self.sp - num_elements, self.sp)?;
                     self.sp -= num_elements;
                     self.push(arr)?;
                 }
                 Opcode::OpHash => {
-                    let num_elements = read_uint16(self.instructions.slice(ip + 1..)) as usize;
+                    let num_elements = read_uint16(&self.instructions[ip + 1..]) as usize;
                     ip += 2;
                     let hash = self.build_hash(self.sp - num_elements, self.sp)?;
                     self.sp = self.sp - num_elements;
