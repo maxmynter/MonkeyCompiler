@@ -15,12 +15,20 @@ pub struct EmittedInstruction {
     pub position: usize,
 }
 
+pub struct CompilationScope {
+    instructions: Vec<Instruction>,
+    last_instruction: EmittedInstruction,
+    previous_instruction: EmittedInstruction,
+}
+
 pub struct Compiler {
     pub instructions: Vec<Instruction>,
     pub constants: Vec<Object>,
     pub last_instruction: Option<EmittedInstruction>,
     pub previous_instruction: Option<EmittedInstruction>,
     pub symbol_table: SymbolTable,
+    pub scopes: Vec<CompilationScope>,
+    pub scope_index: usize,
 }
 
 impl Default for Compiler {
@@ -37,6 +45,8 @@ impl Compiler {
             last_instruction: None,
             previous_instruction: None,
             symbol_table: SymbolTable::new(),
+            scopes: Vec::new(),
+            scope_index: 0,
         }
     }
 
@@ -47,6 +57,8 @@ impl Compiler {
             last_instruction: None,
             previous_instruction: None,
             symbol_table: symbols,
+            scopes: Vec::new(),
+            scope_index: 0,
         }
     }
 
