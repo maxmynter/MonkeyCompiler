@@ -10,15 +10,16 @@ use crate::symbol_table::SymbolTable;
 
 const JUMP_PLACEHOLDER: isize = 9999;
 
+#[derive(Clone, Copy)]
 pub struct EmittedInstruction {
     pub opcode: Opcode,
     pub position: usize,
 }
 
 pub struct CompilationScope {
-    instructions: Vec<Instruction>,
-    last_instruction: EmittedInstruction,
-    previous_instruction: EmittedInstruction,
+    pub instructions: Vec<Instruction>,
+    pub last_instruction: EmittedInstruction,
+    pub previous_instruction: EmittedInstruction,
 }
 
 pub struct Compiler {
@@ -133,6 +134,14 @@ impl Compiler {
         let op = Opcode::from_u8(self.instructions[op_pos][0]).expect("Unkown instruction code");
         let new_instruction = make(op, &[operand]);
         self.replace_instruction(op_pos, new_instruction);
+    }
+
+    pub fn enter_scope(&mut self) {
+        todo!()
+    }
+
+    pub fn leave_scope(&mut self) {
+        todo!()
     }
 }
 
