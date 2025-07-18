@@ -1,7 +1,9 @@
 pub mod symbol_table;
+use std::rc::Rc;
+
 use ast::{
-    ArrayLiteral, BlockStatement, Boolean, Expression, HashLiteral, Identifier, IfExpression,
-    IndexExpression, IntegerLiteral, Node, Program, Statement, StringLiteral,
+    ArrayLiteral, BlockStatement, Boolean, Expression, FunctionLiteral, HashLiteral, Identifier,
+    IfExpression, IndexExpression, IntegerLiteral, Node, Program, Statement, StringLiteral,
 };
 use code::{Instruction, Opcode, make};
 use object::Object;
@@ -187,6 +189,19 @@ impl Compilable for IntegerLiteral {
     fn compile(&self, c: &mut Compiler) -> Result<(), String> {
         let integer = Object::Integer { value: self.value };
         let pos = c.add_constant(integer);
+        c.emit(Opcode::OpConstant, &[pos]);
+        Ok(())
+    }
+}
+
+impl Compilable for FunctionLiteral {
+    fn compile(&self, c: &mut Compiler) -> Result<(), String> {
+        c.enter_scope();
+        let body = Rc::unwrap_or_clone(self.body.clone());
+        c.compile(body);
+        let instructions = c.leave_scope();
+        let compiled_fn = Object::CompiledFunction { instructions };
+        let pos = c.add_constant(compiled_fn);
         c.emit(Opcode::OpConstant, &[pos]);
         Ok(())
     }
