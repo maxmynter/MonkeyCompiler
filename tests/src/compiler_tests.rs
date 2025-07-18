@@ -628,11 +628,11 @@ fn test_compiler_scopes() {
     compiler.emit(Opcode::OpSub, &[]);
     assert_eq!(compiler.scopes[compiler.scope_index].instructions.len(), 1);
     let last = compiler.scopes[compiler.scope_index].last_instruction;
-    assert_eq!(last.opcode, Opcode::OpSub);
+    assert_eq!(last.unwrap().opcode, Opcode::OpSub);
     compiler.leave_scope();
     assert_eq!(compiler.scope_index, 0);
     compiler.emit(Opcode::OpAdd, &[]);
     assert_eq!(compiler.scopes[compiler.scope_index].instructions.len(), 2);
     let previous = compiler.scopes[compiler.scope_index].previous_instruction;
-    assert_eq!(previous.opcode, Opcode::OpMul);
+    assert_eq!(previous.unwrap().opcode, Opcode::OpMul);
 }
