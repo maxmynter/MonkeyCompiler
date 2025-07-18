@@ -57,6 +57,7 @@ fn test_instruction(expected: Instruction, actual: &Instruction) -> Result<(), S
             actual.as_string()
         );
     }
+    eprintln!("{:?} -- {:?}", expected, actual);
 
     for (i, &expected_byte) in expected.iter().enumerate() {
         assert_eq!(actual[i], expected_byte);

@@ -126,8 +126,7 @@ impl Compiler {
     }
 
     fn replace_instruction(&mut self, pos: usize, new_instruction: Instruction) {
-        self.instructions.drain(pos..pos + new_instruction.len());
-        self.instructions.insert(pos, new_instruction);
+        self.instructions[pos] = new_instruction;
     }
 
     pub fn change_operand(&mut self, op_pos: usize, operand: isize) {
@@ -289,7 +288,8 @@ impl Compilable for Expression {
 
                 let jump_pos = c.emit(Opcode::OpJump, &[JUMP_PLACEHOLDER]);
 
-                let after_consequence_pos = c.instructions.len() as isize;
+                let after_consequence_pos =
+                    c.instructions.iter().fold(0, |acc, ins| acc + ins.len()) as isize;
                 c.change_operand(jump_not_truthy_pos, after_consequence_pos);
 
                 match alternative {
@@ -302,7 +302,8 @@ impl Compilable for Expression {
                     }
                 }
 
-                let after_alternative_pos = c.instructions.len() as isize;
+                let after_alternative_pos =
+                    c.instructions.iter().fold(0, |acc, i| acc + i.len()) as isize;
                 c.change_operand(jump_pos, after_alternative_pos);
 
                 Ok(())
