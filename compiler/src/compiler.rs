@@ -258,7 +258,11 @@ impl Compilable for Statement {
                 c.emit(Opcode::OpSetGlobal, &[symbol_index]);
                 result
             }
-            Statement::Return { .. } => todo!(),
+            Statement::Return { value, .. } => {
+                let result = value.compile(c);
+                c.emit(Opcode::OpReturnValue, &[]);
+                result
+            }
             Statement::Expression { value, .. } => {
                 let result = value.compile(c);
                 c.emit(Opcode::OpPop, &[]);
@@ -371,6 +375,7 @@ impl Compilable for Expression {
             Expression::Array(arr) => arr.compile(c),
             Expression::HashMap(hash) => hash.compile(c),
             Expression::Index(index) => index.compile(c),
+            Expression::FunctionLiteral(function) => function.compile(c),
 
             _ => Err(format!("Not yet implemented: {:?}", self)), // TODO: add missing implementations
         }
