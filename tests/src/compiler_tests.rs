@@ -598,22 +598,29 @@ fn test_index_expression() {
 
 #[test]
 fn test_functions() {
-    let tests = vec![CompilerTest {
-        input: "fn() { return 5 + 10 }",
-        expected_constants: vec![
-            Object::Integer { value: 5 },
-            Object::Integer { value: 10 },
-            Object::CompiledFunction {
-                instructions: vec![
-                    make(Opcode::OpConstant, &[0]),
-                    make(Opcode::OpConstant, &[1]),
-                    make(Opcode::OpAdd, &[]),
-                    make(Opcode::OpReturnValue, &[]),
-                ],
-            },
-        ],
-        expected_instructions: vec![make(Opcode::OpConstant, &[2]), make(Opcode::OpPop, &[])],
-    }];
+    let tests = vec![
+        CompilerTest {
+            input: "fn() { return 5 + 10 }",
+            expected_constants: vec![
+                Object::Integer { value: 5 },
+                Object::Integer { value: 10 },
+                Object::CompiledFunction {
+                    instructions: vec![
+                        make(Opcode::OpConstant, &[0]),
+                        make(Opcode::OpConstant, &[1]),
+                        make(Opcode::OpAdd, &[]),
+                        make(Opcode::OpReturnValue, &[]),
+                    ],
+                },
+            ],
+            expected_instructions: vec![make(Opcode::OpConstant, &[2]), make(Opcode::OpPop, &[])],
+        },
+        CompilerTest {
+            input: "fn() { 5 + 13 }",
+            expected_constants: vec![Object::Integer { value: 5 }, Object::Integer { value: 10 }],
+            expected_instructions: vec![make(Opcode::OpConstant, &[2]), make(Opcode::OpPop, &[])],
+        },
+    ];
     run_compiler_tests(tests);
 }
 
