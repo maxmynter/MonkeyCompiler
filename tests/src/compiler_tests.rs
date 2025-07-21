@@ -620,6 +620,22 @@ fn test_functions() {
             expected_constants: vec![Object::Integer { value: 5 }, Object::Integer { value: 10 }],
             expected_instructions: vec![make(Opcode::OpConstant, &[2]), make(Opcode::OpPop, &[])],
         },
+        CompilerTest {
+            input: "fn() { 1; 2}",
+            expected_constants: vec![
+                Object::Integer { value: 1 },
+                Object::Integer { value: 2 },
+                Object::CompiledFunction {
+                    instructions: vec![
+                        make(Opcode::OpConstant, &[0]),
+                        make(Opcode::OpPop, &[]),
+                        make(Opcode::OpConstant, &[1]),
+                        make(Opcode::OpPop, &[]),
+                    ],
+                },
+            ],
+            expected_instructions: vec![make(Opcode::OpConstant, &[2]), make(Opcode::OpPop, &[])],
+        },
     ];
     run_compiler_tests(tests);
 }
