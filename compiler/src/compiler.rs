@@ -41,6 +41,9 @@ impl CompilationScope {
             previous_instruction: None,
         }
     }
+    pub fn set_last_instruction_to(&mut self, ins: EmittedInstruction) {
+        self.last_instruction = Some(ins);
+    }
 }
 
 pub struct Compiler {
@@ -127,9 +130,9 @@ impl Compiler {
         pos
     }
 
-    pub fn last_instruction_is_pop(&self) -> bool {
+    pub fn last_instruction_is(&self, opcode: Opcode) -> bool {
         if let Some(last) = &self.scopes[self.scope_index].last_instruction {
-            last.opcode == Opcode::OpPop
+            last.opcode == opcode
         } else {
             false
         }
@@ -143,13 +146,25 @@ impl Compiler {
     }
 
     pub fn maybe_remove_last_pop(&mut self) {
-        if self.last_instruction_is_pop() {
+        if self.last_instruction_is(Opcode::OpPop) {
             self.remove_last_pop();
         }
     }
 
     fn replace_instruction(&mut self, pos: usize, new_instruction: Instruction) {
         self.scopes[self.scope_index].instructions[pos] = new_instruction;
+    }
+
+    pub fn replace_last_pop_with_return(&mut self) {
+        let last_pos = self.scopes[self.scope_index]
+            .last_instruction
+            .unwrap()
+            .position;
+        self.replace_instruction(last_pos, make(Opcode::OpReturnValue, &[]));
+        self.scopes[self.scope_index].last_instruction = Some(EmittedInstruction {
+            position: last_pos,
+            opcode: Opcode::OpReturnValue,
+        });
     }
 
     pub fn change_operand(&mut self, op_pos: usize, operand: isize) {
@@ -199,6 +214,9 @@ impl Compilable for FunctionLiteral {
         c.enter_scope();
         let body = Rc::unwrap_or_clone(self.body.clone());
         c.compile(body);
+        if c.last_instruction_is(Opcode::OpPop) {
+            c.replace_last_pop_with_return();
+        }
         let instructions = c.leave_scope();
         let compiled_fn = Object::CompiledFunction { instructions };
         let pos = c.add_constant(compiled_fn);
