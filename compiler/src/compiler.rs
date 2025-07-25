@@ -217,6 +217,9 @@ impl Compilable for FunctionLiteral {
         if c.last_instruction_is(Opcode::OpPop) {
             c.replace_last_pop_with_return();
         }
+        if !c.last_instruction_is(Opcode::OpReturnValue) {
+            c.emit(Opcode::OpReturn, &[]);
+        }
         let instructions = c.leave_scope();
         let compiled_fn = Object::CompiledFunction { instructions };
         let pos = c.add_constant(compiled_fn);

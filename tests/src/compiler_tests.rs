@@ -65,9 +65,6 @@ fn test_instruction(expected: Instruction, actual: &Instruction) -> Result<(), S
 }
 
 fn test_constants(expected: &[Object], actual: &[Object]) -> Result<(), String> {
-    eprintln!("---");
-    dbg!(expected);
-    dbg!(actual);
     assert_eq!(expected.len(), actual.len());
     for (i, expected_constant) in expected.iter().enumerate() {
         match &expected_constant {
@@ -649,6 +646,13 @@ fn test_functions() {
                 },
             ],
             expected_instructions: vec![make(Opcode::OpConstant, &[2]), make(Opcode::OpPop, &[])],
+        },
+        CompilerTest {
+            input: "fn() {}",
+            expected_constants: vec![Object::CompiledFunction {
+                instructions: vec![make(Opcode::OpReturn, &[])],
+            }],
+            expected_instructions: vec![make(Opcode::OpConstant, &[0]), make(Opcode::OpPop, &[])],
         },
     ];
     run_compiler_tests(tests);
