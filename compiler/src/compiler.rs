@@ -213,7 +213,7 @@ impl Compilable for FunctionLiteral {
     fn compile(&self, c: &mut Compiler) -> Result<(), String> {
         c.enter_scope();
         let body = Rc::unwrap_or_clone(self.body.clone());
-        c.compile(body);
+        c.compile(body)?;
         if c.last_instruction_is(Opcode::OpPop) {
             c.replace_last_pop_with_return();
         }

@@ -346,7 +346,7 @@ pub fn lookup(op: Opcode) -> Option<Definition> {
 pub fn make(op: Opcode, operands: &[isize]) -> Instruction {
     let def = DEFINITIONS
         .get(&op)
-        .expect(&format!("unknown opcode {:?}", op));
+        .unwrap_or_else(|| panic!("unknown opcode {:?}", op));
     let mut instruction = Instruction::new();
     instruction.push(op as u8);
 

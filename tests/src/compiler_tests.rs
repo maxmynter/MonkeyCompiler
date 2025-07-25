@@ -100,7 +100,10 @@ fn test_constants(expected: &[Object], actual: &[Object]) -> Result<(), String> 
                 {
                     assert_eq!(expected_instructions.len(), actual_instructions.len());
                     for (i, _) in expected_instructions.iter().enumerate() {
-                        test_instruction(expected_instructions[i].clone(), &actual_instructions[i]);
+                        test_instruction(
+                            expected_instructions[i].clone(),
+                            &actual_instructions[i],
+                        )?;
                     }
                 } else {
                     panic!("Did not find compiled function instructions");

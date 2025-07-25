@@ -1,7 +1,8 @@
 #![allow(dead_code)]
+#![cfg(test)]
 use std::collections::HashMap;
 
-use crate::{utils::prepare_program_for_test, vm_tests};
+use crate::utils::prepare_program_for_test;
 use compiler::Compiler;
 use object::{HashKey, HashPair, Object, ObjectTraits};
 use vm::VM;

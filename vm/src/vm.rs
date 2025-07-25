@@ -234,7 +234,7 @@ impl VM {
         index: Object,
     ) -> Result<(), VMError> {
         let hashkey = index.hash().map_err(|_| VMError::UnHashable {
-            msg: format!("Cannot use unhashable hash key"),
+            msg: "Cannot use unhashable hash key".to_string(),
         })?;
         if let Some(pair) = hash.get(&hashkey) {
             self.push(pair.value.clone())
@@ -321,7 +321,7 @@ impl VM {
                     let num_elements = read_uint16(&self.instructions[ip + 1..]) as usize;
                     ip += 2;
                     let hash = self.build_hash(self.sp - num_elements, self.sp)?;
-                    self.sp = self.sp - num_elements;
+                    self.sp -= num_elements;
                     self.push(hash)?;
                 }
                 Opcode::OpIndex => {
