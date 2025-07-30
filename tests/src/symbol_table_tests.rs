@@ -56,7 +56,7 @@ fn test_resolve() {
         ),
     ]);
 
-    for (_, sym) in expected.iter().enumerate() {
+    for sym in expected.iter() {
         let result = global.resolve(sym.0).unwrap();
         assert_eq!(result, sym.1);
     }

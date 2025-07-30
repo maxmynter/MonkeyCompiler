@@ -3,7 +3,7 @@ use std::rc::Rc;
 
 use ast::{
     ArrayLiteral, BlockStatement, Boolean, CallExpression, Expression, FunctionLiteral,
-    HashLiteral, Identifier, IfExpression, IndexExpression, IntegerLiteral, Node, Program,
+    HashLiteral, Identifier, IfExpression, IndexExpression, IntegerLiteral, Program,
     Statement, StringLiteral,
 };
 use code::{Instruction, Opcode, make};
@@ -407,8 +407,6 @@ impl Compilable for Expression {
             Expression::Index(index) => index.compile(c),
             Expression::FunctionLiteral(function) => function.compile(c),
             Expression::CallExpression(call) => call.compile(c),
-
-            _ => Err(format!("Not yet implemented: {:?}", self)), // TODO: add missing implementations
         }
     }
 }

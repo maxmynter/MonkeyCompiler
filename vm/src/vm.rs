@@ -1,4 +1,4 @@
-use std::{collections::HashMap, num, usize};
+use std::{collections::HashMap, usize};
 
 use code::{Instruction, Opcode, read_uint16};
 use compiler::Bytecode;

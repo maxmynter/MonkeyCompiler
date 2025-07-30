@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use crate::utils::prepare_program_for_test;
 use compiler::Compiler;
-use object::{HashKey, HashPair, Object, ObjectTraits};
+use object::{HashPair, Object, ObjectTraits};
 use vm::VM;
 
 fn test_integer_object(expected: Object, actual: Object) -> Result<(), String> {
