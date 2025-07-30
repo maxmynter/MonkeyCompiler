@@ -679,3 +679,46 @@ fn test_compiler_scopes() {
     let previous = compiler.scopes[compiler.scope_index].previous_instruction;
     assert_eq!(previous.unwrap().opcode, Opcode::OpMul);
 }
+
+#[test]
+fn test_function_calls() {
+    let tests = vec![
+        CompilerTest {
+            input: "fn() {24}();",
+            expected_constants: vec![
+                Object::Integer { value: 24 },
+                Object::CompiledFunction {
+                    instructions: vec![
+                        make(Opcode::OpConstant, &[0]),
+                        make(Opcode::OpReturnValue, &[]),
+                    ],
+                },
+            ],
+            expected_instructions: vec![
+                make(Opcode::OpConstant, &[1]),
+                make(Opcode::OpCall, &[]),
+                make(Opcode::OpPop, &[]),
+            ],
+        },
+        CompilerTest {
+            input: "let noArg = fn() {24}; noArg();",
+            expected_constants: vec![
+                Object::Integer { value: 24 },
+                Object::CompiledFunction {
+                    instructions: vec![
+                        make(Opcode::OpConstant, &[0]),
+                        make(Opcode::OpReturnValue, &[]),
+                    ],
+                },
+            ],
+            expected_instructions: vec![
+                make(Opcode::OpConstant, &[1]),
+                make(Opcode::OpSetGlobal, &[0]),
+                make(Opcode::OpGetGlobal, &[0]),
+                make(Opcode::OpCall, &[]),
+                make(Opcode::OpPop, &[]),
+            ],
+        },
+    ];
+    run_compiler_tests(tests);
+}

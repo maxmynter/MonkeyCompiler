@@ -2,8 +2,9 @@ pub mod symbol_table;
 use std::rc::Rc;
 
 use ast::{
-    ArrayLiteral, BlockStatement, Boolean, Expression, FunctionLiteral, HashLiteral, Identifier,
-    IfExpression, IndexExpression, IntegerLiteral, Node, Program, Statement, StringLiteral,
+    ArrayLiteral, BlockStatement, Boolean, CallExpression, Expression, FunctionLiteral,
+    HashLiteral, Identifier, IfExpression, IndexExpression, IntegerLiteral, Node, Program,
+    Statement, StringLiteral,
 };
 use code::{Instruction, Opcode, make};
 use object::Object;
@@ -228,6 +229,14 @@ impl Compilable for FunctionLiteral {
     }
 }
 
+impl Compilable for CallExpression {
+    fn compile(&self, c: &mut Compiler) -> Result<(), String> {
+        c.compile(*self.function.clone())?;
+        c.emit(Opcode::OpCall, &[]);
+        Ok(())
+    }
+}
+
 impl Compilable for StringLiteral {
     fn compile(&self, c: &mut Compiler) -> Result<(), String> {
         let string = Object::String {
@@ -397,6 +406,7 @@ impl Compilable for Expression {
             Expression::HashMap(hash) => hash.compile(c),
             Expression::Index(index) => index.compile(c),
             Expression::FunctionLiteral(function) => function.compile(c),
+            Expression::CallExpression(call) => call.compile(c),
 
             _ => Err(format!("Not yet implemented: {:?}", self)), // TODO: add missing implementations
         }
