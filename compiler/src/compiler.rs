@@ -3,8 +3,8 @@ use std::rc::Rc;
 
 use ast::{
     ArrayLiteral, BlockStatement, Boolean, CallExpression, Expression, FunctionLiteral,
-    HashLiteral, Identifier, IfExpression, IndexExpression, IntegerLiteral, Program,
-    Statement, StringLiteral,
+    HashLiteral, Identifier, IfExpression, IndexExpression, IntegerLiteral, Program, Statement,
+    StringLiteral,
 };
 use code::{Instruction, Opcode, make};
 use object::Object;
@@ -108,7 +108,7 @@ impl Compiler {
             instructions.extend(instruction.iter());
         }
         Bytecode {
-            instructions,
+            instructions: self.scopes[self.scope_index].instructions.clone(),
             constants: self.constants.clone(),
         }
     }
@@ -193,7 +193,7 @@ impl Compiler {
 }
 
 pub struct Bytecode {
-    pub instructions: Instruction, // Flattened Instruction vec
+    pub instructions: Vec<Instruction>, // Flattened Instruction vec
     pub constants: Vec<Object>,
 }
 

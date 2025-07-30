@@ -1,11 +1,15 @@
+mod frame;
+
 use std::{collections::HashMap, usize};
 
 use code::{Instruction, Opcode, read_uint16};
 use compiler::Bytecode;
+use frame::Frame;
 use object::{FALSE, HashKey, HashPair, NULL, Object, ObjectTraits, TRUE};
 
 pub const STACK_SIZE: usize = 2048;
 pub const GLOBALS_SIZE: usize = 65536;
+pub const MAX_FRAMES: usize = 1024;
 
 #[derive(Debug)]
 pub enum VMError {
@@ -20,30 +24,62 @@ pub enum VMError {
 
 pub struct VM {
     constants: Vec<Object>,
-    instructions: Instruction,
     stack: Vec<Object>,
     sp: usize,
     globals: Vec<Object>,
+    frames: Vec<Option<Frame>>,
+    frames_index: usize,
 }
 
 impl VM {
     pub fn new(bytecode: Bytecode) -> Self {
-        Self {
+        let main_fn = Object::CompiledFunction {
             instructions: bytecode.instructions,
+        };
+        let main_frame = frame::Frame::new(main_fn);
+        let mut frames = vec![None; MAX_FRAMES];
+        frames[0] = Some(main_frame);
+
+        Self {
             constants: bytecode.constants,
             stack: vec![Object::Null; STACK_SIZE],
             sp: 0,
             globals: vec![Object::Null; GLOBALS_SIZE],
+            frames,
+            frames_index: 1,
         }
     }
     pub fn new_with_global_store(bytecode: Bytecode, globals: Vec<Object>) -> Self {
-        Self {
+        let main_fn = Object::CompiledFunction {
             instructions: bytecode.instructions,
+        };
+        let main_frame = frame::Frame::new(main_fn);
+        let mut frames = vec![None; MAX_FRAMES];
+        frames[0] = Some(main_frame);
+
+        Self {
             constants: bytecode.constants,
             stack: vec![Object::Null; STACK_SIZE],
             sp: 0,
             globals,
+            frames,
+            frames_index: 1,
         }
+    }
+
+    pub fn current_frame(&mut self) -> &mut Frame {
+        self.frames[self.frames_index - 1].as_mut().unwrap()
+    }
+
+    pub fn push_frame(&mut self, frame: Frame) {
+        self.frames_index += 1;
+        self.frames[self.frames_index] = Some(frame);
+    }
+
+    pub fn pop_frame(&mut self) -> Option<Frame> {
+        let frame = self.frames[self.frames_index].take();
+        self.frames_index -= 1;
+        frame
     }
 
     pub fn last_popped_stack_elem(&self) -> Option<&Object> {
@@ -255,8 +291,15 @@ impl VM {
 
     pub fn run(&mut self) -> Result<(), VMError> {
         let mut ip = 0;
-        while ip < self.instructions.len() {
-            let op = Opcode::from_u8(self.instructions[ip]).unwrap();
+        let mut ins: Vec<Instruction> = Vec::new();
+        let mut op: Opcode;
+
+        while self.current_frame().ip < self.current_frame().instructions.len() as isize - 1 {
+            self.current_frame().ip += 1;
+            ip = self.current_frame().ip;
+            ins = self.current_frame().instructions;
+            op = Opcode::from_u8(ins[ip as usize]).unwrap();
+
             match op {
                 Opcode::OpConstant => {
                     let const_index = code::read_uint16(&self.instructions[ip + 1..]);
