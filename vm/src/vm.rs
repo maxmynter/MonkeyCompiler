@@ -384,7 +384,12 @@ impl VM {
                     self.pop()?;
                     self.push(return_value)?;
                 }
-                Opcode::OpReturn => todo!(),
+                Opcode::OpReturn => {
+                    self.pop_frame()
+                        .expect("tried to pop frame from empty frame stack");
+                    self.pop()?;
+                    self.push(NULL)?;
+                }
             }
         }
         Ok(())

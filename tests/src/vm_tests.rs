@@ -522,3 +522,18 @@ fn test_functions_with_return_statement() {
     ];
     run_vm_tests(tests);
 }
+
+#[test]
+fn test_functions_without_return_value() {
+    let tests = vec![
+        VmTestCase {
+            input: "let noReturn = fn() { }; noReturn();",
+            expected: Object::Null,
+        },
+        VmTestCase {
+            input: "let noReturn = fn() { }; let noReturnTwo = fn() { noReturn(); }; noReturn(); noReturnTwo();",
+            expected: Object::Null,
+        },
+    ];
+    run_vm_tests(tests);
+}
