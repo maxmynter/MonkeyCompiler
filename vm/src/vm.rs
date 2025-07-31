@@ -72,13 +72,13 @@ impl VM {
     }
 
     pub fn push_frame(&mut self, frame: Frame) {
-        self.frames_index += 1;
         self.frames[self.frames_index] = Some(frame);
+        self.frames_index += 1;
     }
 
     pub fn pop_frame(&mut self) -> Option<Frame> {
-        let frame = self.frames[self.frames_index].take();
         self.frames_index -= 1;
+        let frame = self.frames[self.frames_index].take();
         frame
     }
 
@@ -371,8 +371,18 @@ impl VM {
                     let left = self.pop()?;
                     self.execute_index_expression(left, index)?;
                 }
-                Opcode::OpCall => todo!(),
-                Opcode::OpReturnValue => todo!(),
+                Opcode::OpCall => {
+                    let func = self.stack[self.sp - 1].clone();
+                    let frame = Frame::new(func);
+                    self.push_frame(frame);
+                }
+                Opcode::OpReturnValue => {
+                    let return_value = self.pop()?;
+                    self.pop_frame()
+                        .expect("tried to pop frame but there was none");
+                    self.pop()?;
+                    self.push(return_value)?;
+                }
                 Opcode::OpReturn => todo!(),
             }
         }

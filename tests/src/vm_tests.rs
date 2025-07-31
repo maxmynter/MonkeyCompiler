@@ -488,3 +488,22 @@ fn test_index_expression() {
 
     run_vm_tests(tests);
 }
+
+#[test]
+fn test_calling_functions_without_arguments() {
+    let tests = vec![
+        VmTestCase {
+            input: "let fivePlusTen = fn() {5 + 10}; fivePlusTen();",
+            expected: Object::Integer { value: 15 },
+        },
+        VmTestCase {
+            input: "let one = fn() { 1; }; let two = fn() { 2; }; one() + two()",
+            expected: Object::Integer { value: 3 },
+        },
+        VmTestCase {
+            input: "let a = fn() { 1 }; let b = fn() { a() + 1 }; let c = fn() { b() + 1 }; c();",
+            expected: Object::Integer { value: 3 },
+        },
+    ];
+    run_vm_tests(tests);
+}
