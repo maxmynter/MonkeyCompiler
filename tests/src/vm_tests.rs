@@ -507,3 +507,18 @@ fn test_calling_functions_without_arguments() {
     ];
     run_vm_tests(tests);
 }
+
+#[test]
+fn test_functions_with_return_statement() {
+    let tests = vec![
+        VmTestCase {
+            input: "let earlyExit = fn() { return 99; 100; }; earlyExit();",
+            expected: Object::Integer { value: 99 },
+        },
+        VmTestCase {
+            input: "let earlyExit = fn() { return 99; return 100; }; earlyExit();",
+            expected: Object::Integer { value: 99 },
+        },
+    ];
+    run_vm_tests(tests);
+}

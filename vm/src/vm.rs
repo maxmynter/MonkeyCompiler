@@ -49,6 +49,7 @@ impl VM {
             frames_index: 1,
         }
     }
+
     pub fn new_with_global_store(bytecode: Bytecode, globals: Vec<Object>) -> Self {
         let main_fn = Object::CompiledFunction {
             instructions: bytecode.instructions,
