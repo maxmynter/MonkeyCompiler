@@ -79,8 +79,8 @@ impl VM {
 
     pub fn pop_frame(&mut self) -> Option<Frame> {
         self.frames_index -= 1;
-        let frame = self.frames[self.frames_index].take();
-        frame
+        
+        self.frames[self.frames_index].take()
     }
 
     pub fn last_popped_stack_elem(&self) -> Option<&Object> {
