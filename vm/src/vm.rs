@@ -297,7 +297,7 @@ impl VM {
             self.current_frame().ip += 1;
             let ip = self.current_frame().ip as usize;
             ins = &self.current_frame().instructions;
-            op = Opcode::from_u8(ins[ip as usize]).unwrap();
+            op = Opcode::from_u8(ins[ip]).unwrap();
 
             match op {
                 Opcode::OpConstant => {
