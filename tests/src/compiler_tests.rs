@@ -49,7 +49,15 @@ fn concat_instructions(s: Vec<Instruction>) -> Instruction {
     out
 }
 
-fn test_instruction(expected: Instruction, actual: &Instruction) -> Result<(), String> {
+fn flatten_instructions(instructions: Vec<Instruction>) -> Instruction {
+    let mut result = Instruction::new();
+    for ins in instructions {
+        result.extend(ins);
+    }
+    result
+}
+
+fn test_instruction(expected: &Instruction, actual: &Instruction) -> Result<(), String> {
     if actual.len() != expected.len() {
         panic!(
             "test_instructions failed: wrong instructions length\nwant={}\ngot={}",
@@ -67,7 +75,7 @@ fn test_instruction(expected: Instruction, actual: &Instruction) -> Result<(), S
 fn test_constants(expected: &[Object], actual: &[Object]) -> Result<(), String> {
     assert_eq!(expected.len(), actual.len());
     for (i, expected_constant) in expected.iter().enumerate() {
-        match &expected_constant {
+        match expected_constant {
             Object::Integer { value } => {
                 if let Err(e) = test_integer_object(*value, &actual[i]) {
                     return Err(format!(
@@ -91,20 +99,14 @@ fn test_constants(expected: &[Object], actual: &[Object]) -> Result<(), String> 
                     ));
                 }
             }
-            &Object::CompiledFunction {
+            Object::CompiledFunction {
                 instructions: expected_instructions,
             } => {
                 if let Object::CompiledFunction {
                     instructions: actual_instructions,
                 } = &actual[i]
                 {
-                    assert_eq!(expected_instructions.len(), actual_instructions.len());
-                    for (i, _) in expected_instructions.iter().enumerate() {
-                        test_instruction(
-                            expected_instructions[i].clone(),
-                            &actual_instructions[i],
-                        )?;
-                    }
+                    test_instruction(expected_instructions, actual_instructions)?;
                 } else {
                     panic!("Did not find compiled function instructions");
                 }
@@ -286,7 +288,7 @@ fn run_compiler_tests(tests: Vec<CompilerTest>) {
         let bytecode = compiler.bytecode();
 
         let expected_flattened = concat_instructions(tt.expected_instructions);
-        if let Err(e) = test_instruction(expected_flattened, &bytecode.instructions) {
+        if let Err(e) = test_instruction(&expected_flattened, &bytecode.instructions) {
             panic!("testInstructions failed: {}", e);
         }
         if let Err(e) = test_constants(&tt.expected_constants, &bytecode.constants) {
@@ -608,12 +610,12 @@ fn test_functions() {
                 Object::Integer { value: 5 },
                 Object::Integer { value: 10 },
                 Object::CompiledFunction {
-                    instructions: vec![
+                    instructions: flatten_instructions(vec![
                         make(Opcode::OpConstant, &[0]),
                         make(Opcode::OpConstant, &[1]),
                         make(Opcode::OpAdd, &[]),
                         make(Opcode::OpReturnValue, &[]),
-                    ],
+                    ]),
                 },
             ],
             expected_instructions: vec![make(Opcode::OpConstant, &[2]), make(Opcode::OpPop, &[])],
@@ -624,12 +626,12 @@ fn test_functions() {
                 Object::Integer { value: 5 },
                 Object::Integer { value: 10 },
                 Object::CompiledFunction {
-                    instructions: vec![
+                    instructions: flatten_instructions(vec![
                         make(Opcode::OpConstant, &[0]),
                         make(Opcode::OpConstant, &[1]),
                         make(Opcode::OpAdd, &[]),
                         make(Opcode::OpReturnValue, &[]),
-                    ],
+                    ]),
                 },
             ],
             expected_instructions: vec![make(Opcode::OpConstant, &[2]), make(Opcode::OpPop, &[])],
@@ -640,12 +642,12 @@ fn test_functions() {
                 Object::Integer { value: 1 },
                 Object::Integer { value: 2 },
                 Object::CompiledFunction {
-                    instructions: vec![
+                    instructions: flatten_instructions(vec![
                         make(Opcode::OpConstant, &[0]),
                         make(Opcode::OpPop, &[]),
                         make(Opcode::OpConstant, &[1]),
                         make(Opcode::OpReturnValue, &[]),
-                    ],
+                    ]),
                 },
             ],
             expected_instructions: vec![make(Opcode::OpConstant, &[2]), make(Opcode::OpPop, &[])],
@@ -653,7 +655,7 @@ fn test_functions() {
         CompilerTest {
             input: "fn() {}",
             expected_constants: vec![Object::CompiledFunction {
-                instructions: vec![make(Opcode::OpReturn, &[])],
+                instructions: flatten_instructions(vec![make(Opcode::OpReturn, &[])]),
             }],
             expected_instructions: vec![make(Opcode::OpConstant, &[0]), make(Opcode::OpPop, &[])],
         },
@@ -688,10 +690,10 @@ fn test_function_calls() {
             expected_constants: vec![
                 Object::Integer { value: 24 },
                 Object::CompiledFunction {
-                    instructions: vec![
+                    instructions: flatten_instructions(vec![
                         make(Opcode::OpConstant, &[0]),
                         make(Opcode::OpReturnValue, &[]),
-                    ],
+                    ]),
                 },
             ],
             expected_instructions: vec![
@@ -705,10 +707,10 @@ fn test_function_calls() {
             expected_constants: vec![
                 Object::Integer { value: 24 },
                 Object::CompiledFunction {
-                    instructions: vec![
+                    instructions: flatten_instructions(vec![
                         make(Opcode::OpConstant, &[0]),
                         make(Opcode::OpReturnValue, &[]),
-                    ],
+                    ]),
                 },
             ],
             expected_instructions: vec![

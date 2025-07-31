@@ -80,7 +80,7 @@ pub enum Object {
         env: Rc<RefCell<Environment>>,
     },
     CompiledFunction {
-        instructions: Vec<Instruction>,
+        instructions: Instruction,
     },
     String {
         value: String,

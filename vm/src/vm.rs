@@ -290,20 +290,19 @@ impl VM {
     }
 
     pub fn run(&mut self) -> Result<(), VMError> {
-        let mut ip = 0;
-        let mut ins: Vec<Instruction> = Vec::new();
+        let mut ins: &Instruction;
         let mut op: Opcode;
 
         while self.current_frame().ip < self.current_frame().instructions.len() as isize - 1 {
             self.current_frame().ip += 1;
-            ip = self.current_frame().ip;
-            ins = self.current_frame().instructions;
+            let ip = self.current_frame().ip as usize;
+            ins = &self.current_frame().instructions;
             op = Opcode::from_u8(ins[ip as usize]).unwrap();
 
             match op {
                 Opcode::OpConstant => {
-                    let const_index = code::read_uint16(&self.instructions[ip + 1..]);
-                    ip += 2;
+                    let const_index = code::read_uint16(&ins[ip + 1..]);
+                    self.current_frame().ip += 2;
                     self.push(self.constants[const_index as usize].clone())?;
                 }
                 Opcode::OpAdd | Opcode::OpSub | Opcode::OpMul | Opcode::OpDiv => {
@@ -328,41 +327,41 @@ impl VM {
                     self.execute_minus_operator()?;
                 }
                 Opcode::OpJump => {
-                    let pos = read_uint16(&self.instructions[ip + 1..]) as usize;
+                    let pos = read_uint16(&ins[ip + 1..]);
                     // Set to preceeding instruction since we increment at loop end
-                    ip = pos - 1;
+                    self.current_frame().ip = pos - 1;
                 }
                 Opcode::OpJumpNotTruthy => {
-                    let pos = read_uint16(&self.instructions[ip + 1..]) as usize;
-                    ip += 2;
+                    let pos = read_uint16(&ins[ip + 1..]);
+                    self.current_frame().ip += 2;
                     let condition = self.pop()?;
                     if !object::is_truthy(condition) {
-                        ip = pos - 1;
+                        self.current_frame().ip = pos - 1;
                     }
                 }
                 Opcode::OpNull => {
                     self.push(NULL)?;
                 }
                 Opcode::OpSetGlobal => {
-                    let global_index = read_uint16(&self.instructions[ip + 1..]);
-                    ip += 2;
+                    let global_index = read_uint16(&ins[ip + 1..]);
+                    self.current_frame().ip += 2;
                     self.globals[global_index as usize] = self.pop()?;
                 }
                 Opcode::OpGetGlobal => {
-                    let global_index = read_uint16(&self.instructions[ip + 1..]);
-                    ip += 2;
+                    let global_index = read_uint16(&ins[ip + 1..]);
+                    self.current_frame().ip += 2;
                     self.push(self.globals[global_index as usize].clone())?;
                 }
                 Opcode::OpArray => {
-                    let num_elements = read_uint16(&self.instructions[ip + 1..]) as usize;
-                    ip += 2;
+                    let num_elements = read_uint16(&ins[ip + 1..]) as usize;
+                    self.current_frame().ip += 2;
                     let arr = self.build_array(self.sp - num_elements, self.sp)?;
                     self.sp -= num_elements;
                     self.push(arr)?;
                 }
                 Opcode::OpHash => {
-                    let num_elements = read_uint16(&self.instructions[ip + 1..]) as usize;
-                    ip += 2;
+                    let num_elements = read_uint16(&ins[ip + 1..]) as usize;
+                    self.current_frame().ip += 2;
                     let hash = self.build_hash(self.sp - num_elements, self.sp)?;
                     self.sp -= num_elements;
                     self.push(hash)?;
@@ -376,7 +375,6 @@ impl VM {
                 Opcode::OpReturnValue => todo!(),
                 Opcode::OpReturn => todo!(),
             }
-            ip += 1;
         }
         Ok(())
     }

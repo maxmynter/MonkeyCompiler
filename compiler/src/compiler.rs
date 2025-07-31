@@ -1,5 +1,5 @@
 pub mod symbol_table;
-use std::rc::Rc;
+use std::{rc::Rc, usize};
 
 use ast::{
     ArrayLiteral, BlockStatement, Boolean, CallExpression, Expression, FunctionLiteral,
@@ -29,7 +29,7 @@ impl Default for EmittedInstruction {
 }
 
 pub struct CompilationScope {
-    pub instructions: Vec<Instruction>,
+    pub instructions: Instruction,
     pub last_instruction: Option<EmittedInstruction>,
     pub previous_instruction: Option<EmittedInstruction>,
 }
@@ -37,7 +37,7 @@ pub struct CompilationScope {
 impl CompilationScope {
     fn new() -> Self {
         CompilationScope {
-            instructions: Vec::new(),
+            instructions: Instruction::new(),
             last_instruction: None,
             previous_instruction: None,
         }
@@ -90,23 +90,16 @@ impl Compiler {
 
     pub fn add_instructions(&mut self, ins: Instruction) -> usize {
         let current_instructions = self.current_instructions();
-
         let pos = current_instructions.len();
-        current_instructions.push(ins);
-
-        self.scopes[self.scope_index].instructions = current_instructions.to_vec();
+        current_instructions.extend(ins);
         pos
     }
 
-    pub fn current_instructions(&mut self) -> &mut Vec<Instruction> {
+    pub fn current_instructions(&mut self) -> &mut Instruction {
         &mut self.scopes[self.scope_index].instructions
     }
 
     pub fn bytecode(&self) -> Bytecode {
-        let mut instructions = Instruction::new();
-        for instruction in &self.scopes[self.scope_index].instructions {
-            instructions.extend(instruction.iter());
-        }
         Bytecode {
             instructions: self.scopes[self.scope_index].instructions.clone(),
             constants: self.constants.clone(),
@@ -141,8 +134,8 @@ impl Compiler {
 
     pub fn remove_last_pop(&mut self) {
         let scopes = &mut self.scopes[self.scope_index];
-        scopes.instructions =
-            scopes.instructions[0..scopes.last_instruction.as_ref().unwrap().position].to_vec();
+        let last_pos = scopes.last_instruction.as_ref().unwrap().position;
+        scopes.instructions.truncate(last_pos);
         scopes.last_instruction = scopes.previous_instruction.take();
     }
 
@@ -153,7 +146,11 @@ impl Compiler {
     }
 
     fn replace_instruction(&mut self, pos: usize, new_instruction: Instruction) {
-        self.scopes[self.scope_index].instructions[pos] = new_instruction;
+        let instructions = &mut self.scopes[self.scope_index].instructions;
+        let old_opcode = Opcode::from_u8(instructions[pos]).expect("unknown opcode");
+        let old_def = code::lookup(old_opcode).expect("Unkown opcode definition");
+        let old_len = 1 + old_def.operand_widths.iter().sum::<usize>();
+        instructions.splice(pos..pos + old_len, new_instruction.iter().copied());
     }
 
     pub fn replace_last_pop_with_return(&mut self) {
@@ -169,7 +166,7 @@ impl Compiler {
     }
 
     pub fn change_operand(&mut self, op_pos: usize, operand: isize) {
-        let op = Opcode::from_u8(self.scopes[self.scope_index].instructions[op_pos][0])
+        let op = Opcode::from_u8(self.scopes[self.scope_index].instructions[op_pos])
             .expect("Unkown instruction code");
         let new_instruction = make(op, &[operand]);
         self.replace_instruction(op_pos, new_instruction);
@@ -179,13 +176,13 @@ impl Compiler {
         let scope = CompilationScope {
             last_instruction: None,
             previous_instruction: None,
-            instructions: vec![],
+            instructions: Instruction::new(),
         };
         self.scopes.push(scope);
         self.scope_index += 1;
     }
 
-    pub fn leave_scope(&mut self) -> Vec<Instruction> {
+    pub fn leave_scope(&mut self) -> Instruction {
         let popped_scope = self.scopes.pop().expect("exected scope");
         self.scope_index -= 1;
         popped_scope.instructions
@@ -193,7 +190,7 @@ impl Compiler {
 }
 
 pub struct Bytecode {
-    pub instructions: Vec<Instruction>, // Flattened Instruction vec
+    pub instructions: Instruction,
     pub constants: Vec<Object>,
 }
 
@@ -367,11 +364,7 @@ impl Compilable for Expression {
 
                 let jump_pos = c.emit(Opcode::OpJump, &[JUMP_PLACEHOLDER]);
 
-                let after_consequence_pos = c.scopes[c.scope_index]
-                    .instructions
-                    .iter()
-                    .fold(0, |acc, ins| acc + ins.len())
-                    as isize;
+                let after_consequence_pos = c.scopes[c.scope_index].instructions.len() as isize;
                 c.change_operand(jump_not_truthy_pos, after_consequence_pos);
 
                 match alternative {
@@ -384,11 +377,7 @@ impl Compilable for Expression {
                     }
                 }
 
-                let after_alternative_pos = c.scopes[c.scope_index]
-                    .instructions
-                    .iter()
-                    .fold(0, |acc, i| acc + i.len())
-                    as isize;
+                let after_alternative_pos = c.scopes[c.scope_index].instructions.len() as isize;
                 c.change_operand(jump_pos, after_alternative_pos);
 
                 Ok(())

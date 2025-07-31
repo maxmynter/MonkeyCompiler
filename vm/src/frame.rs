@@ -3,7 +3,7 @@ use object::Object;
 
 #[derive(Debug, Clone)]
 pub struct Frame {
-    pub instructions: Vec<Instruction>,
+    pub instructions: Instruction,
     pub ip: isize,
 }
 
@@ -16,9 +16,5 @@ impl Frame {
             },
             _ => panic!("Can only create a new stack frame for a CompiledFunction object"),
         }
-    }
-
-    fn instructions(self) -> Vec<Instruction> {
-        self.instructions
     }
 }
