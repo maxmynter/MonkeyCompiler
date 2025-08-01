@@ -537,3 +537,12 @@ fn test_functions_without_return_value() {
     ];
     run_vm_tests(tests);
 }
+
+#[test]
+fn test_first_class_functions() {
+    let tests = vec![VmTestCase {
+        input: "let returnsOne = fn() { 1; }; let returnsOneReturner = fn() { returnsOne; }; returnsOneReturner()();",
+        expected: Object::Integer { value: 1 },
+    }];
+    run_vm_tests(tests);
+}
