@@ -24,6 +24,11 @@ fn test_make() {
             operands: Vec::new(),
             expected: vec![Opcode::OpAdd as u8],
         },
+        Test {
+            op: Opcode::OpGetLocal,
+            operands: vec![255],
+            expected: vec![Opcode::OpGetLocal as u8, 255],
+        },
     ];
     for tt in cases {
         let instruction = make(tt.op, &tt.operands);
@@ -301,13 +306,15 @@ fn run_compiler_tests(tests: Vec<CompilerTest>) {
 fn test_instructions_string() {
     let instructions = vec![
         make(Opcode::OpAdd, &[]),
+        make(Opcode::OpGetLocal, &[1]),
         make(Opcode::OpConstant, &[2]),
         make(Opcode::OpConstant, &[65535]),
     ];
 
     let expected = "0000 OpAdd
-0001 OpConstant 2
-0004 OpConstant 65535
+0001 OpGetLocal 1
+0003 OpConstant 2
+0006 OpConstant 65535
 ";
     let concatted = concat_instructions(instructions);
     assert_eq!(concatted.as_string(), expected);
@@ -321,11 +328,18 @@ fn test_read_operands() {
         bytes_read: isize,
     }
 
-    let tests = [ReadOpTest {
-        op: Opcode::OpConstant,
-        operands: &[65535],
-        bytes_read: 2,
-    }];
+    let tests = [
+        ReadOpTest {
+            op: Opcode::OpConstant,
+            operands: &[65535],
+            bytes_read: 2,
+        },
+        ReadOpTest {
+            op: Opcode::OpGetLocal,
+            operands: &[255],
+            bytes_read: 1,
+        },
+    ];
 
     for tt in tests {
         let instruction = make(tt.op, tt.operands);

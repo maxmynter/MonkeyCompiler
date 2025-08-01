@@ -116,6 +116,8 @@ pub enum Opcode {
     OpCall,
     OpReturnValue,
     OpReturn,
+    OpSetLocal,
+    OpGetLocal,
 }
 
 impl Opcode {
@@ -145,6 +147,8 @@ impl Opcode {
             21 => Some(Opcode::OpCall),
             22 => Some(Opcode::OpReturnValue),
             23 => Some(Opcode::OpReturn),
+            24 => Some(Opcode::OpSetLocal),
+            25 => Some(Opcode::OpGetLocal),
             _ => None,
         }
     }
@@ -327,6 +331,20 @@ lazy_static! {
                     operand_widths: vec![]
             }
         ),
+        (
+                Opcode::OpSetLocal,
+                Definition {
+                    name: "OpSetLocal",
+                    operand_widths: vec![1]
+            }
+        ),
+        (
+                Opcode::OpGetLocal,
+                Definition {
+                    name: "OpGetLocal",
+                    operand_widths: vec![1]
+            }
+        ),
         ]
         .iter()
         .cloned()
@@ -357,6 +375,9 @@ pub fn make(op: Opcode, operands: &[isize]) -> Instruction {
                 let bytes = (operand as u16).to_be_bytes();
                 instruction.extend_from_slice(&bytes);
             }
+            1 => {
+                instruction.push(operand as u8);
+            }
             _ => {
                 unreachable!()
             }
@@ -372,6 +393,7 @@ pub fn read_operands(def: &Definition, ins: Instruction) -> (Vec<isize>, usize) 
     for (i, &width) in def.operand_widths.iter().enumerate() {
         match width {
             2 => operands[i] = read_uint16(&ins[offset..]),
+            1 => operands[i] = ins[0] as isize,
             _ => unreachable!(),
         }
         offset += width;

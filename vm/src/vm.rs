@@ -79,7 +79,7 @@ impl VM {
 
     pub fn pop_frame(&mut self) -> Option<Frame> {
         self.frames_index -= 1;
-        
+
         self.frames[self.frames_index].take()
     }
 
@@ -390,6 +390,8 @@ impl VM {
                     self.pop()?;
                     self.push(NULL)?;
                 }
+                Opcode::OpSetLocal => {}
+                Opcode::OpGetLocal => {}
             }
         }
         Ok(())
