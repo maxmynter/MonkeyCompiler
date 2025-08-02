@@ -738,3 +738,63 @@ fn test_function_calls() {
     ];
     run_compiler_tests(tests);
 }
+
+#[test]
+fn test_let_statement_scopes() {
+    let tests = vec![
+        CompilerTest {
+            input: "let num = 55; fn() { num }",
+            expected_constants: vec![
+                Object::Integer { value: 55 },
+                Object::CompiledFunction {
+                    instructions: flatten_instructions(vec![
+                        make(Opcode::OpGetGlobal, &[0]),
+                        make(Opcode::OpReturnValue, &[]),
+                    ]),
+                },
+            ],
+            expected_instructions: vec![
+                make(Opcode::OpConstant, &[0]),
+                make(Opcode::OpSetGlobal, &[0]),
+                make(Opcode::OpConstant, &[1]),
+                make(Opcode::OpPop, &[]),
+            ],
+        },
+        CompilerTest {
+            input: "fn() {let num = 55;  num }",
+            expected_constants: vec![
+                Object::Integer { value: 55 },
+                Object::CompiledFunction {
+                    instructions: flatten_instructions(vec![
+                        make(Opcode::OpConstant, &[0]),
+                        make(Opcode::OpSetLocal, &[0]),
+                        make(Opcode::OpGetLocal, &[0]),
+                        make(Opcode::OpReturnValue, &[]),
+                    ]),
+                },
+            ],
+            expected_instructions: vec![make(Opcode::OpConstant, &[1]), make(Opcode::OpPop, &[])],
+        },
+        CompilerTest {
+            input: "fn() { let a = 55; let b = 77; a + b }",
+            expected_constants: vec![
+                Object::Integer { value: 55 },
+                Object::Integer { value: 77 },
+                Object::CompiledFunction {
+                    instructions: flatten_instructions(vec![
+                        make(Opcode::OpConstant, &[0]),
+                        make(Opcode::OpSetLocal, &[0]),
+                        make(Opcode::OpConstant, &[1]),
+                        make(Opcode::OpSetLocal, &[1]),
+                        make(Opcode::OpGetLocal, &[0]),
+                        make(Opcode::OpGetLocal, &[1]),
+                        make(Opcode::OpAdd, &[]),
+                        make(Opcode::OpReturnValue, &[]),
+                    ]),
+                },
+            ],
+            expected_instructions: vec![make(Opcode::OpConstant, &[2]), make(Opcode::OpPop, &[])],
+        },
+    ];
+    run_compiler_tests(tests);
+}
