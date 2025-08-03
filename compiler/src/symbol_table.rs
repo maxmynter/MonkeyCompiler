@@ -3,6 +3,7 @@ use std::collections::HashMap;
 pub type SymbolScope = &'static str;
 
 pub const GLOBAL_SCOPE: SymbolScope = "GLOBAL";
+pub const LOCAL_SCOPE: SymbolScope = "LOCAL";
 
 #[derive(Debug, PartialEq)]
 pub struct Symbol {
@@ -29,6 +30,11 @@ impl SymbolTable {
             num_definitions: 0,
         }
     }
+
+    pub fn new_enclosed(enclosing: &SymbolTable) -> Self {
+        todo!()
+    }
+
     pub fn define(&mut self, name: String) -> &Symbol {
         let symbol = Symbol {
             name: name.to_string(),
