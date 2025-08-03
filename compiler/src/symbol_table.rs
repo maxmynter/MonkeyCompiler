@@ -5,14 +5,16 @@ pub type SymbolScope = &'static str;
 pub const GLOBAL_SCOPE: SymbolScope = "GLOBAL";
 pub const LOCAL_SCOPE: SymbolScope = "LOCAL";
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Symbol {
     pub name: String,
     pub scope: SymbolScope,
     pub index: usize,
 }
 
+#[derive(Clone, Debug)]
 pub struct SymbolTable {
+    outer: Option<Box<SymbolTable>>,
     store: HashMap<String, Symbol>,
     num_definitions: usize,
 }
@@ -26,13 +28,18 @@ impl Default for SymbolTable {
 impl SymbolTable {
     pub fn new() -> Self {
         SymbolTable {
+            outer: None,
             store: HashMap::new(),
             num_definitions: 0,
         }
     }
 
-    pub fn new_enclosed(enclosing: &SymbolTable) -> Self {
-        todo!()
+    pub fn new_enclosed(outer: SymbolTable) -> Self {
+        SymbolTable {
+            outer: Some(Box::new(outer)),
+            store: HashMap::new(),
+            num_definitions: 0,
+        }
     }
 
     pub fn define(&mut self, name: String) -> &Symbol {

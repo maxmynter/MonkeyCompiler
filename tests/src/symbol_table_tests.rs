@@ -60,13 +60,13 @@ fn test_define() {
     let b = global.define("b".to_string());
     assert_eq!(b, &expected["b"]);
 
-    let mut first_local = SymbolTable::new_enclosed(&global);
+    let mut first_local = SymbolTable::new_enclosed(global);
     let c = first_local.define("c".to_string());
     assert_eq!(c, &expected["c"]);
     let d = first_local.define("d".to_string());
     assert_eq!(d, &expected["d"]);
 
-    let mut second_local = SymbolTable::new_enclosed(&first_local);
+    let mut second_local = SymbolTable::new_enclosed(first_local);
     let e = second_local.define("d".to_string());
     assert_eq!(e, &expected["d"]);
     let f = second_local.define("e".to_string());
@@ -110,7 +110,7 @@ fn test_resolve_local() {
     global.define("a".to_string());
     global.define("b".to_string());
 
-    let mut local = SymbolTable::new_enclosed(&global);
+    let mut local = SymbolTable::new_enclosed(global);
     local.define("c".to_string());
     local.define("d".to_string());
 
@@ -165,11 +165,11 @@ fn test_resolve_nested_local() {
     global.define("a".to_string());
     global.define("b".to_string());
 
-    let mut first_local = SymbolTable::new_enclosed(&global);
+    let mut first_local = SymbolTable::new_enclosed(global);
     first_local.define("c".to_string());
     first_local.define("d".to_string());
 
-    let mut second_local = SymbolTable::new_enclosed(&first_local);
+    let mut second_local = SymbolTable::new_enclosed(first_local.clone());
     second_local.define("e".to_string());
     second_local.define("f".to_string());
 
