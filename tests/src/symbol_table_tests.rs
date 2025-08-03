@@ -21,14 +21,56 @@ fn test_define() {
                 index: 1,
             },
         ),
+        (
+            "c".to_string(),
+            Symbol {
+                name: "c".to_string(),
+                scope: LOCAL_SCOPE,
+                index: 0,
+            },
+        ),
+        (
+            "d".to_string(),
+            Symbol {
+                name: "d".to_string(),
+                scope: LOCAL_SCOPE,
+                index: 1,
+            },
+        ),
+        (
+            "e".to_string(),
+            Symbol {
+                name: "c".to_string(),
+                scope: LOCAL_SCOPE,
+                index: 0,
+            },
+        ),
+        (
+            "f".to_string(),
+            Symbol {
+                name: "d".to_string(),
+                scope: LOCAL_SCOPE,
+                index: 1,
+            },
+        ),
     ]);
     let mut global = SymbolTable::new();
-
     let a = global.define("a".to_string());
-    assert_eq!(*a, expected["a"]);
-
+    assert_eq!(a, &expected["a"]);
     let b = global.define("b".to_string());
-    assert_eq!(*b, expected["b"]);
+    assert_eq!(b, &expected["b"]);
+
+    let mut first_local = SymbolTable::new_enclosed(&global);
+    let c = first_local.define("c".to_string());
+    assert_eq!(c, &expected["c"]);
+    let d = first_local.define("d".to_string());
+    assert_eq!(d, &expected["d"]);
+
+    let mut second_local = SymbolTable::new_enclosed(&first_local);
+    let e = second_local.define("d".to_string());
+    assert_eq!(e, &expected["d"]);
+    let f = second_local.define("e".to_string());
+    assert_eq!(f, &expected["f"]);
 }
 
 #[test]
