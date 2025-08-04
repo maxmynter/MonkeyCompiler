@@ -46,13 +46,24 @@ impl SymbolTable {
         let symbol = Symbol {
             name: name.to_string(),
             index: self.num_definitions,
-            scope: GLOBAL_SCOPE,
+            scope: if self.outer.is_some() {
+                LOCAL_SCOPE
+            } else {
+                GLOBAL_SCOPE
+            },
         };
         self.store.insert(name.to_string(), symbol);
         self.num_definitions += 1;
         &self.store[&name]
     }
+
     pub fn resolve(&self, name: &String) -> Option<&Symbol> {
-        self.store.get(name)
+        match self.store.get(name) {
+            Some(resolved) => Some(resolved),
+            None => match &self.outer {
+                Some(outer) => outer.resolve(name),
+                None => None,
+            },
+        }
     }
 }
