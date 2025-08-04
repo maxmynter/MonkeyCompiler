@@ -9,7 +9,7 @@ use ast::{
 use code::{Instruction, Opcode, make};
 use object::Object;
 
-use crate::symbol_table::SymbolTable;
+use crate::symbol_table::{GLOBAL_SCOPE, LOCAL_SCOPE, SymbolTable};
 
 const JUMP_PLACEHOLDER: isize = 9999;
 
@@ -180,11 +180,14 @@ impl Compiler {
         };
         self.scopes.push(scope);
         self.scope_index += 1;
+        let current_symbols = std::mem::take(&mut self.symbol_table);
+        self.symbol_table = SymbolTable::new_enclosed(current_symbols);
     }
 
     pub fn leave_scope(&mut self) -> Instruction {
         let popped_scope = self.scopes.pop().expect("exected scope");
         self.scope_index -= 1;
+        self.symbol_table = *self.symbol_table.outer.take().expect("no outer scope");
         popped_scope.instructions
     }
 }
@@ -282,7 +285,11 @@ impl Compilable for Statement {
                 let result = value.compile(c);
                 let symbol = c.symbol_table.define((*name.value).clone());
                 let symbol_index = symbol.index as isize;
-                c.emit(Opcode::OpSetGlobal, &[symbol_index]);
+                match symbol.scope {
+                    GLOBAL_SCOPE => c.emit(Opcode::OpSetGlobal, &[symbol_index]),
+                    LOCAL_SCOPE => c.emit(Opcode::OpSetLocal, &[symbol_index]),
+                    _ => unreachable!(),
+                };
                 result
             }
             Statement::Return { value, .. } => {
@@ -385,7 +392,11 @@ impl Compilable for Expression {
             Expression::String(string_lit) => string_lit.compile(c),
             Expression::Identifier(Identifier { value, .. }) => {
                 if let Some(symbol) = c.symbol_table.resolve(value) {
-                    c.emit(Opcode::OpGetGlobal, &[symbol.index as isize]);
+                    match symbol.scope {
+                        GLOBAL_SCOPE => c.emit(Opcode::OpGetGlobal, &[symbol.index as isize]),
+                        LOCAL_SCOPE => c.emit(Opcode::OpGetLocal, &[symbol.index as isize]),
+                        _ => unreachable!(),
+                    };
                     Ok(())
                 } else {
                     Err(format!("unkown identifier: {}", value))

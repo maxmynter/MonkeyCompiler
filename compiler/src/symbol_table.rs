@@ -12,11 +12,11 @@ pub struct Symbol {
     pub index: usize,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct SymbolTable {
-    outer: Option<Box<SymbolTable>>,
-    store: HashMap<String, Symbol>,
-    num_definitions: usize,
+    pub outer: Option<Box<SymbolTable>>,
+    pub store: HashMap<String, Symbol>,
+    pub num_definitions: usize,
 }
 
 impl Default for SymbolTable {

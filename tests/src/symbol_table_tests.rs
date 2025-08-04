@@ -233,7 +233,7 @@ fn test_resolve_nested_local() {
                 (
                     "e".to_string(),
                     Symbol {
-                        name: "c".to_string(),
+                        name: "e".to_string(),
                         scope: LOCAL_SCOPE,
                         index: 0,
                     },
@@ -241,7 +241,7 @@ fn test_resolve_nested_local() {
                 (
                     "f".to_string(),
                     Symbol {
-                        name: "d".to_string(),
+                        name: "f".to_string(),
                         scope: LOCAL_SCOPE,
                         index: 1,
                     },

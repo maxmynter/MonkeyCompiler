@@ -681,6 +681,9 @@ fn test_functions() {
 fn test_compiler_scopes() {
     let mut compiler = Compiler::new();
     assert_eq!(compiler.scope_index, 0);
+
+    let global_symbol_table = compiler.symbol_table.clone();
+
     compiler.emit(Opcode::OpMul, &[]);
     compiler.enter_scope();
     assert_eq!(compiler.scope_index, 1);
@@ -688,8 +691,18 @@ fn test_compiler_scopes() {
     assert_eq!(compiler.scopes[compiler.scope_index].instructions.len(), 1);
     let last = compiler.scopes[compiler.scope_index].last_instruction;
     assert_eq!(last.unwrap().opcode, Opcode::OpSub);
+
+    assert_eq!(
+        compiler.symbol_table.outer.as_ref().map(|b| b.as_ref()),
+        Some(&global_symbol_table)
+    );
+
     compiler.leave_scope();
     assert_eq!(compiler.scope_index, 0);
+
+    assert_eq!(compiler.symbol_table, global_symbol_table);
+    assert!(compiler.symbol_table.outer.is_none());
+
     compiler.emit(Opcode::OpAdd, &[]);
     assert_eq!(compiler.scopes[compiler.scope_index].instructions.len(), 2);
     let previous = compiler.scopes[compiler.scope_index].previous_instruction;
