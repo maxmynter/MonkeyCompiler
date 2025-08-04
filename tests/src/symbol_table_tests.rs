@@ -40,7 +40,7 @@ fn test_define() {
         (
             "e".to_string(),
             Symbol {
-                name: "c".to_string(),
+                name: "e".to_string(),
                 scope: LOCAL_SCOPE,
                 index: 0,
             },
@@ -48,7 +48,7 @@ fn test_define() {
         (
             "f".to_string(),
             Symbol {
-                name: "d".to_string(),
+                name: "f".to_string(),
                 scope: LOCAL_SCOPE,
                 index: 1,
             },
@@ -67,9 +67,9 @@ fn test_define() {
     assert_eq!(d, &expected["d"]);
 
     let mut second_local = SymbolTable::new_enclosed(first_local);
-    let e = second_local.define("d".to_string());
-    assert_eq!(e, &expected["d"]);
-    let f = second_local.define("e".to_string());
+    let e = second_local.define("e".to_string());
+    assert_eq!(e, &expected["e"]);
+    let f = second_local.define("f".to_string());
     assert_eq!(f, &expected["f"]);
 }
 
