@@ -221,8 +221,12 @@ impl Compilable for FunctionLiteral {
         if !c.last_instruction_is(Opcode::OpReturnValue) {
             c.emit(Opcode::OpReturn, &[]);
         }
+        let num_locals = c.symbol_table.num_definitions;
         let instructions = c.leave_scope();
-        let compiled_fn = Object::CompiledFunction { instructions };
+        let compiled_fn = Object::CompiledFunction {
+            instructions,
+            num_locals,
+        };
         let pos = c.add_constant(compiled_fn);
         c.emit(Opcode::OpConstant, &[pos]);
         Ok(())

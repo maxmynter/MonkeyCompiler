@@ -106,9 +106,11 @@ fn test_constants(expected: &[Object], actual: &[Object]) -> Result<(), String> 
             }
             Object::CompiledFunction {
                 instructions: expected_instructions,
+                ..
             } => {
                 if let Object::CompiledFunction {
                     instructions: actual_instructions,
+                    ..
                 } = &actual[i]
                 {
                     test_instruction(expected_instructions, actual_instructions)?;
@@ -630,6 +632,7 @@ fn test_functions() {
                         make(Opcode::OpAdd, &[]),
                         make(Opcode::OpReturnValue, &[]),
                     ]),
+                    num_locals: 0,
                 },
             ],
             expected_instructions: vec![make(Opcode::OpConstant, &[2]), make(Opcode::OpPop, &[])],
@@ -646,6 +649,7 @@ fn test_functions() {
                         make(Opcode::OpAdd, &[]),
                         make(Opcode::OpReturnValue, &[]),
                     ]),
+                    num_locals: 0,
                 },
             ],
             expected_instructions: vec![make(Opcode::OpConstant, &[2]), make(Opcode::OpPop, &[])],
@@ -662,6 +666,7 @@ fn test_functions() {
                         make(Opcode::OpConstant, &[1]),
                         make(Opcode::OpReturnValue, &[]),
                     ]),
+                    num_locals: 0,
                 },
             ],
             expected_instructions: vec![make(Opcode::OpConstant, &[2]), make(Opcode::OpPop, &[])],
@@ -670,6 +675,7 @@ fn test_functions() {
             input: "fn() {}",
             expected_constants: vec![Object::CompiledFunction {
                 instructions: flatten_instructions(vec![make(Opcode::OpReturn, &[])]),
+                num_locals: 0,
             }],
             expected_instructions: vec![make(Opcode::OpConstant, &[0]), make(Opcode::OpPop, &[])],
         },
@@ -721,6 +727,7 @@ fn test_function_calls() {
                         make(Opcode::OpConstant, &[0]),
                         make(Opcode::OpReturnValue, &[]),
                     ]),
+                    num_locals: 0,
                 },
             ],
             expected_instructions: vec![
@@ -738,6 +745,7 @@ fn test_function_calls() {
                         make(Opcode::OpConstant, &[0]),
                         make(Opcode::OpReturnValue, &[]),
                     ]),
+                    num_locals: 0,
                 },
             ],
             expected_instructions: vec![
@@ -764,6 +772,7 @@ fn test_let_statement_scopes() {
                         make(Opcode::OpGetGlobal, &[0]),
                         make(Opcode::OpReturnValue, &[]),
                     ]),
+                    num_locals: 0,
                 },
             ],
             expected_instructions: vec![
@@ -784,6 +793,7 @@ fn test_let_statement_scopes() {
                         make(Opcode::OpGetLocal, &[0]),
                         make(Opcode::OpReturnValue, &[]),
                     ]),
+                    num_locals: 0,
                 },
             ],
             expected_instructions: vec![make(Opcode::OpConstant, &[1]), make(Opcode::OpPop, &[])],
@@ -804,6 +814,7 @@ fn test_let_statement_scopes() {
                         make(Opcode::OpAdd, &[]),
                         make(Opcode::OpReturnValue, &[]),
                     ]),
+                    num_locals: 0,
                 },
             ],
             expected_instructions: vec![make(Opcode::OpConstant, &[2]), make(Opcode::OpPop, &[])],

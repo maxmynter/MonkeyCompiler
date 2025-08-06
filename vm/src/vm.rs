@@ -2,7 +2,7 @@ mod frame;
 
 use std::{collections::HashMap, usize};
 
-use code::{Instruction, Opcode, read_uint16};
+use code::{Instruction, Opcode, read_uint8, read_uint16};
 use compiler::Bytecode;
 use frame::Frame;
 use object::{FALSE, HashKey, HashPair, NULL, Object, ObjectTraits, TRUE};
@@ -35,8 +35,9 @@ impl VM {
     pub fn new(bytecode: Bytecode) -> Self {
         let main_fn = Object::CompiledFunction {
             instructions: bytecode.instructions,
+            num_locals: 0,
         };
-        let main_frame = frame::Frame::new(main_fn);
+        let main_frame = frame::Frame::new(main_fn, 0);
         let mut frames = vec![None; MAX_FRAMES];
         frames[0] = Some(main_frame);
 
@@ -53,8 +54,9 @@ impl VM {
     pub fn new_with_global_store(bytecode: Bytecode, globals: Vec<Object>) -> Self {
         let main_fn = Object::CompiledFunction {
             instructions: bytecode.instructions,
+            num_locals: 0,
         };
-        let main_frame = frame::Frame::new(main_fn);
+        let main_frame = frame::Frame::new(main_fn, 0);
         let mut frames = vec![None; MAX_FRAMES];
         frames[0] = Some(main_frame);
 
@@ -374,24 +376,42 @@ impl VM {
                 }
                 Opcode::OpCall => {
                     let func = self.stack[self.sp - 1].clone();
-                    let frame = Frame::new(func);
-                    self.push_frame(frame);
+                    match func {
+                        Object::CompiledFunction { num_locals, .. } => {
+                            let frame = Frame::new(func, self.sp);
+                            self.sp = frame.base_pointer + num_locals;
+                            self.push_frame(frame);
+                        }
+                        _ => unreachable!(),
+                    }
                 }
                 Opcode::OpReturnValue => {
                     let return_value = self.pop()?;
-                    self.pop_frame()
-                        .expect("tried to pop frame but there was none");
-                    self.pop()?;
+                    let frame = self
+                        .pop_frame()
+                        .expect("tried to pop frame from empty frame stack");
+                    self.sp = frame.base_pointer - 1;
                     self.push(return_value)?;
                 }
                 Opcode::OpReturn => {
-                    self.pop_frame()
+                    let frame = self
+                        .pop_frame()
                         .expect("tried to pop frame from empty frame stack");
-                    self.pop()?;
+                    self.sp = frame.base_pointer - 1;
                     self.push(NULL)?;
                 }
-                Opcode::OpSetLocal => {}
-                Opcode::OpGetLocal => {}
+                Opcode::OpSetLocal => {
+                    let local_index = read_uint8(&ins[ip + 1..]) as usize;
+                    self.current_frame().ip += 1;
+                    let base_pointer = self.current_frame().base_pointer;
+                    self.stack[base_pointer + local_index] = self.pop()?;
+                }
+                Opcode::OpGetLocal => {
+                    let local_index = read_uint8(&ins[ip + 1..]) as usize;
+                    self.current_frame().ip += 1;
+                    let base_pointer = self.current_frame().base_pointer;
+                    self.push(self.stack[base_pointer + local_index].clone())?;
+                }
             }
         }
         Ok(())

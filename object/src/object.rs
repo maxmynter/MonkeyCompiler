@@ -81,6 +81,7 @@ pub enum Object {
     },
     CompiledFunction {
         instructions: Instruction,
+        num_locals: usize,
     },
     String {
         value: String,

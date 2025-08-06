@@ -393,7 +393,7 @@ pub fn read_operands(def: &Definition, ins: Instruction) -> (Vec<isize>, usize) 
     for (i, &width) in def.operand_widths.iter().enumerate() {
         match width {
             2 => operands[i] = read_uint16(&ins[offset..]),
-            1 => operands[i] = ins[0] as isize,
+            1 => operands[i] = read_uint8(&ins),
             _ => unreachable!(),
         }
         offset += width;
@@ -403,4 +403,8 @@ pub fn read_operands(def: &Definition, ins: Instruction) -> (Vec<isize>, usize) 
 
 pub fn read_uint16(ins: &[u8]) -> isize {
     u16::from_be_bytes([ins[0], ins[1]]) as isize
+}
+
+pub fn read_uint8(ins: &[u8]) -> isize {
+    ins[0] as isize
 }
