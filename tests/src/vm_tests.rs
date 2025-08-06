@@ -540,10 +540,16 @@ fn test_functions_without_return_value() {
 
 #[test]
 fn test_first_class_functions() {
-    let tests = vec![VmTestCase {
-        input: "let returnsOne = fn() { 1; }; let returnsOneReturner = fn() { returnsOne; }; returnsOneReturner()();",
-        expected: Object::Integer { value: 1 },
-    }];
+    let tests = vec![
+        VmTestCase {
+            input: "let returnsOne = fn() { 1; }; let returnsOneReturner = fn() { returnsOne; }; returnsOneReturner()();",
+            expected: Object::Integer { value: 1 },
+        },
+        VmTestCase {
+            input: "let returnsOneReturner = fn() { let returnsOne = fn() { 1; }; returnsOne;} returnsOneReturner()();",
+            expected: Object::Integer { value: 1 },
+        },
+    ];
     run_vm_tests(tests);
 }
 
