@@ -365,25 +365,33 @@ pub fn make(op: Opcode, operands: &[isize]) -> Instruction {
     let def = DEFINITIONS
         .get(&op)
         .unwrap_or_else(|| panic!("unknown opcode {:?}", op));
-    let mut instruction = Instruction::new();
-    instruction.push(op as u8);
 
+    let mut instruction_len = 1;
+    for &width in &def.operand_widths {
+        instruction_len += width;
+    }
+
+    let mut instruction = vec![0u8; instruction_len];
+    instruction[0] = op as u8;
+
+    let mut offset = 1;
     for (i, &operand) in operands.iter().enumerate() {
         let width = def.operand_widths[i];
         match width {
             2 => {
                 let bytes = (operand as u16).to_be_bytes();
-                instruction.extend_from_slice(&bytes);
+                instruction[offset..offset + 2].copy_from_slice(&bytes);
             }
             1 => {
-                instruction.push(operand as u8);
+                instruction[offset] = operand as u8;
             }
             _ => {
                 unreachable!()
             }
         }
+        offset += width;
     }
-    instruction
+    Instruction(instruction)
 }
 
 pub fn read_operands(def: &Definition, ins: Instruction) -> (Vec<isize>, usize) {
