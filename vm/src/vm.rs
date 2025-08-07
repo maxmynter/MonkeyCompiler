@@ -375,6 +375,7 @@ impl VM {
                     self.execute_index_expression(left, index)?;
                 }
                 Opcode::OpCall => {
+                    self.current_frame().ip += 1;
                     let func = self.stack[self.sp - 1].clone();
                     match func {
                         Object::CompiledFunction { num_locals, .. } => {

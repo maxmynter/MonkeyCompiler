@@ -307,7 +307,7 @@ lazy_static! {
                 Opcode::OpIndex,
                 Definition {
                     name: "OpIndex",
-                    operand_widths: vec![2]
+                    operand_widths: Vec::new(),
             }
         ),
         (

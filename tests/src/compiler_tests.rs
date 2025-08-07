@@ -732,7 +732,7 @@ fn test_function_calls() {
             ],
             expected_instructions: vec![
                 make(Opcode::OpConstant, &[1]),
-                make(Opcode::OpCall, &[]),
+                make(Opcode::OpCall, &[0]),
                 make(Opcode::OpPop, &[]),
             ],
         },
@@ -752,10 +752,28 @@ fn test_function_calls() {
                 make(Opcode::OpConstant, &[1]),
                 make(Opcode::OpSetGlobal, &[0]),
                 make(Opcode::OpGetGlobal, &[0]),
-                make(Opcode::OpCall, &[]),
+                make(Opcode::OpCall, &[0]),
                 make(Opcode::OpPop, &[]),
             ],
         },
+        // CompilerTest {
+        //     input: "let oneArg = fn(a){}; oneArg(24);",
+        //     expected_constants: vec![
+        //         Object::CompiledFunction {
+        //             instructions: flatten_instructions(vec![make(Opcode::OpReturn, &[])]),
+        //             num_locals: 0,
+        //         },
+        //         Object::Integer { value: 24 },
+        //     ],
+        //     expected_instructions: vec![
+        //         make(Opcode::OpConstant, &[0]),
+        //         make(Opcode::OpSetGlobal, &[0]),
+        //         make(Opcode::OpGetGlobal, &[0]),
+        //         make(Opcode::OpConstant, &[1]),
+        //         make(Opcode::OpCall, &[1]),
+        //         make(Opcode::OpPop, &[]),
+        //     ],
+        // },
     ];
     run_compiler_tests(tests);
 }
