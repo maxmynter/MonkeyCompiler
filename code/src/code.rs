@@ -321,14 +321,14 @@ lazy_static! {
                 Opcode::OpReturnValue,
                 Definition {
                     name: "OpReturnValue",
-                    operand_widths: vec![]
+                    operand_widths: Vec::new()
             }
         ),
         (
                 Opcode::OpReturn,
                 Definition {
                     name: "OpReturn",
-                    operand_widths: vec![]
+                    operand_widths: Vec::new()
             }
         ),
         (
