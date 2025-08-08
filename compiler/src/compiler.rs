@@ -410,7 +410,14 @@ impl Compilable for Expression {
             Expression::HashMap(hash) => hash.compile(c),
             Expression::Index(index) => index.compile(c),
             Expression::FunctionLiteral(function) => function.compile(c),
-            Expression::CallExpression(call) => call.compile(c),
+            Expression::CallExpression(call) => {
+                call.function.compile(c)?;
+                for arg in call.arguments.iter() {
+                    arg.compile(c)?;
+                }
+                c.emit(Opcode::OpCall, &[call.arguments.len() as isize]);
+                Ok(())
+            }
         }
     }
 }

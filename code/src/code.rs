@@ -314,7 +314,7 @@ lazy_static! {
                 Opcode::OpCall,
                 Definition {
                     name: "OpCall",
-                    operand_widths: vec![]
+                    operand_widths: vec![1]
             }
         ),
         (
