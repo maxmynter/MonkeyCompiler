@@ -42,7 +42,7 @@ impl SymbolTable {
         }
     }
 
-    pub fn define(&mut self, name: String) -> &Symbol {
+    pub fn define(&mut self, name: &str) -> &Symbol {
         let symbol = Symbol {
             name: name.to_string(),
             index: self.num_definitions,
@@ -54,7 +54,7 @@ impl SymbolTable {
         };
         self.store.insert(name.to_string(), symbol);
         self.num_definitions += 1;
-        &self.store[&name]
+        &self.store[name]
     }
 
     pub fn resolve(&self, name: &String) -> Option<&Symbol> {

@@ -55,29 +55,29 @@ fn test_define() {
         ),
     ]);
     let mut global = SymbolTable::new();
-    let a = global.define("a".to_string());
+    let a = global.define("a");
     assert_eq!(a, &expected["a"]);
-    let b = global.define("b".to_string());
+    let b = global.define("b");
     assert_eq!(b, &expected["b"]);
 
     let mut first_local = SymbolTable::new_enclosed(global);
-    let c = first_local.define("c".to_string());
+    let c = first_local.define("c");
     assert_eq!(c, &expected["c"]);
-    let d = first_local.define("d".to_string());
+    let d = first_local.define("d");
     assert_eq!(d, &expected["d"]);
 
     let mut second_local = SymbolTable::new_enclosed(first_local);
-    let e = second_local.define("e".to_string());
+    let e = second_local.define("e");
     assert_eq!(e, &expected["e"]);
-    let f = second_local.define("f".to_string());
+    let f = second_local.define("f");
     assert_eq!(f, &expected["f"]);
 }
 
 #[test]
 fn test_resolve() {
     let mut global = SymbolTable::new();
-    global.define("a".to_string());
-    global.define("b".to_string());
+    global.define("a");
+    global.define("b");
 
     let expected: HashMap<String, Symbol> = HashMap::from([
         (
@@ -107,12 +107,12 @@ fn test_resolve() {
 #[test]
 fn test_resolve_local() {
     let mut global = SymbolTable::new();
-    global.define("a".to_string());
-    global.define("b".to_string());
+    global.define("a");
+    global.define("b");
 
     let mut local = SymbolTable::new_enclosed(global);
-    local.define("c".to_string());
-    local.define("d".to_string());
+    local.define("c");
+    local.define("d");
 
     let expected = HashMap::from([
         (
@@ -162,16 +162,16 @@ fn test_resolve_nested_local() {
         expected_symbols: HashMap<String, Symbol>,
     }
     let mut global = SymbolTable::new();
-    global.define("a".to_string());
-    global.define("b".to_string());
+    global.define("a");
+    global.define("b");
 
     let mut first_local = SymbolTable::new_enclosed(global);
-    first_local.define("c".to_string());
-    first_local.define("d".to_string());
+    first_local.define("c");
+    first_local.define("d");
 
     let mut second_local = SymbolTable::new_enclosed(first_local.clone());
-    second_local.define("e".to_string());
-    second_local.define("f".to_string());
+    second_local.define("e");
+    second_local.define("f");
 
     let tests = vec![
         SymbolTableTest {
