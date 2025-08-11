@@ -796,6 +796,56 @@ fn test_function_calls() {
                 make(Opcode::OpPop, &[]),
             ],
         },
+        CompilerTest {
+            input: "let oneArg = fn(a) { a }; oneArg(24);",
+            expected_constants: vec![
+                Object::CompiledFunction {
+                    instructions: flatten_instructions(vec![
+                        make(Opcode::OpGetLocal, &[0]),
+                        make(Opcode::OpReturnValue, &[]),
+                    ]),
+                    num_locals: 1,
+                },
+                Object::Integer { value: 24 },
+            ],
+            expected_instructions: vec![
+                make(Opcode::OpConstant, &[0]),
+                make(Opcode::OpSetGlobal, &[0]),
+                make(Opcode::OpGetGlobal, &[0]),
+                make(Opcode::OpConstant, &[1]),
+                make(Opcode::OpCall, &[1]),
+                make(Opcode::OpPop, &[]),
+            ],
+        },
+        CompilerTest {
+            input: "let manyArg = fn(a, b, c) { a; b; c }; manyArg(24, 25, 26);",
+            expected_constants: vec![
+                Object::CompiledFunction {
+                    instructions: flatten_instructions(vec![
+                        make(Opcode::OpGetLocal, &[0]),
+                        make(Opcode::OpPop, &[]),
+                        make(Opcode::OpGetLocal, &[1]),
+                        make(Opcode::OpPop, &[]),
+                        make(Opcode::OpGetLocal, &[2]),
+                        make(Opcode::OpReturnValue, &[]),
+                    ]),
+                    num_locals: 3,
+                },
+                Object::Integer { value: 24 },
+                Object::Integer { value: 25 },
+                Object::Integer { value: 26 },
+            ],
+            expected_instructions: vec![
+                make(Opcode::OpConstant, &[0]),
+                make(Opcode::OpSetGlobal, &[0]),
+                make(Opcode::OpGetGlobal, &[0]),
+                make(Opcode::OpConstant, &[1]),
+                make(Opcode::OpConstant, &[2]),
+                make(Opcode::OpConstant, &[3]),
+                make(Opcode::OpCall, &[3]),
+                make(Opcode::OpPop, &[]),
+            ],
+        },
     ];
     run_compiler_tests(tests);
 }
