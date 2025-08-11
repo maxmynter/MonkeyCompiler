@@ -213,6 +213,9 @@ impl Compilable for IntegerLiteral {
 impl Compilable for FunctionLiteral {
     fn compile(&self, c: &mut Compiler) -> Result<(), String> {
         c.enter_scope();
+        for param in self.parameters.iter() {
+            c.symbol_table.define(&param.value);
+        }
         let body = Rc::unwrap_or_clone(self.body.clone());
         c.compile(body)?;
         if c.last_instruction_is(Opcode::OpPop) {
