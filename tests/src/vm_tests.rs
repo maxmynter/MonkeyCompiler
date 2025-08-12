@@ -610,3 +610,39 @@ fn test_calling_functions_with_arguments_and_bindings() {
     ];
     run_vm_tests(tests);
 }
+
+#[test]
+fn test_calling_functions_with_wrong_arguments() {
+    let tests = vec![
+        ("fn() { 1; }(1);", 0, 1),
+        ("fn(a) { a; }();", 1, 0),
+        ("fn(a, b) { a + b; }(1);", 2, 1),
+    ];
+
+    for (input, expected_want, expected_got) in tests {
+        let program = prepare_program_for_test(input);
+        let mut comp = Compiler::new();
+        comp.compile(program).unwrap();
+        let mut vm = VM::new(comp.bytecode());
+        let result = vm.run();
+
+        match result {
+            Err(vm::VMError::WrongArgumentCount { want, got }) => {
+                assert_eq!(want, expected_want);
+                assert_eq!(got, expected_got);
+            }
+            Err(other_err) => {
+                panic!(
+                    "expected WrongArgumentCount error but got: {:?} for input: {}",
+                    other_err, input
+                );
+            }
+            Ok(_) => {
+                panic!(
+                    "expected VM error but resulted in none for input: {}",
+                    input
+                );
+            }
+        }
+    }
+}

@@ -225,10 +225,12 @@ impl Compilable for FunctionLiteral {
             c.emit(Opcode::OpReturn, &[]);
         }
         let num_locals = c.symbol_table.num_definitions;
+        let num_parameters = self.parameters.len();
         let instructions = c.leave_scope();
         let compiled_fn = Object::CompiledFunction {
             instructions,
             num_locals,
+            num_parameters,
         };
         let pos = c.add_constant(compiled_fn);
         c.emit(Opcode::OpConstant, &[pos]);

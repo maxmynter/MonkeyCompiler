@@ -20,6 +20,7 @@ pub enum VMError {
     UnkownOperator { msg: String },
     UnHashable { msg: String },
     IndexedUnindexable,
+    WrongArgumentCount { want: usize, got: usize },
 }
 
 pub struct VM {
@@ -36,6 +37,7 @@ impl VM {
         let main_fn = Object::CompiledFunction {
             instructions: bytecode.instructions,
             num_locals: 0,
+            num_parameters: 0,
         };
         let main_frame = frame::Frame::new(main_fn, 0);
         let mut frames = vec![None; MAX_FRAMES];
@@ -55,6 +57,7 @@ impl VM {
         let main_fn = Object::CompiledFunction {
             instructions: bytecode.instructions,
             num_locals: 0,
+            num_parameters: 0,
         };
         let main_frame = frame::Frame::new(main_fn, 0);
         let mut frames = vec![None; MAX_FRAMES];
@@ -295,8 +298,18 @@ impl VM {
     fn call_function(&mut self, num_args: usize) -> Result<(), VMError> {
         let func = self.stack[self.sp - 1 - num_args].clone();
         match func {
-            Object::CompiledFunction { num_locals, .. } => {
+            Object::CompiledFunction {
+                num_locals,
+                num_parameters,
+                ..
+            } => {
                 let frame = Frame::new(func, self.sp - num_args);
+                if num_parameters != num_args {
+                    return Err(VMError::WrongArgumentCount {
+                        want: num_parameters,
+                        got: num_args,
+                    });
+                }
                 self.sp = frame.base_pointer + num_locals;
                 self.push_frame(frame);
             }
