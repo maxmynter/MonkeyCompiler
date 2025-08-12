@@ -579,3 +579,18 @@ fn test_calling_functions_with_bindings() {
     ];
     run_vm_tests(tests);
 }
+
+#[test]
+fn test_calling_functions_with_arguments_and_bindings() {
+    let tests = vec![
+        VmTestCase {
+            input: "let identity = fn(a) { a; }; identity(4);",
+            expected: Object::Integer { value: 4 },
+        },
+        VmTestCase {
+            input: "let sum = fn(a, b) { a + b; }; sum(1, 2);",
+            expected: Object::Integer { value: 3 },
+        },
+    ];
+    run_vm_tests(tests);
+}
