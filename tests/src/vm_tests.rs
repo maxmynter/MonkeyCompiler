@@ -591,6 +591,22 @@ fn test_calling_functions_with_arguments_and_bindings() {
             input: "let sum = fn(a, b) { a + b; }; sum(1, 2);",
             expected: Object::Integer { value: 3 },
         },
+        VmTestCase {
+            input: "let sum = fn(a, b) { let c = a + b; c; }; sum(1, 2);",
+            expected: Object::Integer { value: 3 },
+        },
+        VmTestCase {
+            input: "let sum = fn(a, b) { let c = a + b; c; }; sum(1, 2) + sum(3, 4);",
+            expected: Object::Integer { value: 10 },
+        },
+        VmTestCase {
+            input: "let sum = fn(a, b) { let c = a + b; c; }; let outer = fn() { sum(1, 2) + sum(3, 4); }; outer();",
+            expected: Object::Integer { value: 10 },
+        },
+        VmTestCase {
+            input: "let globalNum = 10; let sum = fn(a, b) { let c = a + b; c + globalNum; }; let outer = fn() { sum(1, 2) + sum(3, 4) + globalNum; }; outer() + globalNum;",
+            expected: Object::Integer { value: 50 },
+        },
     ];
     run_vm_tests(tests);
 }

@@ -292,6 +292,19 @@ impl VM {
         }
     }
 
+    fn call_function(&mut self, num_args: usize) -> Result<(), VMError> {
+        let func = self.stack[self.sp - 1 - num_args].clone();
+        match func {
+            Object::CompiledFunction { num_locals, .. } => {
+                let frame = Frame::new(func, self.sp - num_args);
+                self.sp = frame.base_pointer + num_locals;
+                self.push_frame(frame);
+            }
+            _ => unreachable!(),
+        }
+        Ok(())
+    }
+
     pub fn run(&mut self) -> Result<(), VMError> {
         let mut ins: &Instruction;
         let mut op: Opcode;
@@ -375,16 +388,9 @@ impl VM {
                     self.execute_index_expression(left, index)?;
                 }
                 Opcode::OpCall => {
+                    let num_args = read_uint8(&ins[ip + 1..]) as usize;
                     self.current_frame().ip += 1;
-                    let func = self.stack[self.sp - 1].clone();
-                    match func {
-                        Object::CompiledFunction { num_locals, .. } => {
-                            let frame = Frame::new(func, self.sp);
-                            self.sp = frame.base_pointer + num_locals;
-                            self.push_frame(frame);
-                        }
-                        _ => unreachable!(),
-                    }
+                    self.call_function(num_args)?;
                 }
                 Opcode::OpReturnValue => {
                     let return_value = self.pop()?;
