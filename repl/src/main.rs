@@ -1,11 +1,7 @@
-use std::{
-    cell::RefCell,
-    io::{self, Write},
-    rc::Rc,
-};
+use std::io::{self, Write};
 
 use compiler::{symbol_table::SymbolTable, Compiler};
-use object::{Environment, Object, ObjectTraits};
+use object::{Object, ObjectTraits};
 use vm::GLOBALS_SIZE;
 
 const PROMPT: &str = ">> ";
@@ -22,7 +18,6 @@ fn repl() -> io::Result<()> {
 
     let mut stdout = io::stdout();
 
-    let env = Environment::new();
     let mut constants: Vec<Object> = Vec::new();
     let mut globals = vec![Object::Null; GLOBALS_SIZE];
     let mut symbol_table = SymbolTable::new();
@@ -42,7 +37,7 @@ fn repl() -> io::Result<()> {
                     break;
                 }
                 (constants, symbol_table, globals) =
-                    eval(input, env.clone(), constants, symbol_table, globals);
+                    eval(input, constants, symbol_table, globals);
             }
             Err(e) => {
                 eprintln!("Error: {}", e);
@@ -55,7 +50,6 @@ fn repl() -> io::Result<()> {
 
 fn eval(
     input: &str,
-    _env: Rc<RefCell<Environment>>,
     constants: Vec<Object>,
     symbols: SymbolTable,
     globals: Vec<Object>,
