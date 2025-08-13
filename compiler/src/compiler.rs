@@ -74,7 +74,7 @@ impl Compiler {
         Compiler {
             constants,
             symbol_table: symbols,
-            scopes: Vec::new(),
+            scopes: vec![CompilationScope::new()],
             scope_index: 0,
         }
     }
