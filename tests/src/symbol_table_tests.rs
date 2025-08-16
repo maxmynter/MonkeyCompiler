@@ -257,3 +257,54 @@ fn test_resolve_nested_local() {
         }
     }
 }
+
+#[test]
+fn test_define_resolve_builtins() {
+    let expected = vec![
+        Symbol {
+            name: "a".to_string(),
+            scope: compiler::symbol_table::BUILTIN_SCOPE,
+            index: 0,
+        },
+        Symbol {
+            name: "c".to_string(),
+            scope: compiler::symbol_table::BUILTIN_SCOPE,
+            index: 1,
+        },
+        Symbol {
+            name: "e".to_string(),
+            scope: compiler::symbol_table::BUILTIN_SCOPE,
+            index: 2,
+        },
+        Symbol {
+            name: "f".to_string(),
+            scope: compiler::symbol_table::BUILTIN_SCOPE,
+            index: 3,
+        },
+    ];
+
+    let mut global = SymbolTable::new();
+    for (i, v) in expected.iter().enumerate() {
+        global.define_builtin(i, &v.name);
+    }
+
+    let first_local = SymbolTable::new_enclosed(global.clone());
+    let second_local = SymbolTable::new_enclosed(first_local.clone());
+
+    for table in [&global, &first_local, &second_local] {
+        for sym in &expected {
+            let result = table.resolve(&sym.name);
+            if result.is_none() {
+                panic!("name {} not resolvable", sym.name);
+            }
+            if result.unwrap() != sym {
+                panic!(
+                    "expected {} to resolve to {:?}, got={:?}",
+                    sym.name,
+                    sym,
+                    result.unwrap()
+                );
+            }
+        }
+    }
+}

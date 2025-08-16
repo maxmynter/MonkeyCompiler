@@ -134,19 +134,19 @@ impl ObjectTraits for EvalError {
 }
 
 lazy_static! {
-    pub static ref BUILTINS: HashMap<&'static str, BuiltinFn> = {
-        [
-            ("len", builtin_len as BuiltinFn),
-            ("first", builtin_first as BuiltinFn),
-            ("last", builtin_last as BuiltinFn),
-            ("rest", builtin_rest as BuiltinFn),
-            ("push", builtin_push as BuiltinFn),
-            ("puts", builtin_puts as BuiltinFn),
-        ]
-        .iter()
-        .cloned()
-        .collect()
-    };
+    pub static ref ORDERED_BUILTINS: Vec<(&'static str, BuiltinFn)> = vec![
+        ("len", builtin_len as BuiltinFn),
+        ("puts", builtin_puts as BuiltinFn),
+        ("first", builtin_first as BuiltinFn),
+        ("last", builtin_last as BuiltinFn),
+        ("rest", builtin_rest as BuiltinFn),
+        ("push", builtin_push as BuiltinFn),
+    ];
+}
+
+lazy_static! {
+    pub static ref BUILTINS: HashMap<&'static str, BuiltinFn> =
+        ORDERED_BUILTINS.iter().cloned().collect();
 }
 
 fn expect_builtin_args_len<T>(args: &[T], length: usize) -> Result<(), EvalError> {

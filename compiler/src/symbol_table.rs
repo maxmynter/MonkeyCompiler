@@ -4,6 +4,7 @@ pub type SymbolScope = &'static str;
 
 pub const GLOBAL_SCOPE: SymbolScope = "GLOBAL";
 pub const LOCAL_SCOPE: SymbolScope = "LOCAL";
+pub const BUILTIN_SCOPE: SymbolScope = "BUILTIN";
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Symbol {
@@ -54,6 +55,16 @@ impl SymbolTable {
         };
         self.store.insert(name.to_string(), symbol);
         self.num_definitions += 1;
+        &self.store[name]
+    }
+
+    pub fn define_builtin(&mut self, index: usize, name: &str) -> &Symbol {
+        let symbol = Symbol {
+            name: name.to_string(),
+            index,
+            scope: BUILTIN_SCOPE,
+        };
+        self.store.insert(name.to_string(), symbol);
         &self.store[name]
     }
 

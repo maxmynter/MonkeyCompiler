@@ -432,6 +432,7 @@ impl VM {
                     let base_pointer = self.current_frame().base_pointer;
                     self.push(self.stack[base_pointer + local_index].clone())?;
                 }
+                Opcode::OpGetBuiltin => todo!(),
             }
         }
         Ok(())

@@ -7,9 +7,9 @@ use ast::{
     StringLiteral,
 };
 use code::{Instruction, Opcode, make};
-use object::Object;
+use object::{ORDERED_BUILTINS, Object};
 
-use crate::symbol_table::{GLOBAL_SCOPE, LOCAL_SCOPE, SymbolTable};
+use crate::symbol_table::{BUILTIN_SCOPE, GLOBAL_SCOPE, LOCAL_SCOPE, Symbol, SymbolTable};
 
 const JUMP_PLACEHOLDER: isize = 9999;
 
@@ -62,9 +62,13 @@ impl Default for Compiler {
 
 impl Compiler {
     pub fn new() -> Self {
+        let mut symbol_table = SymbolTable::new();
+        for (i, v) in ORDERED_BUILTINS.iter().enumerate() {
+            symbol_table.define_builtin(i, v.0);
+        }
         Compiler {
             constants: Vec::new(),
-            symbol_table: SymbolTable::new(),
+            symbol_table,
             scopes: vec![CompilationScope::new()],
             scope_index: 0,
         }
@@ -77,6 +81,15 @@ impl Compiler {
             scopes: vec![CompilationScope::new()],
             scope_index: 0,
         }
+    }
+
+    pub fn load_symbol(&mut self, s: &Symbol) {
+        match s.scope {
+            GLOBAL_SCOPE => self.emit(Opcode::OpGetGlobal, &[s.index as isize]),
+            LOCAL_SCOPE => self.emit(Opcode::OpGetLocal, &[s.index as isize]),
+            BUILTIN_SCOPE => self.emit(Opcode::OpGetBuiltin, &[s.index as isize]),
+            _ => unreachable!(),
+        };
     }
 
     pub fn compile(&mut self, node: impl Compilable) -> Result<(), String> {
@@ -400,16 +413,13 @@ impl Compilable for Expression {
             }
             Expression::String(string_lit) => string_lit.compile(c),
             Expression::Identifier(Identifier { value, .. }) => {
-                if let Some(symbol) = c.symbol_table.resolve(value) {
-                    match symbol.scope {
-                        GLOBAL_SCOPE => c.emit(Opcode::OpGetGlobal, &[symbol.index as isize]),
-                        LOCAL_SCOPE => c.emit(Opcode::OpGetLocal, &[symbol.index as isize]),
-                        _ => unreachable!(),
-                    };
-                    Ok(())
-                } else {
-                    Err(format!("unkown identifier: {}", value))
-                }
+                let symbol = c
+                    .symbol_table
+                    .resolve(value)
+                    .cloned()
+                    .ok_or_else(|| format!("unknown identifier: {}", value))?;
+                c.load_symbol(&symbol);
+                Ok(())
             }
             Expression::Array(arr) => arr.compile(c),
             Expression::HashMap(hash) => hash.compile(c),

@@ -118,6 +118,7 @@ pub enum Opcode {
     OpReturn,
     OpSetLocal,
     OpGetLocal,
+    OpGetBuiltin,
 }
 
 impl Opcode {
@@ -149,6 +150,7 @@ impl Opcode {
             23 => Some(Opcode::OpReturn),
             24 => Some(Opcode::OpSetLocal),
             25 => Some(Opcode::OpGetLocal),
+            26 => Some(Opcode::OpGetBuiltin),
             _ => None,
         }
     }
@@ -342,6 +344,13 @@ lazy_static! {
                 Opcode::OpGetLocal,
                 Definition {
                     name: "OpGetLocal",
+                    operand_widths: vec![1]
+            }
+        ),
+        (
+                Opcode::OpGetBuiltin,
+                Definition {
+                    name: "OpGetBuiltin",
                     operand_widths: vec![1]
             }
         ),
