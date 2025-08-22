@@ -11,16 +11,29 @@ pub const STACK_SIZE: usize = 2048;
 pub const GLOBALS_SIZE: usize = 65536;
 pub const MAX_FRAMES: usize = 1024;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum VMError {
     StackOverflow,
     UnkownOpCode,
     PopFromEmptyStack,
-    UnknownOpForOperands { msg: String },
-    UnkownOperator { msg: String },
-    UnHashable { msg: String },
+    UnknownOpForOperands {
+        msg: String,
+    },
+    UnkownOperator {
+        msg: String,
+    },
+    UnHashable {
+        msg: String,
+    },
     IndexedUnindexable,
-    WrongArgumentCount { want: usize, got: usize },
+    WrongArgumentCount {
+        want: usize,
+        got: usize,
+    },
+    WrongArgumentType {
+        want: &'static str,
+        got: &'static str,
+    },
 }
 
 pub struct VM {

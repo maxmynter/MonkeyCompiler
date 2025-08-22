@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use crate::utils::prepare_program_for_test;
 use compiler::Compiler;
 use object::{HashPair, Object, ObjectTraits};
-use vm::VM;
+use vm::{VM, VMError};
 
 fn test_integer_object(expected: Object, actual: Object) -> Result<(), String> {
     assert_eq!(expected, actual);
@@ -15,7 +15,7 @@ fn test_integer_object(expected: Object, actual: Object) -> Result<(), String> {
 #[derive(Debug)]
 struct VmTestCase {
     input: &'static str,
-    expected: Object,
+    expected: Result<Object, VMError>,
 }
 
 fn run_vm_tests(tests: Vec<VmTestCase>) {
@@ -24,9 +24,16 @@ fn run_vm_tests(tests: Vec<VmTestCase>) {
         let mut comp = Compiler::new();
         comp.compile(program).unwrap();
         let mut vm = VM::new(comp.bytecode());
-        let _ = vm.run();
+        let result = vm.run();
         let stack_elem = vm.last_popped_stack_elem().unwrap().clone();
-        test_expected_object(tt.expected, stack_elem);
+        match tt.expected {
+            Err(err) => {
+                assert_eq!(result.unwrap_err(), err);
+            }
+            Ok(expected) => {
+                test_expected_object(expected, stack_elem);
+            }
+        }
     }
 }
 
@@ -88,67 +95,67 @@ fn test_integer_arithmetic() {
     let tests = vec![
         VmTestCase {
             input: "1",
-            expected: Object::Integer { value: 1 },
+            expected: Ok(Object::Integer { value: 1 }),
         },
         VmTestCase {
             input: "2",
-            expected: Object::Integer { value: 2 },
+            expected: Ok(Object::Integer { value: 2 }),
         },
         VmTestCase {
             input: "1 + 2",
-            expected: Object::Integer { value: 3 },
+            expected: Ok(Object::Integer { value: 3 }),
         },
         VmTestCase {
             input: "1 - 2",
-            expected: Object::Integer { value: -1 },
+            expected: Ok(Object::Integer { value: -1 }),
         },
         VmTestCase {
             input: "1 * 2",
-            expected: Object::Integer { value: 2 },
+            expected: Ok(Object::Integer { value: 2 }),
         },
         VmTestCase {
             input: "4 / 2",
-            expected: Object::Integer { value: 2 },
+            expected: Ok(Object::Integer { value: 2 }),
         },
         VmTestCase {
             input: "50 / 2 * 2 + 10 - 5",
-            expected: Object::Integer { value: 55 },
+            expected: Ok(Object::Integer { value: 55 }),
         },
         VmTestCase {
             input: "5 + 5 + 5 + 5 - 10",
-            expected: Object::Integer { value: 10 },
+            expected: Ok(Object::Integer { value: 10 }),
         },
         VmTestCase {
             input: "2 * 2 * 2 * 2 * 2",
-            expected: Object::Integer { value: 32 },
+            expected: Ok(Object::Integer { value: 32 }),
         },
         VmTestCase {
             input: "5 * 2 + 10",
-            expected: Object::Integer { value: 20 },
+            expected: Ok(Object::Integer { value: 20 }),
         },
         VmTestCase {
             input: "5 + 2 * 10",
-            expected: Object::Integer { value: 25 },
+            expected: Ok(Object::Integer { value: 25 }),
         },
         VmTestCase {
             input: "5 * (2 + 10)",
-            expected: Object::Integer { value: 60 },
+            expected: Ok(Object::Integer { value: 60 }),
         },
         VmTestCase {
             input: "-5",
-            expected: Object::Integer { value: -5 },
+            expected: Ok(Object::Integer { value: -5 }),
         },
         VmTestCase {
             input: "-10",
-            expected: Object::Integer { value: -10 },
+            expected: Ok(Object::Integer { value: -10 }),
         },
         VmTestCase {
             input: "-50 + 100 + -50",
-            expected: Object::Integer { value: 0 },
+            expected: Ok(Object::Integer { value: 0 }),
         },
         VmTestCase {
             input: "(5 + 10 * 2 + 15 / 3) * 2 + -10",
-            expected: Object::Integer { value: 50 },
+            expected: Ok(Object::Integer { value: 50 }),
         },
     ];
 
@@ -160,107 +167,107 @@ fn test_boolean_expression() {
     let tests: Vec<VmTestCase> = vec![
         VmTestCase {
             input: "true",
-            expected: Object::Boolean { value: true },
+            expected: Ok(Object::Boolean { value: true }),
         },
         VmTestCase {
             input: "false",
-            expected: Object::Boolean { value: false },
+            expected: Ok(Object::Boolean { value: false }),
         },
         VmTestCase {
             input: "1 < 2",
-            expected: Object::Boolean { value: true },
+            expected: Ok(Object::Boolean { value: true }),
         },
         VmTestCase {
             input: "1 > 2",
-            expected: Object::Boolean { value: false },
+            expected: Ok(Object::Boolean { value: false }),
         },
         VmTestCase {
             input: "1 < 1",
-            expected: Object::Boolean { value: false },
+            expected: Ok(Object::Boolean { value: false }),
         },
         VmTestCase {
             input: "1 > 1",
-            expected: Object::Boolean { value: false },
+            expected: Ok(Object::Boolean { value: false }),
         },
         VmTestCase {
             input: "1 == 1",
-            expected: Object::Boolean { value: true },
+            expected: Ok(Object::Boolean { value: true }),
         },
         VmTestCase {
             input: "1 != 1",
-            expected: Object::Boolean { value: false },
+            expected: Ok(Object::Boolean { value: false }),
         },
         VmTestCase {
             input: "1 == 2",
-            expected: Object::Boolean { value: false },
+            expected: Ok(Object::Boolean { value: false }),
         },
         VmTestCase {
             input: "1 != 2",
-            expected: Object::Boolean { value: true },
+            expected: Ok(Object::Boolean { value: true }),
         },
         VmTestCase {
             input: "true == true",
-            expected: Object::Boolean { value: true },
+            expected: Ok(Object::Boolean { value: true }),
         },
         VmTestCase {
             input: "false == false",
-            expected: Object::Boolean { value: true },
+            expected: Ok(Object::Boolean { value: true }),
         },
         VmTestCase {
             input: "true == false",
-            expected: Object::Boolean { value: false },
+            expected: Ok(Object::Boolean { value: false }),
         },
         VmTestCase {
             input: "true != false",
-            expected: Object::Boolean { value: true },
+            expected: Ok(Object::Boolean { value: true }),
         },
         VmTestCase {
             input: "false != true",
-            expected: Object::Boolean { value: true },
+            expected: Ok(Object::Boolean { value: true }),
         },
         VmTestCase {
             input: "(1 < 2) == true",
-            expected: Object::Boolean { value: true },
+            expected: Ok(Object::Boolean { value: true }),
         },
         VmTestCase {
             input: "(1 < 2) == false",
-            expected: Object::Boolean { value: false },
+            expected: Ok(Object::Boolean { value: false }),
         },
         VmTestCase {
             input: "(1 > 2) == true",
-            expected: Object::Boolean { value: false },
+            expected: Ok(Object::Boolean { value: false }),
         },
         VmTestCase {
             input: "(1 > 2) == false",
-            expected: Object::Boolean { value: true },
+            expected: Ok(Object::Boolean { value: true }),
         },
         VmTestCase {
             input: "!true",
-            expected: Object::Boolean { value: false },
+            expected: Ok(Object::Boolean { value: false }),
         },
         VmTestCase {
             input: "!false",
-            expected: Object::Boolean { value: true },
+            expected: Ok(Object::Boolean { value: true }),
         },
         VmTestCase {
             input: "!5",
-            expected: Object::Boolean { value: false },
+            expected: Ok(Object::Boolean { value: false }),
         },
         VmTestCase {
             input: "!!true",
-            expected: Object::Boolean { value: true },
+            expected: Ok(Object::Boolean { value: true }),
         },
         VmTestCase {
             input: "!!false",
-            expected: Object::Boolean { value: false },
+            expected: Ok(Object::Boolean { value: false }),
         },
         VmTestCase {
             input: "!!5",
-            expected: Object::Boolean { value: true },
+            expected: Ok(Object::Boolean { value: true }),
         },
         VmTestCase {
             input: "!(if (false) {5;})",
-            expected: Object::Boolean { value: true },
+            expected: Ok(Object::Boolean { value: true }),
         },
     ];
 
@@ -272,43 +279,43 @@ fn test_conditionals() {
     let tests = vec![
         VmTestCase {
             input: "if (true) {10}",
-            expected: Object::Integer { value: 10 },
+            expected: Ok(Object::Integer { value: 10 }),
         },
         VmTestCase {
             input: "if (true) {10} else {20}",
-            expected: Object::Integer { value: 10 },
+            expected: Ok(Object::Integer { value: 10 }),
         },
         VmTestCase {
             input: "if (false) {10} else {20}",
-            expected: Object::Integer { value: 20 },
+            expected: Ok(Object::Integer { value: 20 }),
         },
         VmTestCase {
             input: "if (1) {10}",
-            expected: Object::Integer { value: 10 },
+            expected: Ok(Object::Integer { value: 10 }),
         },
         VmTestCase {
             input: "if (1) {10}",
-            expected: Object::Integer { value: 10 },
+            expected: Ok(Object::Integer { value: 10 }),
         },
         VmTestCase {
             input: "if (1 < 2) {10} else { 20 }",
-            expected: Object::Integer { value: 10 },
+            expected: Ok(Object::Integer { value: 10 }),
         },
         VmTestCase {
             input: "if (1 > 2) {10} else { 20 }",
-            expected: Object::Integer { value: 20 },
+            expected: Ok(Object::Integer { value: 20 }),
         },
         VmTestCase {
             input: "if (1 > 2) { 10 }",
-            expected: Object::Null,
+            expected: Ok(Object::Null),
         },
         VmTestCase {
             input: "if (false) { 10 }",
-            expected: Object::Null,
+            expected: Ok(Object::Null),
         },
         VmTestCase {
             input: "if ((if (false) { 10 })) { 10 } else { 20 }",
-            expected: Object::Integer { value: 20 },
+            expected: Ok(Object::Integer { value: 20 }),
         },
     ];
     run_vm_tests(tests);
@@ -319,15 +326,15 @@ fn test_global_let_statements() {
     let tests = vec![
         VmTestCase {
             input: "let one = 1; one",
-            expected: Object::Integer { value: 1 },
+            expected: Ok(Object::Integer { value: 1 }),
         },
         VmTestCase {
             input: "let one = 1; let two = 2; one + two;",
-            expected: Object::Integer { value: 3 },
+            expected: Ok(Object::Integer { value: 3 }),
         },
         VmTestCase {
             input: "let one = 1; let two = one + one; one + two",
-            expected: Object::Integer { value: 3 },
+            expected: Ok(Object::Integer { value: 3 }),
         },
     ];
     run_vm_tests(tests);
@@ -338,15 +345,15 @@ fn test_string_expressions() {
     let tests = vec![
         VmTestCase {
             input: "\"monkey\"",
-            expected: Object::String {
+            expected: Ok(Object::String {
                 value: "monkey".to_string(),
-            },
+            }),
         },
         VmTestCase {
             input: "\"mon\" + \"key\" + \"banana\"",
-            expected: Object::String {
+            expected: Ok(Object::String {
                 value: "monkeybanana".to_string(),
-            },
+            }),
         },
     ];
     run_vm_tests(tests);
@@ -357,29 +364,29 @@ fn test_array_literals() {
     let tests = vec![
         VmTestCase {
             input: "[]",
-            expected: Object::Array {
+            expected: Ok(Object::Array {
                 elements: Vec::new(),
-            },
+            }),
         },
         VmTestCase {
             input: "[1, 2, 3]",
-            expected: Object::Array {
+            expected: Ok(Object::Array {
                 elements: vec![
                     Object::Integer { value: 1 },
                     Object::Integer { value: 2 },
                     Object::Integer { value: 3 },
                 ],
-            },
+            }),
         },
         VmTestCase {
             input: "[1 + 2, 3 * 4, 5 + 6]",
-            expected: Object::Array {
+            expected: Ok(Object::Array {
                 elements: vec![
                     Object::Integer { value: 3 },
                     Object::Integer { value: 12 },
                     Object::Integer { value: 11 },
                 ],
-            },
+            }),
         },
     ];
 
@@ -391,13 +398,13 @@ fn test_hash_literal() {
     let tests = vec![
         VmTestCase {
             input: "{}",
-            expected: Object::Hash {
+            expected: Ok(Object::Hash {
                 pairs: HashMap::new(),
-            },
+            }),
         },
         VmTestCase {
             input: "{1:2, 2:3}",
-            expected: Object::Hash {
+            expected: Ok(Object::Hash {
                 pairs: HashMap::from([
                     (
                         Object::Integer { value: 1 }.hash().unwrap(),
@@ -414,11 +421,11 @@ fn test_hash_literal() {
                         },
                     ),
                 ]),
-            },
+            }),
         },
         VmTestCase {
             input: "{1 + 1: 2*2, 3+3: 4*4}",
-            expected: Object::Hash {
+            expected: Ok(Object::Hash {
                 pairs: HashMap::from([
                     (
                         Object::Integer { value: 2 }.hash().unwrap(),
@@ -435,7 +442,7 @@ fn test_hash_literal() {
                         },
                     ),
                 ]),
-            },
+            }),
         },
     ];
     run_vm_tests(tests);
@@ -446,43 +453,43 @@ fn test_index_expression() {
     let tests = vec![
         VmTestCase {
             input: "[1, 2, 3][1]",
-            expected: Object::Integer { value: 2 },
+            expected: Ok(Object::Integer { value: 2 }),
         },
         VmTestCase {
             input: "[1, 2, 3][0 + 2]",
-            expected: Object::Integer { value: 3 },
+            expected: Ok(Object::Integer { value: 3 }),
         },
         VmTestCase {
             input: "[[1, 1, 1]][0][0]",
-            expected: Object::Integer { value: 1 },
+            expected: Ok(Object::Integer { value: 1 }),
         },
         VmTestCase {
             input: "[][0]",
-            expected: Object::Null,
+            expected: Ok(Object::Null),
         },
         VmTestCase {
             input: "[1, 2, 3][99]",
-            expected: Object::Null,
+            expected: Ok(Object::Null),
         },
         VmTestCase {
             input: "[1][-1]",
-            expected: Object::Null,
+            expected: Ok(Object::Null),
         },
         VmTestCase {
             input: "{1: 1, 2: 2}[1]",
-            expected: Object::Integer { value: 1 },
+            expected: Ok(Object::Integer { value: 1 }),
         },
         VmTestCase {
             input: "{1: 1, 2: 2}[2]",
-            expected: Object::Integer { value: 2 },
+            expected: Ok(Object::Integer { value: 2 }),
         },
         VmTestCase {
             input: "{1: 1}[0]",
-            expected: Object::Null,
+            expected: Ok(Object::Null),
         },
         VmTestCase {
             input: "{}[0]",
-            expected: Object::Null,
+            expected: Ok(Object::Null),
         },
     ];
 
@@ -494,15 +501,15 @@ fn test_calling_functions_without_arguments() {
     let tests = vec![
         VmTestCase {
             input: "let fivePlusTen = fn() {5 + 10}; fivePlusTen();",
-            expected: Object::Integer { value: 15 },
+            expected: Ok(Object::Integer { value: 15 }),
         },
         VmTestCase {
             input: "let one = fn() { 1; }; let two = fn() { 2; }; one() + two()",
-            expected: Object::Integer { value: 3 },
+            expected: Ok(Object::Integer { value: 3 }),
         },
         VmTestCase {
             input: "let a = fn() { 1 }; let b = fn() { a() + 1 }; let c = fn() { b() + 1 }; c();",
-            expected: Object::Integer { value: 3 },
+            expected: Ok(Object::Integer { value: 3 }),
         },
     ];
     run_vm_tests(tests);
@@ -513,11 +520,11 @@ fn test_functions_with_return_statement() {
     let tests = vec![
         VmTestCase {
             input: "let earlyExit = fn() { return 99; 100; }; earlyExit();",
-            expected: Object::Integer { value: 99 },
+            expected: Ok(Object::Integer { value: 99 }),
         },
         VmTestCase {
             input: "let earlyExit = fn() { return 99; return 100; }; earlyExit();",
-            expected: Object::Integer { value: 99 },
+            expected: Ok(Object::Integer { value: 99 }),
         },
     ];
     run_vm_tests(tests);
@@ -528,11 +535,11 @@ fn test_functions_without_return_value() {
     let tests = vec![
         VmTestCase {
             input: "let noReturn = fn() { }; noReturn();",
-            expected: Object::Null,
+            expected: Ok(Object::Null),
         },
         VmTestCase {
             input: "let noReturn = fn() { }; let noReturnTwo = fn() { noReturn(); }; noReturn(); noReturnTwo();",
-            expected: Object::Null,
+            expected: Ok(Object::Null),
         },
     ];
     run_vm_tests(tests);
@@ -543,11 +550,11 @@ fn test_first_class_functions() {
     let tests = vec![
         VmTestCase {
             input: "let returnsOne = fn() { 1; }; let returnsOneReturner = fn() { returnsOne; }; returnsOneReturner()();",
-            expected: Object::Integer { value: 1 },
+            expected: Ok(Object::Integer { value: 1 }),
         },
         VmTestCase {
             input: "let returnsOneReturner = fn() { let returnsOne = fn() { 1; }; returnsOne;} returnsOneReturner()();",
-            expected: Object::Integer { value: 1 },
+            expected: Ok(Object::Integer { value: 1 }),
         },
     ];
     run_vm_tests(tests);
@@ -558,23 +565,23 @@ fn test_calling_functions_with_bindings() {
     let tests = vec![
         VmTestCase {
             input: "let one = fn() { let one = 1; one }; one();",
-            expected: Object::Integer { value: 1 },
+            expected: Ok(Object::Integer { value: 1 }),
         },
         VmTestCase {
             input: "let oneAndTwo = fn() { let one = 1; let two = 2; one + two; }; oneAndTwo();",
-            expected: Object::Integer { value: 3 },
+            expected: Ok(Object::Integer { value: 3 }),
         },
         VmTestCase {
             input: "let oneAndTwo = fn() { let one = 1; let two = 2; one + two; }; let threeAndFour = fn() { let three = 3; let four = 4; three + four; }; oneAndTwo() + threeAndFour();",
-            expected: Object::Integer { value: 10 },
+            expected: Ok(Object::Integer { value: 10 }),
         },
         VmTestCase {
             input: "let firstFoobar = fn() { let foobar = 50; foobar; }; let secondFoobar = fn() { let foobar = 100; foobar; }; firstFoobar() + secondFoobar();",
-            expected: Object::Integer { value: 150 },
+            expected: Ok(Object::Integer { value: 150 }),
         },
         VmTestCase {
             input: "let globalSeed = 50; let minusOne = fn() { let num = 1; globalSeed - num; }; let minusTwo = fn() { let num = 2; globalSeed - num; }; minusOne() + minusTwo();",
-            expected: Object::Integer { value: 97 },
+            expected: Ok(Object::Integer { value: 97 }),
         },
     ];
     run_vm_tests(tests);
@@ -585,27 +592,27 @@ fn test_calling_functions_with_arguments_and_bindings() {
     let tests = vec![
         VmTestCase {
             input: "let identity = fn(a) { a; }; identity(4);",
-            expected: Object::Integer { value: 4 },
+            expected: Ok(Object::Integer { value: 4 }),
         },
         VmTestCase {
             input: "let sum = fn(a, b) { a + b; }; sum(1, 2);",
-            expected: Object::Integer { value: 3 },
+            expected: Ok(Object::Integer { value: 3 }),
         },
         VmTestCase {
             input: "let sum = fn(a, b) { let c = a + b; c; }; sum(1, 2);",
-            expected: Object::Integer { value: 3 },
+            expected: Ok(Object::Integer { value: 3 }),
         },
         VmTestCase {
             input: "let sum = fn(a, b) { let c = a + b; c; }; sum(1, 2) + sum(3, 4);",
-            expected: Object::Integer { value: 10 },
+            expected: Ok(Object::Integer { value: 10 }),
         },
         VmTestCase {
             input: "let sum = fn(a, b) { let c = a + b; c; }; let outer = fn() { sum(1, 2) + sum(3, 4); }; outer();",
-            expected: Object::Integer { value: 10 },
+            expected: Ok(Object::Integer { value: 10 }),
         },
         VmTestCase {
             input: "let globalNum = 10; let sum = fn(a, b) { let c = a + b; c + globalNum; }; let outer = fn() { sum(1, 2) + sum(3, 4) + globalNum; }; outer() + globalNum;",
-            expected: Object::Integer { value: 50 },
+            expected: Ok(Object::Integer { value: 50 }),
         },
     ];
     run_vm_tests(tests);
@@ -645,4 +652,99 @@ fn test_calling_functions_with_wrong_arguments() {
             }
         }
     }
+}
+
+#[test]
+fn test_builtin_functions() {
+    let tests = vec![
+        VmTestCase {
+            input: "len(\"\")",
+            expected: Ok(Object::Integer { value: 0 }),
+        },
+        VmTestCase {
+            input: "puts(\"hello\", \"world\")",
+            expected: Ok(Object::Null),
+        },
+        VmTestCase {
+            input: "first([1, 2, 3])",
+            expected: Ok(Object::Integer { value: 1 }),
+        },
+        VmTestCase {
+            input: "first([])",
+            expected: Ok(Object::Null),
+        },
+        VmTestCase {
+            input: "first(1)",
+            expected: Err(VMError::WrongArgumentType {
+                want: "ARRAY",
+                got: "INTEGER",
+            }),
+        },
+        VmTestCase {
+            input: "last([1, 2, 3])",
+            expected: Ok(Object::Integer { value: 3 }),
+        },
+        VmTestCase {
+            input: "last([])",
+            expected: Ok(Object::Null),
+        },
+        VmTestCase {
+            input: "last(1)",
+            expected: Err(VMError::WrongArgumentType {
+                want: "ARRAY",
+                got: "INTEGER",
+            }),
+        },
+        VmTestCase {
+            input: "len(\"four\")",
+            expected: Ok(Object::Integer { value: 4 }),
+        },
+        VmTestCase {
+            input: "len(\"hello world\")",
+            expected: Ok(Object::Integer { value: 11 }),
+        },
+        VmTestCase {
+            input: "len(1)",
+            expected: Err(VMError::WrongArgumentType {
+                want: "STRING or ARRAY",
+                got: "INTEGER",
+            }),
+        },
+        VmTestCase {
+            input: "len(\"one\", \"two\")",
+            expected: Err(VMError::WrongArgumentCount { want: 1, got: 2 }),
+        },
+        VmTestCase {
+            input: "len([1, 2, 3])",
+            expected: Ok(Object::Integer { value: 3 }),
+        },
+        VmTestCase {
+            input: "len([])",
+            expected: Ok(Object::Integer { value: 0 }),
+        },
+        VmTestCase {
+            input: "rest([1, 2, 3])",
+            expected: Ok(Object::Array {
+                elements: vec![Object::Integer { value: 2 }, Object::Integer { value: 3 }],
+            }),
+        },
+        VmTestCase {
+            input: "rest([])",
+            expected: Ok(Object::Null),
+        },
+        VmTestCase {
+            input: "push([], 1)",
+            expected: Ok(Object::Array {
+                elements: vec![Object::Integer { value: 1 }],
+            }),
+        },
+        VmTestCase {
+            input: "push(1, 1)",
+            expected: Err(VMError::WrongArgumentType {
+                want: "ARRAY",
+                got: "INTEGER",
+            }),
+        },
+    ];
+    run_vm_tests(tests);
 }
