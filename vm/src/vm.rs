@@ -5,7 +5,9 @@ use std::{collections::HashMap, usize};
 use code::{Instruction, Opcode, read_uint8, read_uint16};
 use compiler::Bytecode;
 use frame::Frame;
-use object::{FALSE, HashKey, HashPair, NULL, Object, ObjectTraits, TRUE};
+use object::{
+    EvalError, FALSE, HashKey, HashPair, NULL, ORDERED_BUILTINS, Object, ObjectTraits, TRUE,
+};
 
 pub const STACK_SIZE: usize = 2048;
 pub const GLOBALS_SIZE: usize = 65536;
@@ -33,6 +35,9 @@ pub enum VMError {
     WrongArgumentType {
         want: &'static str,
         got: &'static str,
+    },
+    EvaluationError {
+        err: EvalError,
     },
 }
 
@@ -308,6 +313,15 @@ impl VM {
         }
     }
 
+    fn execute_call(&mut self, num_args: usize) -> Result<(), VMError> {
+        let callee = self.stack[self.sp - 1 - num_args].clone();
+        match callee {
+            Object::CompiledFunction { .. } => self.call_function(num_args),
+            Object::Builtin { .. } => self.call_builtin(callee, num_args),
+            _ => unreachable!(),
+        }
+    }
+
     fn call_function(&mut self, num_args: usize) -> Result<(), VMError> {
         let func = self.stack[self.sp - 1 - num_args].clone();
         match func {
@@ -328,6 +342,23 @@ impl VM {
             }
             _ => unreachable!(),
         }
+        Ok(())
+    }
+
+    fn call_builtin(&mut self, compiled_builtin: Object, num_args: usize) -> Result<(), VMError> {
+        let args = self.stack[self.sp - num_args..self.sp].to_vec();
+        let result = match compiled_builtin {
+            Object::Builtin { func } => func(args),
+            _ => unreachable!(),
+        };
+        if result.is_ok() {
+            self.push(result.unwrap())?;
+        } else {
+            return Err(VMError::EvaluationError {
+                err: result.unwrap_err(),
+            });
+        };
+
         Ok(())
     }
 
@@ -416,7 +447,7 @@ impl VM {
                 Opcode::OpCall => {
                     let num_args = read_uint8(&ins[ip + 1..]) as usize;
                     self.current_frame().ip += 1;
-                    self.call_function(num_args)?;
+                    self.execute_call(num_args)?;
                 }
                 Opcode::OpReturnValue => {
                     let return_value = self.pop()?;
@@ -445,7 +476,12 @@ impl VM {
                     let base_pointer = self.current_frame().base_pointer;
                     self.push(self.stack[base_pointer + local_index].clone())?;
                 }
-                Opcode::OpGetBuiltin => todo!(),
+                Opcode::OpGetBuiltin => {
+                    let builtin_index = read_uint8(&ins[ip + 1..]) as usize;
+                    self.current_frame().ip += 1;
+                    let func = ORDERED_BUILTINS[builtin_index].1;
+                    self.push(Object::Builtin { func })?;
+                }
             }
         }
         Ok(())
