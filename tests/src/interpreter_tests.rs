@@ -1633,11 +1633,11 @@ fn test_builtin_functions() {
         },
         TestBuiltIns {
             input: "len(1)",
-            expected: Expected::Error("argument to `len` not supported, got INTEGER"),
+            expected: Expected::Error("wrong argument type. want=STRING or ARRAY, got=INTEGER"),
         },
         TestBuiltIns {
             input: "len(\"one\", \"two\")",
-            expected: Expected::Error("wrong number of arguments. got=2, want=1"),
+            expected: Expected::Error("wrong number of arguments. want=1, got=2"),
         },
         TestBuiltIns {
             input: "len([1, 2, 3])",
@@ -1719,11 +1719,17 @@ fn test_builtin_functions() {
             }
             Expected::Error(err) => {
                 if let Err(erroneous) = evaluated {
-                    if let EvalError::Error { message } = erroneous {
-                        assert_eq!(err, message)
-                    } else {
-                        panic!("Got a different error")
+                    let error_message = match erroneous {
+                        EvalError::Error { message } => message,
+                        EvalError::WrongArgumentType { want, got } => {
+                            format!("wrong argument type. want={}, got={}", want, got)
+                        }
+                        EvalError::WrongArgumentCount { want, got } => {
+                            format!("wrong number of arguments. want={}, got={}", want, got)
+                        }
+                        _ => panic!("Got unexpected error type: {:?}", erroneous),
                     };
+                    assert_eq!(err, error_message);
                 } else {
                     panic!("Expected error")
                 }

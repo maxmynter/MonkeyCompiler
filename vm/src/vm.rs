@@ -36,9 +36,6 @@ pub enum VMError {
         want: &'static str,
         got: &'static str,
     },
-    EvaluationError {
-        err: EvalError,
-    },
 }
 
 pub struct VM {
@@ -354,9 +351,16 @@ impl VM {
         if result.is_ok() {
             self.push(result.unwrap())?;
         } else {
-            return Err(VMError::EvaluationError {
-                err: result.unwrap_err(),
-            });
+            let err = match result.unwrap_err() {
+                EvalError::WrongArgumentType { want, got } => {
+                    VMError::WrongArgumentType { want, got }
+                }
+                EvalError::WrongArgumentCount { want, got } => {
+                    VMError::WrongArgumentCount { want, got }
+                }
+                _ => unreachable!("Should not encounter non argument related errors"),
+            };
+            return Err(err);
         };
 
         Ok(())

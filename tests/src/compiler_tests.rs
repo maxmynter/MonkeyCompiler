@@ -928,22 +928,20 @@ fn test_let_statement_scopes() {
 
 #[test]
 fn test_builtins() {
-    let tests = vec![
-        CompilerTest {
-            input: "len([]); push([], 1);",
-            expected_constants: vec![Object::Integer { value: 1 }],
-            expected_instructions: vec![
-                make(Opcode::OpGetBuiltin, &[0]),
-                make(Opcode::OpArray, &[0]),
-                make(Opcode::OpCall, &[1]),
-                make(Opcode::OpPop, &[]),
-                make(Opcode::OpGetBuiltin, &[5]),
-                make(Opcode::OpArray, &[0]),
-                make(Opcode::OpConstant, &[0]),
-                make(Opcode::OpCall, &[2]),
-                make(Opcode::OpPop, &[]),
-            ],
-        },
-    ];
+    let tests = vec![CompilerTest {
+        input: "len([]); push([], 1);",
+        expected_constants: vec![Object::Integer { value: 1 }],
+        expected_instructions: vec![
+            make(Opcode::OpGetBuiltin, &[0]),
+            make(Opcode::OpArray, &[0]),
+            make(Opcode::OpCall, &[1]),
+            make(Opcode::OpPop, &[]),
+            make(Opcode::OpGetBuiltin, &[5]),
+            make(Opcode::OpArray, &[0]),
+            make(Opcode::OpConstant, &[0]),
+            make(Opcode::OpCall, &[2]),
+            make(Opcode::OpPop, &[]),
+        ],
+    }];
     run_compiler_tests(tests);
 }

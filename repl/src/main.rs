@@ -36,8 +36,7 @@ fn repl() -> io::Result<()> {
                     println!("\nexiting...");
                     break;
                 }
-                (constants, symbol_table, globals) =
-                    eval(input, constants, symbol_table, globals);
+                (constants, symbol_table, globals) = eval(input, constants, symbol_table, globals);
             }
             Err(e) => {
                 eprintln!("Error: {}", e);

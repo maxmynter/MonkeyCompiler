@@ -98,15 +98,29 @@ pub enum Object {
 
 pub trait ObjectTraits {
     fn inspect(&self) -> String;
-    fn object_type(&self) -> String;
+    fn object_type(&self) -> &'static str;
     fn hash(&self) -> Result<HashKey, EvalError>;
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum EvalError {
-    Error { message: String },
-    IndexError { message: String },
-    Unhashable { message: String },
+    Error {
+        message: String,
+    },
+    IndexError {
+        message: String,
+    },
+    Unhashable {
+        message: String,
+    },
+    WrongArgumentCount {
+        want: usize,
+        got: usize,
+    },
+    WrongArgumentType {
+        want: &'static str,
+        got: &'static str,
+    },
 }
 
 impl ObjectTraits for EvalError {
@@ -115,14 +129,22 @@ impl ObjectTraits for EvalError {
             EvalError::Error { message } => format!("Error: {}", message),
             EvalError::IndexError { message } => format!("Index Error: {}", message),
             EvalError::Unhashable { message } => format!("Cannot hash unhashable: {}", message),
+            EvalError::WrongArgumentCount { want, got } => {
+                format!("Wrong argument count: want={}, got={}", want, got)
+            }
+            EvalError::WrongArgumentType { want, got } => {
+                format!("wrong argument type. want={}, got={}", want, got)
+            }
         }
     }
 
-    fn object_type(&self) -> String {
+    fn object_type(&self) -> &'static str {
         match &self {
-            EvalError::Error { .. } => "ERROR".to_string(),
-            EvalError::IndexError { .. } => "INDEX_ERROR".to_string(),
-            EvalError::Unhashable { .. } => "UNHASHABLE_ERROR".to_string(),
+            EvalError::Error { .. } => "ERROR",
+            EvalError::IndexError { .. } => "INDEX_ERROR",
+            EvalError::Unhashable { .. } => "UNHASHABLE_ERROR",
+            EvalError::WrongArgumentCount { .. } => "WRONG_ARGUMENT_TYPE",
+            EvalError::WrongArgumentType { .. } => "WRONG_ARGUMENT_TYPE",
         }
     }
 
@@ -151,8 +173,9 @@ lazy_static! {
 
 fn expect_builtin_args_len<T>(args: &[T], length: usize) -> Result<(), EvalError> {
     if args.len() != length {
-        Err(EvalError::Error {
-            message: format!("wrong number of arguments. got={}, want=1", args.len()),
+        Err(EvalError::WrongArgumentCount {
+            want: 1,
+            got: args.len(),
         })
     } else {
         Ok(())
@@ -175,8 +198,9 @@ fn builtin_push(args: Vec<Object>) -> Result<Object, EvalError> {
             elements: extended_elements.to_vec(),
         })
     } else {
-        Err(EvalError::Error {
-            message: "can only apply push to type array".to_string(),
+        Err(EvalError::WrongArgumentType {
+            want: "ARRAY",
+            got: &args[0].object_type(),
         })
     }
 }
@@ -191,8 +215,9 @@ fn builtin_rest(args: Vec<Object>) -> Result<Object, EvalError> {
             }),
         }
     } else {
-        Err(EvalError::Error {
-            message: "wrong argument type to `rest`, need array".to_string(),
+        Err(EvalError::WrongArgumentType {
+            want: "ARRAY",
+            got: &args[0].object_type(),
         })
     }
 }
@@ -207,8 +232,9 @@ fn builtin_first(args: Vec<Object>) -> Result<Object, EvalError> {
                 Ok(NULL)
             }
         }
-        _ => Err(EvalError::Error {
-            message: "`first` only works on arrays".to_string(),
+        _ => Err(EvalError::WrongArgumentType {
+            want: "ARRAY",
+            got: args[0].object_type(),
         }),
     }
 }
@@ -223,8 +249,9 @@ fn builtin_last(args: Vec<Object>) -> Result<Object, EvalError> {
                 Ok(NULL)
             }
         }
-        _ => Err(EvalError::Error {
-            message: "`last` only works on arrays".to_string(),
+        _ => Err(EvalError::WrongArgumentType {
+            want: "ARRAY",
+            got: args[0].object_type(),
         }),
     }
 }
@@ -238,11 +265,9 @@ fn builtin_len(args: Vec<Object>) -> Result<Object, EvalError> {
         Object::Array { elements } => Ok(Object::Integer {
             value: elements.len() as i64,
         }),
-        _ => Err(EvalError::Error {
-            message: format!(
-                "argument to `len` not supported, got {}",
-                args[0].object_type()
-            ),
+        _ => Err(EvalError::WrongArgumentType {
+            want: "STRING or ARRAY",
+            got: args[0].object_type(),
         }),
     }
 }
@@ -306,18 +331,18 @@ impl ObjectTraits for Object {
         }
     }
 
-    fn object_type(&self) -> String {
+    fn object_type(&self) -> &'static str {
         match self {
-            Object::Null => "null".to_string(),
-            Object::Integer { .. } => "INTEGER".to_string(),
-            Object::Boolean { .. } => "BOOLEAN".to_string(),
-            Object::Return { .. } => "RETURN_VALUE".to_string(),
-            Object::Builtin { .. } => "BUILTIN_FUNCTION".to_string(),
-            Object::Function { .. } => "FUNCTION".to_string(),
-            Object::String { .. } => "STRING".to_string(),
-            Object::Array { .. } => "ARRAY".to_string(),
-            Object::Hash { .. } => "HASH".to_string(),
-            Object::CompiledFunction { .. } => "COMPILED_FUNCTION".to_string(),
+            Object::Null => "null",
+            Object::Integer { .. } => "INTEGER",
+            Object::Boolean { .. } => "BOOLEAN",
+            Object::Return { .. } => "RETURN_VALUE",
+            Object::Builtin { .. } => "BUILTIN_FUNCTION",
+            Object::Function { .. } => "FUNCTION",
+            Object::String { .. } => "STRING",
+            Object::Array { .. } => "ARRAY",
+            Object::Hash { .. } => "HASH",
+            Object::CompiledFunction { .. } => "COMPILED_FUNCTION",
         }
     }
 
@@ -327,16 +352,16 @@ impl ObjectTraits for Object {
                 let mut hasher = DefaultHasher::new();
                 value.hash(&mut hasher);
                 Ok(HashKey {
-                    kind: self.object_type(),
+                    kind: self.object_type().to_string(),
                     value: hasher.finish(),
                 })
             }
             Object::Boolean { value } => Ok(HashKey {
                 value: if *value { 1 } else { 0 },
-                kind: self.object_type(),
+                kind: self.object_type().to_string(),
             }),
             Object::Integer { value } => Ok(HashKey {
-                kind: self.object_type(),
+                kind: self.object_type().to_string(),
                 value: *value as u64,
             }),
             other => Err(EvalError::Unhashable {
