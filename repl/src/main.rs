@@ -1,7 +1,7 @@
 use std::io::{self, Write};
 
 use compiler::{symbol_table::SymbolTable, Compiler};
-use object::{Object, ObjectTraits};
+use object::{Object, ObjectTraits, BUILTINS, ORDERED_BUILTINS};
 use vm::GLOBALS_SIZE;
 
 const PROMPT: &str = ">> ";
@@ -21,6 +21,9 @@ fn repl() -> io::Result<()> {
     let mut constants: Vec<Object> = Vec::new();
     let mut globals = vec![Object::Null; GLOBALS_SIZE];
     let mut symbol_table = SymbolTable::new();
+    for (idx, builtin) in ORDERED_BUILTINS.iter().enumerate() {
+        symbol_table.define_builtin(idx, builtin.0);
+    }
     loop {
         print!("{}", PROMPT);
         stdout.flush()?;
