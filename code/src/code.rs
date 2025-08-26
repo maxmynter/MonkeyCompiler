@@ -49,6 +49,7 @@ impl Instruction {
         match operand_count {
             0 => def.name.to_string(),
             1 => format!("{} {}", def.name, operands[0]),
+            2 => format!("{} {} {}", def.name, operands[0], operands[1]),
             _ => format!("ERROR: unhandled operandCount for {}", def.name),
         }
     }
@@ -119,6 +120,7 @@ pub enum Opcode {
     OpSetLocal,
     OpGetLocal,
     OpGetBuiltin,
+    OpClosure,
 }
 
 impl Opcode {
@@ -151,6 +153,7 @@ impl Opcode {
             24 => Some(Opcode::OpSetLocal),
             25 => Some(Opcode::OpGetLocal),
             26 => Some(Opcode::OpGetBuiltin),
+            27 => Some(Opcode::OpClosure),
             _ => None,
         }
     }
@@ -352,6 +355,13 @@ lazy_static! {
                 Definition {
                     name: "OpGetBuiltin",
                     operand_widths: vec![1]
+            }
+        ),
+        (
+                Opcode::OpClosure,
+                Definition {
+                    name: "OpClosure",
+                    operand_widths: vec![2,1]
             }
         ),
         ]

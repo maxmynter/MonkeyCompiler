@@ -1,7 +1,7 @@
 use std::io::{self, Write};
 
 use compiler::{symbol_table::SymbolTable, Compiler};
-use object::{Object, ObjectTraits, BUILTINS, ORDERED_BUILTINS};
+use object::{Object, ObjectTraits, ORDERED_BUILTINS};
 use vm::GLOBALS_SIZE;
 
 const PROMPT: &str = ">> ";

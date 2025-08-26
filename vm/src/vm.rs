@@ -486,6 +486,7 @@ impl VM {
                     let func = ORDERED_BUILTINS[builtin_index].1;
                     self.push(Object::Builtin { func })?;
                 }
+                Opcode::OpClosure => todo!(),
             }
         }
         Ok(())
