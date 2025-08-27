@@ -49,7 +49,7 @@ pub struct VM {
 
 impl VM {
     pub fn new(bytecode: Bytecode) -> Self {
-        let main_fn = Object::CompiledFunction {
+        let main_fn = object::CompiledFunction {
             instructions: bytecode.instructions,
             num_locals: 0,
             num_parameters: 0,
@@ -73,12 +73,16 @@ impl VM {
     }
 
     pub fn new_with_global_store(bytecode: Bytecode, globals: Vec<Object>) -> Self {
-        let main_fn = Object::CompiledFunction {
+        let main_fn = object::CompiledFunction {
             instructions: bytecode.instructions,
             num_locals: 0,
             num_parameters: 0,
         };
-        let main_frame = frame::Frame::new(main_fn, 0);
+        let main_closure = Object::Closure {
+            func: Box::new(main_fn),
+            free: Vec::new(),
+        };
+        let main_frame = frame::Frame::new(main_closure, 0);
         let mut frames = vec![None; MAX_FRAMES];
         frames[0] = Some(main_frame);
 
@@ -323,24 +327,16 @@ impl VM {
         }
     }
 
-    fn call_closure(&mut self, func: Box<Object>, free: Vec<Object>, num_args: usize) -> Result<(), VMError> {
-        let (num_locals, num_parameters) = match func.as_ref() {
-            Object::CompiledFunction {
-                num_locals,
-                num_parameters,
-                ..
-            } => (*num_locals, *num_parameters),
-            _ => panic!("closure function should be compiled function"),
-        };
-
-        if num_args != num_parameters {
+    fn call_closure(&mut self, func: Box<object::CompiledFunction>, free: Vec<Object>, num_args: usize) -> Result<(), VMError> {
+        if num_args != func.num_parameters {
             return Err(VMError::WrongArgumentCount {
-                want: num_parameters,
+                want: func.num_parameters,
                 got: num_args,
             });
         }
         
         let base_pointer = self.sp - num_args;
+        let num_locals = func.num_locals; // Extract before move
         let closure = Object::Closure { func, free };
         let frame = Frame::new(closure, base_pointer);
         self.push_frame(frame);
@@ -505,9 +501,9 @@ impl VM {
     fn push_closure(&mut self, const_index: isize) -> Result<(), VMError> {
         let constant = &self.constants[const_index as usize];
         match constant {
-            Object::CompiledFunction { .. } => {
+            Object::CompiledFunction(compiled_fn) => {
                 let closure = Object::Closure {
-                    func: Box::new(constant.clone()),
+                    func: Box::new(compiled_fn.clone()),
                     free: Vec::new(),
                 };
                 self.push(closure)?;

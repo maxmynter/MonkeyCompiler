@@ -1,4 +1,11 @@
 use code::Instruction;
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct CompiledFunction {
+    pub instructions: Instruction,
+    pub num_locals: usize,
+    pub num_parameters: usize,
+}
 use lazy_static::lazy_static;
 use std::cell::RefCell;
 use std::collections::{HashMap, hash_map::DefaultHasher};
@@ -79,13 +86,9 @@ pub enum Object {
         body: Rc<BlockStatement>,
         env: Rc<RefCell<Environment>>,
     },
-    CompiledFunction {
-        instructions: Instruction,
-        num_locals: usize,
-        num_parameters: usize,
-    },
+    CompiledFunction(CompiledFunction),
     Closure {
-        func: Box<Object>,
+        func: Box<CompiledFunction>,
         free: Vec<Object>,
     },
     String {

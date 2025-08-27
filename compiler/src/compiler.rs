@@ -240,11 +240,11 @@ impl Compilable for FunctionLiteral {
         let num_locals = c.symbol_table.num_definitions;
         let num_parameters = self.parameters.len();
         let instructions = c.leave_scope();
-        let compiled_fn = Object::CompiledFunction {
+        let compiled_fn = Object::CompiledFunction(object::CompiledFunction {
             instructions,
             num_locals,
             num_parameters,
-        };
+        });
         let pos = c.add_constant(compiled_fn);
         c.emit(Opcode::OpClosure, &[pos, 0]);
         Ok(())

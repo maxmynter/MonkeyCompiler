@@ -4,7 +4,7 @@ use std::vec;
 use crate::utils::prepare_program_for_test;
 use code::{Instruction, Opcode, lookup, make, read_operands};
 use compiler::Compiler;
-use object::Object;
+use object::{Object, CompiledFunction};
 
 #[test]
 fn test_make() {
@@ -109,14 +109,14 @@ fn test_constants(expected: &[Object], actual: &[Object]) -> Result<(), String> 
                     ));
                 }
             }
-            Object::CompiledFunction {
+            Object::CompiledFunction(CompiledFunction {
                 instructions: expected_instructions,
                 ..
-            } => {
-                if let Object::CompiledFunction {
+            }) => {
+                if let Object::CompiledFunction(CompiledFunction {
                     instructions: actual_instructions,
                     ..
-                } = &actual[i]
+                }) = &actual[i]
                 {
                     test_instruction(expected_instructions, actual_instructions)?;
                 } else {
@@ -637,7 +637,7 @@ fn test_functions() {
             expected_constants: vec![
                 Object::Integer { value: 5 },
                 Object::Integer { value: 10 },
-                Object::CompiledFunction {
+                Object::CompiledFunction(CompiledFunction {
                     instructions: flatten_instructions(vec![
                         make(Opcode::OpConstant, &[0]),
                         make(Opcode::OpConstant, &[1]),
@@ -646,7 +646,7 @@ fn test_functions() {
                     ]),
                     num_locals: 0,
                     num_parameters: 0,
-                },
+                }),
             ],
             expected_instructions: vec![make(Opcode::OpClosure, &[2, 0]), make(Opcode::OpPop, &[])],
         },
@@ -655,7 +655,7 @@ fn test_functions() {
             expected_constants: vec![
                 Object::Integer { value: 5 },
                 Object::Integer { value: 10 },
-                Object::CompiledFunction {
+                Object::CompiledFunction(CompiledFunction {
                     instructions: flatten_instructions(vec![
                         make(Opcode::OpConstant, &[0]),
                         make(Opcode::OpConstant, &[1]),
@@ -664,7 +664,7 @@ fn test_functions() {
                     ]),
                     num_locals: 0,
                     num_parameters: 0,
-                },
+                }),
             ],
             expected_instructions: vec![make(Opcode::OpClosure, &[2, 0]), make(Opcode::OpPop, &[])],
         },
@@ -673,7 +673,7 @@ fn test_functions() {
             expected_constants: vec![
                 Object::Integer { value: 1 },
                 Object::Integer { value: 2 },
-                Object::CompiledFunction {
+                Object::CompiledFunction(CompiledFunction {
                     instructions: flatten_instructions(vec![
                         make(Opcode::OpConstant, &[0]),
                         make(Opcode::OpPop, &[]),
@@ -682,7 +682,7 @@ fn test_functions() {
                     ]),
                     num_locals: 0,
                     num_parameters: 0,
-                },
+                }),
             ],
             expected_instructions: vec![make(Opcode::OpClosure, &[2, 0]), make(Opcode::OpPop, &[])],
         },
@@ -694,11 +694,11 @@ fn test_functions() {
 fn test_function_without_return() {
     let tests = vec![CompilerTest {
         input: "fn() {}",
-        expected_constants: vec![Object::CompiledFunction {
+        expected_constants: vec![Object::CompiledFunction(CompiledFunction {
             instructions: flatten_instructions(vec![make(Opcode::OpReturn, &[])]),
             num_locals: 0,
             num_parameters: 0,
-        }],
+        })],
         expected_instructions: vec![make(Opcode::OpClosure, &[0, 0]), make(Opcode::OpPop, &[])],
     }];
     run_compiler_tests(tests);
@@ -743,14 +743,14 @@ fn test_function_calls() {
             input: "fn() {24}();",
             expected_constants: vec![
                 Object::Integer { value: 24 },
-                Object::CompiledFunction {
+                Object::CompiledFunction(CompiledFunction {
                     instructions: flatten_instructions(vec![
                         make(Opcode::OpConstant, &[0]),
                         make(Opcode::OpReturnValue, &[]),
                     ]),
                     num_locals: 0,
                     num_parameters: 0,
-                },
+                }),
             ],
             expected_instructions: vec![
                 make(Opcode::OpClosure, &[1, 0]),
@@ -762,14 +762,14 @@ fn test_function_calls() {
             input: "let noArg = fn() {24}; noArg();",
             expected_constants: vec![
                 Object::Integer { value: 24 },
-                Object::CompiledFunction {
+                Object::CompiledFunction(CompiledFunction {
                     instructions: flatten_instructions(vec![
                         make(Opcode::OpConstant, &[0]),
                         make(Opcode::OpReturnValue, &[]),
                     ]),
                     num_locals: 0,
                     num_parameters: 0,
-                },
+                }),
             ],
             expected_instructions: vec![
                 make(Opcode::OpClosure, &[1, 0]),
@@ -782,11 +782,11 @@ fn test_function_calls() {
         CompilerTest {
             input: "let oneArg = fn(a) { }; oneArg(24);",
             expected_constants: vec![
-                Object::CompiledFunction {
+                Object::CompiledFunction(CompiledFunction {
                     instructions: flatten_instructions(vec![make(Opcode::OpReturn, &[])]),
                     num_locals: 0,
                     num_parameters: 0,
-                },
+                }),
                 Object::Integer { value: 24 },
             ],
             expected_instructions: vec![
@@ -801,11 +801,11 @@ fn test_function_calls() {
         CompilerTest {
             input: "let manyArg = fn(a, b, c) { }; manyArg(24, 25, 26);",
             expected_constants: vec![
-                Object::CompiledFunction {
+                Object::CompiledFunction(CompiledFunction {
                     instructions: flatten_instructions(vec![make(Opcode::OpReturn, &[])]),
                     num_locals: 0,
                     num_parameters: 0,
-                },
+                }),
                 Object::Integer { value: 24 },
                 Object::Integer { value: 25 },
                 Object::Integer { value: 26 },
@@ -824,14 +824,14 @@ fn test_function_calls() {
         CompilerTest {
             input: "let oneArg = fn(a) { a }; oneArg(24);",
             expected_constants: vec![
-                Object::CompiledFunction {
+                Object::CompiledFunction(CompiledFunction {
                     instructions: flatten_instructions(vec![
                         make(Opcode::OpGetLocal, &[0]),
                         make(Opcode::OpReturnValue, &[]),
                     ]),
                     num_locals: 1,
                     num_parameters: 0,
-                },
+                }),
                 Object::Integer { value: 24 },
             ],
             expected_instructions: vec![
@@ -846,7 +846,7 @@ fn test_function_calls() {
         CompilerTest {
             input: "let manyArg = fn(a, b, c) { a; b; c }; manyArg(24, 25, 26);",
             expected_constants: vec![
-                Object::CompiledFunction {
+                Object::CompiledFunction(CompiledFunction {
                     instructions: flatten_instructions(vec![
                         make(Opcode::OpGetLocal, &[0]),
                         make(Opcode::OpPop, &[]),
@@ -857,7 +857,7 @@ fn test_function_calls() {
                     ]),
                     num_locals: 3,
                     num_parameters: 0,
-                },
+                }),
                 Object::Integer { value: 24 },
                 Object::Integer { value: 25 },
                 Object::Integer { value: 26 },
@@ -884,14 +884,14 @@ fn test_let_statement_scopes() {
             input: "let num = 55; fn() { num }",
             expected_constants: vec![
                 Object::Integer { value: 55 },
-                Object::CompiledFunction {
+                Object::CompiledFunction(CompiledFunction {
                     instructions: flatten_instructions(vec![
                         make(Opcode::OpGetGlobal, &[0]),
                         make(Opcode::OpReturnValue, &[]),
                     ]),
                     num_locals: 0,
                     num_parameters: 0,
-                },
+                }),
             ],
             expected_instructions: vec![
                 make(Opcode::OpConstant, &[0]),
@@ -904,7 +904,7 @@ fn test_let_statement_scopes() {
             input: "fn() {let num = 55;  num }",
             expected_constants: vec![
                 Object::Integer { value: 55 },
-                Object::CompiledFunction {
+                Object::CompiledFunction(CompiledFunction {
                     instructions: flatten_instructions(vec![
                         make(Opcode::OpConstant, &[0]),
                         make(Opcode::OpSetLocal, &[0]),
@@ -913,7 +913,7 @@ fn test_let_statement_scopes() {
                     ]),
                     num_locals: 0,
                     num_parameters: 0,
-                },
+                }),
             ],
             expected_instructions: vec![make(Opcode::OpClosure, &[1, 0]), make(Opcode::OpPop, &[])],
         },
@@ -922,7 +922,7 @@ fn test_let_statement_scopes() {
             expected_constants: vec![
                 Object::Integer { value: 55 },
                 Object::Integer { value: 77 },
-                Object::CompiledFunction {
+                Object::CompiledFunction(CompiledFunction {
                     instructions: flatten_instructions(vec![
                         make(Opcode::OpConstant, &[0]),
                         make(Opcode::OpSetLocal, &[0]),
@@ -935,7 +935,7 @@ fn test_let_statement_scopes() {
                     ]),
                     num_locals: 0,
                     num_parameters: 0,
-                },
+                }),
             ],
             expected_instructions: vec![make(Opcode::OpClosure, &[2, 0]), make(Opcode::OpPop, &[])],
         },

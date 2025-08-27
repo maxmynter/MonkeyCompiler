@@ -22,11 +22,7 @@ impl Frame {
     pub fn instructions(&self) -> &Instruction {
         match &self.cl {
             Object::Closure { func, .. } => {
-                if let Object::CompiledFunction { instructions, .. } = func.as_ref() {
-                    &instructions
-                } else {
-                    panic!("closure function should have instructions")
-                }
+                &func.instructions
             }
             _ => panic!("closure should be a compiled function"),
         }
