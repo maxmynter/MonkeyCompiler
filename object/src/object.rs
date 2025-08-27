@@ -60,25 +60,6 @@ impl Environment {
     }
 }
 
-struct Closure {
-    func: Object,
-    free: Vec<Object>,
-}
-
-impl ObjectTraits for Closure {
-    fn inspect(&self) -> String {
-        format!("closure[{:p}]", self)
-    }
-    fn object_type(&self) -> &'static str {
-        "CLOSURE"
-    }
-    fn hash(&self) -> Result<HashKey, EvalError> {
-        Err(EvalError::Unhashable {
-            message: "cannot hash closure".to_string(),
-        })
-    }
-}
-
 #[derive(Clone, Debug, PartialEq)]
 pub enum Object {
     Hash {
@@ -102,6 +83,10 @@ pub enum Object {
         instructions: Instruction,
         num_locals: usize,
         num_parameters: usize,
+    },
+    Closure {
+        func: Box<Object>,
+        free: Vec<Object>,
     },
     String {
         value: String,
@@ -347,6 +332,9 @@ impl ObjectTraits for Object {
                 out.push('}');
                 out
             }
+            Object::Closure { .. } => {
+                format!("closure[{:p}]", self)
+            }
         }
     }
 
@@ -362,6 +350,7 @@ impl ObjectTraits for Object {
             Object::Array { .. } => "ARRAY",
             Object::Hash { .. } => "HASH",
             Object::CompiledFunction { .. } => "COMPILED_FUNCTION",
+            Object::Closure { .. } => "CLOSURE",
         }
     }
 
