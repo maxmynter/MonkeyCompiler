@@ -54,7 +54,11 @@ impl VM {
             num_locals: 0,
             num_parameters: 0,
         };
-        let main_frame = frame::Frame::new(main_fn, 0);
+        let main_closure = Object::Closure {
+            func: Box::new(main_fn),
+            free: Vec::new(),
+        };
+        let main_frame = frame::Frame::new(main_closure, 0);
         let mut frames = vec![None; MAX_FRAMES];
         frames[0] = Some(main_frame);
 
@@ -313,32 +317,37 @@ impl VM {
     fn execute_call(&mut self, num_args: usize) -> Result<(), VMError> {
         let callee = self.stack[self.sp - 1 - num_args].clone();
         match callee {
-            Object::CompiledFunction { .. } => self.call_function(num_args),
+            Object::Closure { .. } => self.call_closure(callee, num_args),
             Object::Builtin { .. } => self.call_builtin(callee, num_args),
             _ => unreachable!(),
         }
     }
 
-    fn call_function(&mut self, num_args: usize) -> Result<(), VMError> {
-        let func = self.stack[self.sp - 1 - num_args].clone();
-        match func {
-            Object::CompiledFunction {
-                num_locals,
-                num_parameters,
-                ..
-            } => {
-                let frame = Frame::new(func, self.sp - num_args);
-                if num_parameters != num_args {
-                    return Err(VMError::WrongArgumentCount {
-                        want: num_parameters,
-                        got: num_args,
-                    });
+    fn call_closure(&mut self, cl: Object, num_args: usize) -> Result<(), VMError> {
+        match &cl {
+            Object::Closure { func, .. } => match func.as_ref() {
+                Object::CompiledFunction {
+                    num_locals,
+                    num_parameters,
+                    ..
+                } => {
+                    if num_args != *num_parameters {
+                        return Err(VMError::WrongArgumentCount {
+                            want: *num_parameters,
+                            got: num_args,
+                        });
+                    }
+                    let base_pointer = self.sp - num_args;
+                    let frame = Frame::new(cl.clone(), base_pointer);
+                    self.push_frame(frame);
+                    self.sp = base_pointer + num_locals;
                 }
-                self.sp = frame.base_pointer + num_locals;
-                self.push_frame(frame);
-            }
-            _ => unreachable!(),
-        }
+                _ => {
+                    panic!("this should be a function")
+                }
+            },
+            _ => panic!("can only call closure"),
+        };
         Ok(())
     }
 
@@ -370,10 +379,10 @@ impl VM {
         let mut ins: &Instruction;
         let mut op: Opcode;
 
-        while self.current_frame().ip < self.current_frame().instructions.len() as isize - 1 {
+        while self.current_frame().ip < self.current_frame().instructions().len() as isize - 1 {
             self.current_frame().ip += 1;
             let ip = self.current_frame().ip as usize;
-            ins = &self.current_frame().instructions;
+            ins = &self.current_frame().instructions();
             op = Opcode::from_u8(ins[ip]).unwrap();
 
             match op {
@@ -486,8 +495,27 @@ impl VM {
                     let func = ORDERED_BUILTINS[builtin_index].1;
                     self.push(Object::Builtin { func })?;
                 }
-                Opcode::OpClosure => todo!(),
+                Opcode::OpClosure => {
+                    let const_index = read_uint16(&ins[ip + 1..]);
+                    let _ = read_uint8(&ins[ip + 3..]); // TODO: now useless, will address
+                    self.current_frame().ip += 3;
+                    self.push_closure(const_index)?;
+                }
             }
+        }
+        Ok(())
+    }
+    fn push_closure(&mut self, const_index: isize) -> Result<(), VMError> {
+        let constant = &self.constants[const_index as usize];
+        match constant {
+            Object::CompiledFunction { .. } => {
+                let closure = Object::Closure {
+                    func: Box::new(constant.clone()),
+                    free: Vec::new(),
+                };
+                self.push(closure)?;
+            }
+            _ => unreachable!(),
         }
         Ok(())
     }
