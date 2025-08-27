@@ -246,7 +246,7 @@ impl Compilable for FunctionLiteral {
             num_parameters,
         };
         let pos = c.add_constant(compiled_fn);
-        c.emit(Opcode::OpConstant, &[pos]);
+        c.emit(Opcode::OpClosure, &[pos, 0]);
         Ok(())
     }
 }
