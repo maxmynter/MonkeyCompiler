@@ -6,6 +6,12 @@ pub struct CompiledFunction {
     pub num_locals: usize,
     pub num_parameters: usize,
 }
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Closure {
+    pub func: Box<CompiledFunction>,
+    pub free: Vec<Object>,
+}
 use lazy_static::lazy_static;
 use std::cell::RefCell;
 use std::collections::{HashMap, hash_map::DefaultHasher};
@@ -87,10 +93,7 @@ pub enum Object {
         env: Rc<RefCell<Environment>>,
     },
     CompiledFunction(CompiledFunction),
-    Closure {
-        func: Box<CompiledFunction>,
-        free: Vec<Object>,
-    },
+    Closure(Closure),
     String {
         value: String,
     },

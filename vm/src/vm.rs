@@ -54,7 +54,7 @@ impl VM {
             num_locals: 0,
             num_parameters: 0,
         };
-        let main_closure = Object::Closure {
+        let main_closure = object::Closure {
             func: Box::new(main_fn),
             free: Vec::new(),
         };
@@ -78,7 +78,7 @@ impl VM {
             num_locals: 0,
             num_parameters: 0,
         };
-        let main_closure = Object::Closure {
+        let main_closure = object::Closure {
             func: Box::new(main_fn),
             free: Vec::new(),
         };
@@ -321,7 +321,7 @@ impl VM {
     fn execute_call(&mut self, num_args: usize) -> Result<(), VMError> {
         let callee = self.stack[self.sp - 1 - num_args].clone();
         match callee {
-            Object::Closure { func, free } => self.call_closure(func, free, num_args),
+            Object::Closure(object::Closure { func, free }) => self.call_closure(func, free, num_args),
             Object::Builtin { .. } => self.call_builtin(callee, num_args),
             _ => unreachable!(),
         }
@@ -337,7 +337,7 @@ impl VM {
         
         let base_pointer = self.sp - num_args;
         let num_locals = func.num_locals; // Extract before move
-        let closure = Object::Closure { func, free };
+        let closure = object::Closure { func, free };
         let frame = Frame::new(closure, base_pointer);
         self.push_frame(frame);
         self.sp = base_pointer + num_locals;
@@ -502,10 +502,10 @@ impl VM {
         let constant = &self.constants[const_index as usize];
         match constant {
             Object::CompiledFunction(compiled_fn) => {
-                let closure = Object::Closure {
+                let closure = Object::Closure(object::Closure {
                     func: Box::new(compiled_fn.clone()),
                     free: Vec::new(),
-                };
+                });
                 self.push(closure)?;
             }
             _ => unreachable!(),
