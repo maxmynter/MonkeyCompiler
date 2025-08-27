@@ -317,37 +317,34 @@ impl VM {
     fn execute_call(&mut self, num_args: usize) -> Result<(), VMError> {
         let callee = self.stack[self.sp - 1 - num_args].clone();
         match callee {
-            Object::Closure { .. } => self.call_closure(callee, num_args),
+            Object::Closure { func, free } => self.call_closure(func, free, num_args),
             Object::Builtin { .. } => self.call_builtin(callee, num_args),
             _ => unreachable!(),
         }
     }
 
-    fn call_closure(&mut self, cl: Object, num_args: usize) -> Result<(), VMError> {
-        match &cl {
-            Object::Closure { func, .. } => match func.as_ref() {
-                Object::CompiledFunction {
-                    num_locals,
-                    num_parameters,
-                    ..
-                } => {
-                    if num_args != *num_parameters {
-                        return Err(VMError::WrongArgumentCount {
-                            want: *num_parameters,
-                            got: num_args,
-                        });
-                    }
-                    let base_pointer = self.sp - num_args;
-                    let frame = Frame::new(cl.clone(), base_pointer);
-                    self.push_frame(frame);
-                    self.sp = base_pointer + num_locals;
-                }
-                _ => {
-                    panic!("this should be a function")
-                }
-            },
-            _ => panic!("can only call closure"),
+    fn call_closure(&mut self, func: Box<Object>, free: Vec<Object>, num_args: usize) -> Result<(), VMError> {
+        let (num_locals, num_parameters) = match func.as_ref() {
+            Object::CompiledFunction {
+                num_locals,
+                num_parameters,
+                ..
+            } => (*num_locals, *num_parameters),
+            _ => panic!("closure function should be compiled function"),
         };
+
+        if num_args != num_parameters {
+            return Err(VMError::WrongArgumentCount {
+                want: num_parameters,
+                got: num_args,
+            });
+        }
+        
+        let base_pointer = self.sp - num_args;
+        let closure = Object::Closure { func, free };
+        let frame = Frame::new(closure, base_pointer);
+        self.push_frame(frame);
+        self.sp = base_pointer + num_locals;
         Ok(())
     }
 
