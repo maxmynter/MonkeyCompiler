@@ -121,6 +121,7 @@ pub enum Opcode {
     OpGetLocal,
     OpGetBuiltin,
     OpClosure,
+    OpGetFree,
 }
 
 impl Opcode {
@@ -154,6 +155,7 @@ impl Opcode {
             25 => Some(Opcode::OpGetLocal),
             26 => Some(Opcode::OpGetBuiltin),
             27 => Some(Opcode::OpClosure),
+            28 => Some(Opcode::OpGetFree),
             _ => None,
         }
     }
@@ -362,6 +364,13 @@ lazy_static! {
                 Definition {
                     name: "OpClosure",
                     operand_widths: vec![2,1]
+            }
+        ),
+        (
+                Opcode::OpGetFree,
+                Definition {
+                    name: "OpGetFree",
+                    operand_widths: vec![1]
             }
         ),
         ]

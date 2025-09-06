@@ -321,20 +321,27 @@ impl VM {
     fn execute_call(&mut self, num_args: usize) -> Result<(), VMError> {
         let callee = self.stack[self.sp - 1 - num_args].clone();
         match callee {
-            Object::Closure(object::Closure { func, free }) => self.call_closure(func, free, num_args),
+            Object::Closure(object::Closure { func, free }) => {
+                self.call_closure(func, free, num_args)
+            }
             Object::Builtin { .. } => self.call_builtin(callee, num_args),
             _ => unreachable!(),
         }
     }
 
-    fn call_closure(&mut self, func: Box<object::CompiledFunction>, free: Vec<Object>, num_args: usize) -> Result<(), VMError> {
+    fn call_closure(
+        &mut self,
+        func: Box<object::CompiledFunction>,
+        free: Vec<Object>,
+        num_args: usize,
+    ) -> Result<(), VMError> {
         if num_args != func.num_parameters {
             return Err(VMError::WrongArgumentCount {
                 want: func.num_parameters,
                 got: num_args,
             });
         }
-        
+
         let base_pointer = self.sp - num_args;
         let num_locals = func.num_locals; // Extract before move
         let closure = object::Closure { func, free };
@@ -494,6 +501,7 @@ impl VM {
                     self.current_frame().ip += 3;
                     self.push_closure(const_index)?;
                 }
+                Opcode::OpGetFree => todo!(),
             }
         }
         Ok(())

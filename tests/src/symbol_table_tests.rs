@@ -1,5 +1,5 @@
 #![cfg(test)]
-use compiler::symbol_table::{GLOBAL_SCOPE, LOCAL_SCOPE, Symbol, SymbolTable};
+use compiler::symbol_table::{FREE_SCOPE, GLOBAL_SCOPE, LOCAL_SCOPE, Symbol, SymbolTable};
 use std::collections::HashMap;
 
 #[test]
@@ -304,6 +304,194 @@ fn test_define_resolve_builtins() {
                     sym,
                     result.unwrap()
                 );
+            }
+        }
+    }
+}
+
+#[test]
+fn test_resolve_unresolvable_free() {
+    let mut global = SymbolTable::new();
+    global.define("a");
+
+    let mut first_local = SymbolTable::new_enclosed(global);
+    first_local.define("c");
+
+    let mut second_local = SymbolTable::new_enclosed(first_local);
+    second_local.define("e");
+    second_local.define("f");
+
+    let expected = vec![
+        Symbol {
+            name: "a".to_string(),
+            scope: GLOBAL_SCOPE,
+            index: 0,
+        },
+        Symbol {
+            name: "c".to_string(),
+            scope: FREE_SCOPE,
+            index: 0,
+        },
+        Symbol {
+            name: "e".to_string(),
+            scope: LOCAL_SCOPE,
+            index: 0,
+        },
+        Symbol {
+            name: "f".to_string(),
+            scope: LOCAL_SCOPE,
+            index: 1,
+        },
+    ];
+
+    for sym in expected {
+        let result = second_local.resolve(&sym.name);
+        if result.is_none() {
+            panic!("name {} not resolvable", sym.name);
+        }
+        if result.unwrap() != &sym {
+            panic!(
+                "expected {} to resolve to {:?}, got={:?}",
+                sym.name,
+                sym,
+                result.unwrap()
+            );
+        }
+    }
+
+    let expected_unresolvable = vec!["b", "d"];
+    for name in expected_unresolvable {
+        let result = second_local.resolve(&name.to_string());
+        if result.is_some() {
+            panic!("name {} resolved, but was expected not to", name);
+        }
+    }
+}
+
+#[test]
+fn test_resolve_free() {
+    let mut global = SymbolTable::new();
+    global.define("a");
+    global.define("b");
+
+    let mut first_local = SymbolTable::new_enclosed(global);
+    first_local.define("c");
+    first_local.define("d");
+
+    let mut second_local = SymbolTable::new_enclosed(first_local.clone());
+    second_local.define("e");
+    second_local.define("f");
+
+    struct TestCase {
+        table: SymbolTable,
+        expected_symbols: Vec<Symbol>,
+        expected_free_symbols: Vec<Symbol>,
+    }
+
+    let tests = vec![
+        TestCase {
+            table: first_local,
+            expected_symbols: vec![
+                Symbol {
+                    name: "a".to_string(),
+                    scope: GLOBAL_SCOPE,
+                    index: 0,
+                },
+                Symbol {
+                    name: "b".to_string(),
+                    scope: GLOBAL_SCOPE,
+                    index: 1,
+                },
+                Symbol {
+                    name: "c".to_string(),
+                    scope: LOCAL_SCOPE,
+                    index: 0,
+                },
+                Symbol {
+                    name: "d".to_string(),
+                    scope: LOCAL_SCOPE,
+                    index: 1,
+                },
+            ],
+            expected_free_symbols: vec![],
+        },
+        TestCase {
+            table: second_local,
+            expected_symbols: vec![
+                Symbol {
+                    name: "a".to_string(),
+                    scope: GLOBAL_SCOPE,
+                    index: 0,
+                },
+                Symbol {
+                    name: "b".to_string(),
+                    scope: GLOBAL_SCOPE,
+                    index: 1,
+                },
+                Symbol {
+                    name: "c".to_string(),
+                    scope: FREE_SCOPE,
+                    index: 0,
+                },
+                Symbol {
+                    name: "d".to_string(),
+                    scope: FREE_SCOPE,
+                    index: 1,
+                },
+                Symbol {
+                    name: "e".to_string(),
+                    scope: LOCAL_SCOPE,
+                    index: 0,
+                },
+                Symbol {
+                    name: "f".to_string(),
+                    scope: LOCAL_SCOPE,
+                    index: 1,
+                },
+            ],
+            expected_free_symbols: vec![
+                Symbol {
+                    name: "c".to_string(),
+                    scope: LOCAL_SCOPE,
+                    index: 0,
+                },
+                Symbol {
+                    name: "d".to_string(),
+                    scope: LOCAL_SCOPE,
+                    index: 1,
+                },
+            ],
+        },
+    ];
+
+    for tt in tests {
+        for sym in tt.expected_symbols {
+            let result = tt.table.resolve(&sym.name);
+            if result.is_none() {
+                panic!("name {} not resolvable", sym.name);
+            }
+            if result.unwrap() != &sym {
+                panic!(
+                    "expected {} to resolve to {:?}, got={:?}",
+                    sym.name,
+                    sym,
+                    result.unwrap()
+                );
+            }
+        }
+
+        if tt.table.free_symbols.len() != tt.expected_free_symbols.len() {
+            panic!(
+                "wrong number of free symbols. got={}, want={}",
+                tt.table.free_symbols.len(),
+                tt.expected_free_symbols.len()
+            );
+        }
+
+        for (i, sym) in tt.expected_free_symbols.iter().enumerate() {
+            let result = &tt.table.free_symbols[i];
+            if result != sym {
+                panic!("wrong free symbol. got={:?}, want={:?}", result, sym);
             }
         }
     }
