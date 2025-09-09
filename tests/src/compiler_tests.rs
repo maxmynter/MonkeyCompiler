@@ -987,17 +987,15 @@ fn test_closures() {
                 }),
                 Object::CompiledFunction(CompiledFunction {
                     instructions: flatten_instructions(vec![
-                        make(Opcode::OpConstant, &[0]),
-                        make(Opcode::OpPop, &[]),
                         make(Opcode::OpGetLocal, &[0]),
-                        make(Opcode::OpClosure, &[1, 1]),
+                        make(Opcode::OpClosure, &[0, 1]),
                         make(Opcode::OpReturnValue, &[]),
                     ]),
                     num_locals: 1,
                     num_parameters: 1,
                 }),
             ],
-            expected_instructions: vec![make(Opcode::OpClosure, &[2, 0]), make(Opcode::OpPop, &[])],
+            expected_instructions: vec![make(Opcode::OpClosure, &[1, 0]), make(Opcode::OpPop, &[])],
         },
         CompilerTest {
             input: r#"

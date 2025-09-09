@@ -84,13 +84,21 @@ impl SymbolTable {
         &self.store[name]
     }
 
-    pub fn resolve(&self, name: &String) -> Option<&Symbol> {
-        match self.store.get(name) {
-            Some(resolved) => Some(resolved),
-            None => match &self.outer {
-                Some(outer) => outer.resolve(name),
-                None => None,
-            },
+    pub fn resolve(&mut self, name: &String) -> Option<Symbol> {
+        if let Some(symbol) = self.store.get(name) {
+            return Some(symbol.clone());
         }
+
+        if let Some(outer) = &mut self.outer {
+            if let Some(outer_symbol) = outer.resolve(name) {
+                if outer_symbol.scope == GLOBAL_SCOPE || outer_symbol.scope == BUILTIN_SCOPE {
+                    return Some(outer_symbol);
+                }
+
+                let free_symbol = self.define_free(outer_symbol);
+                return Some(free_symbol.clone());
+            }
+        }
+        None
     }
 }

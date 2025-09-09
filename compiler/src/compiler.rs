@@ -9,7 +9,9 @@ use ast::{
 use code::{Instruction, Opcode, make};
 use object::{ORDERED_BUILTINS, Object};
 
-use crate::symbol_table::{BUILTIN_SCOPE, GLOBAL_SCOPE, LOCAL_SCOPE, Symbol, SymbolTable};
+use crate::symbol_table::{
+    BUILTIN_SCOPE, FREE_SCOPE, GLOBAL_SCOPE, LOCAL_SCOPE, Symbol, SymbolTable,
+};
 
 const JUMP_PLACEHOLDER: isize = 9999;
 
@@ -84,12 +86,14 @@ impl Compiler {
     }
 
     pub fn load_symbol(&mut self, s: &Symbol) {
-        match s.scope {
-            GLOBAL_SCOPE => self.emit(Opcode::OpGetGlobal, &[s.index as isize]),
-            LOCAL_SCOPE => self.emit(Opcode::OpGetLocal, &[s.index as isize]),
-            BUILTIN_SCOPE => self.emit(Opcode::OpGetBuiltin, &[s.index as isize]),
+        let opcode = match s.scope {
+            GLOBAL_SCOPE => Opcode::OpGetGlobal,
+            LOCAL_SCOPE => Opcode::OpGetLocal,
+            BUILTIN_SCOPE => Opcode::OpGetBuiltin,
+            FREE_SCOPE => Opcode::OpGetFree,
             _ => unreachable!(),
         };
+        self.emit(opcode, &[s.index as isize]);
     }
 
     pub fn compile(&mut self, node: impl Compilable) -> Result<(), String> {
@@ -237,16 +241,20 @@ impl Compilable for FunctionLiteral {
         if !c.last_instruction_is(Opcode::OpReturnValue) {
             c.emit(Opcode::OpReturn, &[]);
         }
+        let free_symbols = c.symbol_table.free_symbols.clone();
         let num_locals = c.symbol_table.num_definitions;
         let num_parameters = self.parameters.len();
         let instructions = c.leave_scope();
+        for sym in free_symbols.iter() {
+            c.load_symbol(&sym);
+        }
         let compiled_fn = Object::CompiledFunction(object::CompiledFunction {
             instructions,
             num_locals,
             num_parameters,
         });
         let pos = c.add_constant(compiled_fn);
-        c.emit(Opcode::OpClosure, &[pos, 0]);
+        c.emit(Opcode::OpClosure, &[pos, free_symbols.len() as isize]);
         Ok(())
     }
 }
@@ -416,7 +424,6 @@ impl Compilable for Expression {
                 let symbol = c
                     .symbol_table
                     .resolve(value)
-                    .cloned()
                     .ok_or_else(|| format!("unknown identifier: {}", value))?;
                 c.load_symbol(&symbol);
                 Ok(())

@@ -100,7 +100,7 @@ fn test_resolve() {
 
     for sym in expected.iter() {
         let result = global.resolve(sym.0).unwrap();
-        assert_eq!(result, sym.1);
+        assert_eq!(result, *sym.1);
     }
 }
 
@@ -151,7 +151,7 @@ fn test_resolve_local() {
 
     for sym in expected.iter() {
         let result = local.resolve(sym.0).unwrap();
-        assert_eq!(result, sym.1);
+        assert_eq!(result, *sym.1);
     }
 }
 
@@ -173,7 +173,7 @@ fn test_resolve_nested_local() {
     second_local.define("e");
     second_local.define("f");
 
-    let tests = vec![
+    let mut tests = vec![
         SymbolTableTest {
             table: first_local,
             expected_symbols: HashMap::from([
@@ -250,10 +250,10 @@ fn test_resolve_nested_local() {
         },
     ];
 
-    for tt in tests.iter() {
+    for tt in tests.iter_mut() {
         for sym in tt.expected_symbols.iter() {
             let result = tt.table.resolve(sym.0).unwrap();
-            assert_eq!(result, sym.1);
+            assert_eq!(result, *sym.1);
         }
     }
 }
@@ -288,22 +288,24 @@ fn test_define_resolve_builtins() {
         global.define_builtin(i, &v.name);
     }
 
-    let first_local = SymbolTable::new_enclosed(global.clone());
-    let second_local = SymbolTable::new_enclosed(first_local.clone());
+    let mut first_local = SymbolTable::new_enclosed(global.clone());
+    let mut second_local = SymbolTable::new_enclosed(first_local.clone());
 
-    for table in [&global, &first_local, &second_local] {
+    for table in [&mut global, &mut first_local, &mut second_local] {
         for sym in &expected {
             let result = table.resolve(&sym.name);
-            if result.is_none() {
-                panic!("name {} not resolvable", sym.name);
-            }
-            if result.unwrap() != sym {
-                panic!(
-                    "expected {} to resolve to {:?}, got={:?}",
-                    sym.name,
-                    sym,
-                    result.unwrap()
-                );
+            match result {
+                None => panic!("name {} not resolvable", sym.name),
+                Some(resolved_sym) => {
+                    if resolved_sym != *sym {
+                        panic!(
+                            "expected {} to resolve to {:?}, got={:?}",
+                            sym.name,
+                            sym,
+                            resolved_sym
+                        );
+                    }
+                }
             }
         }
     }
@@ -346,16 +348,18 @@ fn test_resolve_unresolvable_free() {
 
     for sym in expected {
         let result = second_local.resolve(&sym.name);
-        if result.is_none() {
-            panic!("name {} not resolvable", sym.name);
-        }
-        if result.unwrap() != &sym {
-            panic!(
-                "expected {} to resolve to {:?}, got={:?}",
-                sym.name,
-                sym,
-                result.unwrap()
-            );
+        match result {
+            None => panic!("name {} not resolvable", sym.name),
+            Some(resolved_sym) => {
+                if resolved_sym != sym {
+                    panic!(
+                        "expected {} to resolve to {:?}, got={:?}",
+                        sym.name,
+                        sym,
+                        resolved_sym
+                    );
+                }
+            }
         }
     }
 
@@ -464,19 +468,21 @@ fn test_resolve_free() {
         },
     ];
 
-    for tt in tests {
+    for mut tt in tests {
         for sym in tt.expected_symbols {
             let result = tt.table.resolve(&sym.name);
-            if result.is_none() {
-                panic!("name {} not resolvable", sym.name);
-            }
-            if result.unwrap() != &sym {
-                panic!(
-                    "expected {} to resolve to {:?}, got={:?}",
-                    sym.name,
-                    sym,
-                    result.unwrap()
-                );
+            match result {
+                None => panic!("name {} not resolvable", sym.name),
+                Some(resolved_sym) => {
+                    if resolved_sym != sym {
+                        panic!(
+                            "expected {} to resolve to {:?}, got={:?}",
+                            sym.name,
+                            sym,
+                            resolved_sym
+                        );
+                    }
+                }
             }
         }
 
