@@ -748,3 +748,35 @@ fn test_builtin_functions() {
     ];
     run_vm_tests(tests);
 }
+
+#[test]
+fn test_closure() {
+    let tests = vec![
+        VmTestCase {
+            input: "let newClosure = fn(a) {
+fn() { a; };
+};
+let closure = newClosure(99);
+closure();",
+            expected: Ok(Object::Integer { value: 99 }),
+        },
+        VmTestCase {
+            input: "let newAdder = fn(a, b) {
+fn(c) { a + b + c };
+};
+let adder = newAdder(1, 2);
+adder(8);",
+            expected: Ok(Object::Integer { value: 11 }),
+        },
+        VmTestCase {
+            input: "let newAdder = fn(a, b) {
+let c = a + b;
+fn(d) { c + d };
+};
+let adder = newAdder(1, 2);
+adder(8);",
+            expected: Ok(Object::Integer { value: 11 }),
+        },
+    ];
+    run_vm_tests(tests);
+}

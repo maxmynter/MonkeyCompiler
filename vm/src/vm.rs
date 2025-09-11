@@ -497,22 +497,33 @@ impl VM {
                 }
                 Opcode::OpClosure => {
                     let const_index = read_uint16(&ins[ip + 1..]);
-                    let _ = read_uint8(&ins[ip + 3..]); // TODO: now useless, will address
+                    let num_free = read_uint8(&ins[ip + 3..]) as usize;
                     self.current_frame().ip += 3;
-                    self.push_closure(const_index)?;
+                    self.push_closure(const_index, num_free)?;
                 }
-                Opcode::OpGetFree => todo!(),
+                Opcode::OpGetFree => {
+                    let free_idx = read_uint8(&ins[ip + 1..]) as usize;
+                    self.current_frame().ip += 1;
+                    let current_closures_free = self.current_frame().cl.free[free_idx].clone();
+                    self.push(current_closures_free)?;
+                }
             }
         }
         Ok(())
     }
-    fn push_closure(&mut self, const_index: isize) -> Result<(), VMError> {
+    fn push_closure(&mut self, const_index: isize, num_free: usize) -> Result<(), VMError> {
         let constant = &self.constants[const_index as usize];
         match constant {
             Object::CompiledFunction(compiled_fn) => {
+                let mut free = Vec::new();
+                for i in 0..num_free {
+                    free.push(self.stack[self.sp - num_free + i].clone());
+                }
+                self.sp -= num_free as usize;
+
                 let closure = Object::Closure(object::Closure {
                     func: Box::new(compiled_fn.clone()),
-                    free: Vec::new(),
+                    free,
                 });
                 self.push(closure)?;
             }
