@@ -815,3 +815,35 @@ closure();",
     ];
     run_vm_tests(tests);
 }
+
+#[test]
+fn test_recursive_functions() {
+    let tests = vec![
+        VmTestCase {
+            input: "let countDown = fn(x) {
+            if (x == 0) {
+                    return 0;
+                } else {
+                    countDown(x - 1);
+                }
+            };
+            countDown(1);",
+            expected: Ok(Object::Integer { value: 0 }),
+        },
+        VmTestCase {
+            input: "let countDown = fn(x) {
+                if (x == 0) {
+                    return 0;
+                } else {
+                    countDown(x - 1);
+                    }
+                };
+                let wrapper = fn() {
+                    countDown(1);
+                };
+                wrapper();",
+            expected: Ok(Object::Integer { value: 0 }),
+        },
+    ];
+    run_vm_tests(tests);
+}

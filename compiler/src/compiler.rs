@@ -312,8 +312,8 @@ impl Compilable for Statement {
     fn compile(&self, c: &mut Compiler) -> Result<(), String> {
         match self {
             Statement::Let { value, name, .. } => {
+                let symbol = c.symbol_table.define(&name.value).clone();
                 let result = value.compile(c);
-                let symbol = c.symbol_table.define(&name.value);
                 let symbol_index = symbol.index as isize;
                 match symbol.scope {
                     GLOBAL_SCOPE => c.emit(Opcode::OpSetGlobal, &[symbol_index]),
