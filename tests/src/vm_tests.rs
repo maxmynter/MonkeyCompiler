@@ -23,6 +23,20 @@ fn run_vm_tests(tests: Vec<VmTestCase>) {
         let program = prepare_program_for_test(tt.input);
         let mut comp = Compiler::new();
         comp.compile(program).unwrap();
+
+        for (i, constant) in comp.bytecode().constants.iter().enumerate() {
+            println!("CONSTANT: {} {:?} {:?}", i, constant, constant);
+            match constant {
+                Object::CompiledFunction(compiled_fn) => {
+                    println!("Compiled Fn Instructions: {:?}", compiled_fn.instructions);
+                }
+                Object::Integer { value } => {
+                    println!("Integer Value: {}", value);
+                }
+                _ => {}
+            }
+        }
+
         let mut vm = VM::new(comp.bytecode());
         let result = vm.run();
         let stack_elem = vm.last_popped_stack_elem().unwrap().clone();
@@ -842,6 +856,22 @@ fn test_recursive_functions() {
                     countDown(1);
                 };
                 wrapper();",
+            expected: Ok(Object::Integer { value: 0 }),
+        },
+        VmTestCase {
+            input: "
+                let wrapper = fn() {
+                let countDown = fn(x) {
+                if (x == 0) {
+                return 0;
+                } else {
+                countDown(x - 1);
+                }
+                };
+                countDown(1);
+                };
+                wrapper();
+            ",
             expected: Ok(Object::Integer { value: 0 }),
         },
     ];
