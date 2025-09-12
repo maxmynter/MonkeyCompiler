@@ -1111,3 +1111,79 @@ fn test_closures() {
     ];
     run_compiler_tests(tests);
 }
+
+#[test]
+fn test_recursive_functions() {
+    let tests = vec![
+        CompilerTest {
+            input: "let countDown = fn(x){countDown(x-1);}; countDown(1)",
+            expected_constants: vec![
+                Object::Integer { value: 1 },
+                Object::CompiledFunction(CompiledFunction {
+                    instructions: flatten_instructions(vec![
+                        make(Opcode::OpCurrentClosure, &[]),
+                        make(Opcode::OpGetLocal, &[0]),
+                        make(Opcode::OpConstant, &[0]),
+                        make(Opcode::OpSub, &[]),
+                        make(Opcode::OpCall, &[1]),
+                        make(Opcode::OpReturnValue, &[]),
+                    ]),
+                    num_locals: 0,
+                    num_parameters: 1,
+                }),
+                Object::Integer { value: 1 },
+            ],
+            expected_instructions: vec![
+                make(Opcode::OpClosure, &[1, 0]),
+                make(Opcode::OpSetGlobal, &[0]),
+                make(Opcode::OpGetGlobal, &[0]),
+                make(Opcode::OpConstant, &[2]),
+                make(Opcode::OpCall, &[1]),
+                make(Opcode::OpPop, &[]),
+            ],
+        },
+        CompilerTest {
+            input: "let wrapper = fn() {
+let countDown = fn(x) { countDown(x - 1); };
+countDown(1);
+};
+wrapper();",
+            expected_constants: vec![
+                Object::Integer { value: 1 },
+                Object::CompiledFunction(CompiledFunction {
+                    instructions: flatten_instructions(vec![
+                        make(Opcode::OpCurrentClosure, &[]),
+                        make(Opcode::OpGetLocal, &[0]),
+                        make(Opcode::OpConstant, &[0]),
+                        make(Opcode::OpSub, &[]),
+                        make(Opcode::OpCall, &[1]),
+                        make(Opcode::OpReturnValue, &[]),
+                    ]),
+                    num_locals: 1,
+                    num_parameters: 1,
+                }),
+                Object::Integer { value: 1 },
+                Object::CompiledFunction(CompiledFunction {
+                    instructions: flatten_instructions(vec![
+                        make(Opcode::OpClosure, &[1, 0]),
+                        make(Opcode::OpSetGlobal, &[0]),
+                        make(Opcode::OpGetGlobal, &[0]),
+                        make(Opcode::OpConstant, &[2]),
+                        make(Opcode::OpCall, &[1]),
+                        make(Opcode::OpPop, &[]),
+                    ]),
+                    num_locals: 0,
+                    num_parameters: 1,
+                }),
+            ],
+            expected_instructions: vec![
+                make(Opcode::OpClosure, &[3, 0]),
+                make(Opcode::OpSetGlobal, &[0]),
+                make(Opcode::OpGetGlobal, &[0]),
+                make(Opcode::OpCall, &[0]),
+                make(Opcode::OpPop, &[]),
+            ],
+        },
+    ];
+    run_compiler_tests(tests);
+}

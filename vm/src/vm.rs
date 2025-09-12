@@ -507,6 +507,9 @@ impl VM {
                     let current_closures_free = self.current_frame().cl.free[free_idx].clone();
                     self.push(current_closures_free)?;
                 }
+                Opcode::OpCurrentClosure => {
+                    todo!()
+                }
             }
         }
         Ok(())
