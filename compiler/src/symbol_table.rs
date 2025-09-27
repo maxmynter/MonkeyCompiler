@@ -6,6 +6,7 @@ pub const GLOBAL_SCOPE: SymbolScope = "GLOBAL";
 pub const LOCAL_SCOPE: SymbolScope = "LOCAL";
 pub const BUILTIN_SCOPE: SymbolScope = "BUILTIN";
 pub const FREE_SCOPE: SymbolScope = "FREE";
+pub const FUNCTION_SCOPE: SymbolScope = "FUNCTION";
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Symbol {
@@ -59,6 +60,16 @@ impl SymbolTable {
         };
         self.store.insert(name.to_string(), symbol);
         self.num_definitions += 1;
+        &self.store[name]
+    }
+
+    pub fn define_function_name(&mut self, name: &str) -> &Symbol {
+        let symbol = Symbol {
+            name: name.to_string(),
+            index: 0,
+            scope: FUNCTION_SCOPE,
+        };
+        self.store.insert(name.to_string(), symbol);
         &self.store[name]
     }
 

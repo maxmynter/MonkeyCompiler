@@ -1,5 +1,7 @@
 #![cfg(test)]
-use compiler::symbol_table::{FREE_SCOPE, GLOBAL_SCOPE, LOCAL_SCOPE, Symbol, SymbolTable};
+use compiler::symbol_table::{
+    FREE_SCOPE, FUNCTION_SCOPE, GLOBAL_SCOPE, LOCAL_SCOPE, Symbol, SymbolTable,
+};
 use std::collections::HashMap;
 
 #[test]
@@ -300,9 +302,7 @@ fn test_define_resolve_builtins() {
                     if resolved_sym != *sym {
                         panic!(
                             "expected {} to resolve to {:?}, got={:?}",
-                            sym.name,
-                            sym,
-                            resolved_sym
+                            sym.name, sym, resolved_sym
                         );
                     }
                 }
@@ -354,9 +354,7 @@ fn test_resolve_unresolvable_free() {
                 if resolved_sym != sym {
                     panic!(
                         "expected {} to resolve to {:?}, got={:?}",
-                        sym.name,
-                        sym,
-                        resolved_sym
+                        sym.name, sym, resolved_sym
                     );
                 }
             }
@@ -477,9 +475,7 @@ fn test_resolve_free() {
                     if resolved_sym != sym {
                         panic!(
                             "expected {} to resolve to {:?}, got={:?}",
-                            sym.name,
-                            sym,
-                            resolved_sym
+                            sym.name, sym, resolved_sym
                         );
                     }
                 }
@@ -500,5 +496,38 @@ fn test_resolve_free() {
                 panic!("wrong free symbol. got={:?}, want={:?}", result, sym);
             }
         }
+    }
+}
+
+#[test]
+fn test_define_and_resolve_function_name() {
+    let mut global = SymbolTable::new();
+    global.define_function_name("a");
+    let expected = Symbol {
+        name: "a".to_string(),
+        scope: FUNCTION_SCOPE,
+        index: 0,
+    };
+    let result = global.resolve(&"a".to_string());
+    match result {
+        None => panic!("function name not resolvable"),
+        Some(resolved) => assert_eq!(expected, resolved),
+    }
+}
+
+#[test]
+fn test_shadowing_function_name() {
+    let mut global = SymbolTable::new();
+    global.define_function_name("a");
+    global.define("a");
+    let expected = Symbol {
+        name: "a".to_string(),
+        scope: GLOBAL_SCOPE,
+        index: 0,
+    };
+    let result = global.resolve(&"a".to_string());
+    match result {
+        None => panic!("function name not resolvable"),
+        Some(resolved) => assert_eq!(expected, resolved),
     }
 }
