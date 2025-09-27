@@ -232,7 +232,7 @@ impl Node for FunctionLiteral {
         let mut out = String::new();
         if let Some(name) = self.name.clone() {
             out.push_str(&name);
-            out.push_str("(");
+            out.push('(');
         } else {
             out.push_str("fn(");
         }

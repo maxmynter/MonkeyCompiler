@@ -382,7 +382,7 @@ impl VM {
         while self.current_frame().ip < self.current_frame().instructions().len() as isize - 1 {
             self.current_frame().ip += 1;
             let ip = self.current_frame().ip as usize;
-            ins = &self.current_frame().instructions();
+            ins = self.current_frame().instructions();
             op = Opcode::from_u8(ins[ip]).unwrap();
 
             match op {
@@ -522,7 +522,7 @@ impl VM {
                 for i in 0..num_free {
                     free.push(self.stack[self.sp - num_free + i].clone());
                 }
-                self.sp -= num_free as usize;
+                self.sp -= num_free;
 
                 let closure = Object::Closure(object::Closure {
                     func: Box::new(compiled_fn.clone()),

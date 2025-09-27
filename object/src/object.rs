@@ -210,7 +210,7 @@ fn builtin_push(args: Vec<Object>) -> Result<Object, EvalError> {
     } else {
         Err(EvalError::WrongArgumentType {
             want: "ARRAY",
-            got: &args[0].object_type(),
+            got: args[0].object_type(),
         })
     }
 }
@@ -227,7 +227,7 @@ fn builtin_rest(args: Vec<Object>) -> Result<Object, EvalError> {
     } else {
         Err(EvalError::WrongArgumentType {
             want: "ARRAY",
-            got: &args[0].object_type(),
+            got: args[0].object_type(),
         })
     }
 }

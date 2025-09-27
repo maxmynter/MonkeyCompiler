@@ -81,8 +81,8 @@ fn test_next_token() {
         },
     ];
     let mut lexer = Lexer::new(&input);
-    for i in 0..expected.len() {
-        assert_eq!(lexer.next_token(), expected[i])
+    for expect in &expected {
+        assert_eq!(lexer.next_token(), *expect)
     }
 }
 
@@ -484,10 +484,10 @@ fn test_parse_code() {
         },
     ];
     let mut lexer = Lexer::new(&input);
-    for i in 0..expected.len() {
+    for expect in expected {
         let tok = lexer.next_token();
-        println!("{:?} -|- {:?}", tok, expected[i]);
-        assert_eq!(tok, expected[i]);
+        println!("{:?} -|- {:?}", tok, expect);
+        assert_eq!(tok, expect);
     }
 }
 

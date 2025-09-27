@@ -246,7 +246,7 @@ impl Compilable for FunctionLiteral {
         let num_parameters = self.parameters.len();
         let instructions = c.leave_scope();
         for sym in free_symbols.iter() {
-            c.load_symbol(&sym);
+            c.load_symbol(sym);
         }
         let compiled_fn = Object::CompiledFunction(object::CompiledFunction {
             instructions,
