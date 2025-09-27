@@ -1052,6 +1052,22 @@ fn test_function_literal() {
 }
 
 #[test]
+fn test_function_literal_with_name() {
+    let input = "let myFunction = fn() { };";
+    let program = prepare_program_for_test(input);
+    assert!(program.statements.len() == 1);
+    if let Statement::Let { name, value, .. } = &program.statements[0] {
+        assert_eq!(*name.value, "myFunction");
+        if let Expression::FunctionLiteral(FunctionLiteral { .. }) = value {
+        } else {
+            panic!("Statement value is not function literal");
+        }
+    } else {
+        panic!("Expected function assigning let statement");
+    }
+}
+
+#[test]
 fn test_function_parameter_parsing() {
     struct FnParameterTest<'a> {
         input: &'static str,

@@ -244,6 +244,7 @@ impl<'a> Parser<'a> {
 
         let body = self.parse_block_statement();
         Expression::FunctionLiteral(FunctionLiteral {
+            name: None,
             token,
             parameters: Rc::new(parameters),
             body: Rc::new(body),
@@ -395,6 +396,20 @@ impl<'a> Parser<'a> {
 
         self.next_token();
         let value = self.parse_expression(PRECEDENCE::LOWEST);
+        let value = match value {
+            Expression::FunctionLiteral(FunctionLiteral {
+                name: _fl_name,
+                token,
+                parameters,
+                body,
+            }) => Expression::FunctionLiteral(FunctionLiteral {
+                name: Some(self.curr.literal.to_string()),
+                token,
+                parameters,
+                body,
+            }),
+            _ => value,
+        };
 
         if self.peek_token_is(&TokenType::SEMICOLON) {
             self.next_token();

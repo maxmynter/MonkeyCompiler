@@ -217,6 +217,7 @@ impl Node for InfixExpression {
 
 #[derive(PartialEq, Clone, Debug, Hash, Eq)]
 pub struct FunctionLiteral {
+    pub name: Option<String>,
     pub token: Token,
     pub parameters: Rc<Vec<Identifier>>,
     pub body: Rc<BlockStatement>,
@@ -229,7 +230,12 @@ impl Node for FunctionLiteral {
 
     fn as_string(&self) -> String {
         let mut out = String::new();
-        out.push_str("fn(");
+        if let Some(name) = self.name.clone() {
+            out.push_str(&name);
+            out.push_str("(");
+        } else {
+            out.push_str("fn(");
+        }
         out.push_str(
             &self
                 .parameters

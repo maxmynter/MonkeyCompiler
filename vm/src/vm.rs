@@ -325,7 +325,7 @@ impl VM {
                 self.call_closure(func, free, num_args)
             }
             Object::Builtin { .. } => self.call_builtin(callee, num_args),
-            _ => unreachable!(),
+            _ => unreachable!("couldn't match {:?}", callee),
         }
     }
 
