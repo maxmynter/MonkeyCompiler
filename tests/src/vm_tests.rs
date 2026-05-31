@@ -877,3 +877,25 @@ fn test_recursive_functions() {
     ];
     run_vm_tests(tests);
 }
+
+#[test]
+fn test_recursive_fibonacci() {
+    let tests = vec![VmTestCase {
+        input: "
+        let fibonacci = fn(x) { 
+            if (x == 0) {
+                return 0;
+            } else {
+                if (x == 1) { 
+                    return 1;
+                } else { 
+                    fibonacci(x -1) + fibonacci(x - 2);
+                }
+            }
+        };
+        fibonacci(15);",
+        expected: Ok(Object::Integer { value: 610 }),
+    }];
+
+    run_vm_tests(tests);
+}
