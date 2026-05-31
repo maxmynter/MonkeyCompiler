@@ -403,7 +403,7 @@ impl<'a> Parser<'a> {
                 parameters,
                 body,
             }) => Expression::FunctionLiteral(FunctionLiteral {
-                name: Some(self.curr.literal.to_string()),
+                name: Some(name.as_string()),
                 token,
                 parameters,
                 body,

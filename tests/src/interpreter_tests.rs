@@ -1058,7 +1058,8 @@ fn test_function_literal_with_name() {
     assert!(program.statements.len() == 1);
     if let Statement::Let { name, value, .. } = &program.statements[0] {
         assert_eq!(*name.value, "myFunction");
-        if let Expression::FunctionLiteral(FunctionLiteral { .. }) = value {
+        if let Expression::FunctionLiteral(FunctionLiteral { name, .. }) = value {
+            assert_eq!(name.as_deref(), Some("myFunction"));
         } else {
             panic!("Statement value is not function literal");
         }
