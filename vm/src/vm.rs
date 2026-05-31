@@ -508,7 +508,8 @@ impl VM {
                     self.push(current_closures_free)?;
                 }
                 Opcode::OpCurrentClosure => {
-                    todo!()
+                    let current_closure = self.current_frame().cl.clone();
+                    self.push(Object::Closure(current_closure))?;
                 }
             }
         }

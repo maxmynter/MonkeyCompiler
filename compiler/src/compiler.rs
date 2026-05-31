@@ -10,7 +10,7 @@ use code::{Instruction, Opcode, make};
 use object::{ORDERED_BUILTINS, Object};
 
 use crate::symbol_table::{
-    BUILTIN_SCOPE, FREE_SCOPE, GLOBAL_SCOPE, LOCAL_SCOPE, Symbol, SymbolTable,
+    BUILTIN_SCOPE, FREE_SCOPE, FUNCTION_SCOPE, GLOBAL_SCOPE, LOCAL_SCOPE, Symbol, SymbolTable,
 };
 
 const JUMP_PLACEHOLDER: isize = 9999;
@@ -86,14 +86,15 @@ impl Compiler {
     }
 
     pub fn load_symbol(&mut self, s: &Symbol) {
-        let opcode = match s.scope {
-            GLOBAL_SCOPE => Opcode::OpGetGlobal,
-            LOCAL_SCOPE => Opcode::OpGetLocal,
-            BUILTIN_SCOPE => Opcode::OpGetBuiltin,
-            FREE_SCOPE => Opcode::OpGetFree,
+        let operands = &[s.index as isize];
+        match s.scope {
+            GLOBAL_SCOPE => self.emit(Opcode::OpGetGlobal, operands),
+            LOCAL_SCOPE => self.emit(Opcode::OpGetLocal, operands),
+            BUILTIN_SCOPE => self.emit(Opcode::OpGetBuiltin, operands),
+            FREE_SCOPE => self.emit(Opcode::OpGetFree, operands),
+            FUNCTION_SCOPE => self.emit(Opcode::OpCurrentClosure, &[]),
             _ => unreachable!(),
         };
-        self.emit(opcode, &[s.index as isize]);
     }
 
     pub fn compile(&mut self, node: impl Compilable) -> Result<(), String> {
@@ -230,6 +231,9 @@ impl Compilable for IntegerLiteral {
 impl Compilable for FunctionLiteral {
     fn compile(&self, c: &mut Compiler) -> Result<(), String> {
         c.enter_scope();
+        if let Some(name) = &self.name {
+            c.symbol_table.define_function_name(&name);
+        }
         for param in self.parameters.iter() {
             c.symbol_table.define(&param.value);
         }
